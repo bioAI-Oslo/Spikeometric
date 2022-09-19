@@ -15,9 +15,9 @@ import torch
 def main():
     mu = 0
     sigma = 5
-    n_neurons = 20
-    n_steps = 10000
-    n_sims = 10
+    n_neurons = 1000
+    n_steps = 1000
+    n_sims = 1
 
     NW = NormalWeights(n_neurons, mu, sigma)
     model = GraphGLM()
