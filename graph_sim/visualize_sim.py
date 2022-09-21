@@ -22,7 +22,10 @@ def load_data(file):
 
     return X, w0
 
-def visualize(X, n_neurons, n_timesteps, n_bins):
+def visualize(X):
+    n_neurons = X.shape[0]
+    n_timesteps = X.shape[1]
+    n_bins = 100
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(5, 3))
 
     fig.set_figheight(4.5)
@@ -63,7 +66,7 @@ while True:
 
     X, w0 = load_data(file)
 
-    visualize(X, 1000, 1000, 100)
+    visualize(X)
 
 
 

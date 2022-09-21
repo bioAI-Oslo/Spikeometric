@@ -1,7 +1,8 @@
-from w0.normal import NormalWeights
-from model.graph_glm import GraphGLM
-from simulator.simulate import simulate
+from graph_sim.w0.normal import NormalWeights
+from graph_sim.model.graph_glm import GraphGLM
+from graph_sim.simulator.simulate import simulate
 from pathlib import Path
+from torch_sparse import SparseTensor
 from tqdm import tqdm
 from numpy.random import default_rng
 import numpy as np
@@ -15,12 +16,14 @@ import torch
 def main():
     mu = 0
     sigma = 5
-    n_neurons = 1000
-    n_steps = 1000
+    n_neurons = 20
+    n_steps = 100000
     n_sims = 1
 
     NW = NormalWeights(n_neurons, mu, sigma)
+
     model = GraphGLM()
+
     data_path = "data" / Path(f"jakob_{n_neurons}_neurons_{n_steps}_steps")
 
     data_path.mkdir(parents=True, exist_ok=True)
@@ -29,11 +32,11 @@ def main():
         f"Creating dataset with {n_neurons} neurons, {n_sims} sims, {n_steps} steps"
     )
 
-    for seed in tqdm(range(n_sims), desc="Simulating", leave=False, colour="#435518"):
+    for seed in tqdm(range(n_sims), desc="Simulation", leave=False, colour="#435518"):
         rng = torch.Generator().manual_seed(seed)
         W0 = NW.build_W0(rng)
         W, edge_index = NW.build_W(W0)
-        
+
         result = simulate(
             W=W,
             edge_index=edge_index,

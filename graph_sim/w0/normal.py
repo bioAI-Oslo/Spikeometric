@@ -13,6 +13,7 @@ class NormalWeights:
         self.abs_ref_strength = -100
         self.rel_ref_strength = -30
         self.alpha = 0.2
+        self.beta = 0.5
 
     def build_W0(self, rng):
         half_n = int(self.n_neurons / 2)
@@ -21,7 +22,8 @@ class NormalWeights:
         return W0
 
     def build_W(self, W0):
-        W_decreasing = self._construct_connectivity_filters(W0)
+        # W_decreasing = self._construct_connectivity_filters(W0)
+        W_decreasing = self.construct_W(W0)
         edge_index = torch.nonzero(W_decreasing[:, :, 0]).T
         W = W_decreasing.flip(dims=(2,))
         idx = torch.nonzero(W[:, :, -1])
@@ -55,6 +57,14 @@ class NormalWeights:
 
     def construct_W(self, W0):
         # Construct W without loops?
-        return NotImplementedError()
+        diagonal_identity = torch.eye(W0.shape[0]).unsqueeze(2)
+        scalars = torch.ones(self.ref_scale)
+        scalars[: self.abs_ref_scale] = self.abs_ref_strength
+        abs_ref = torch.arange(self.abs_ref_scale, self.ref_scale)
+        scalars[abs_ref] = self.rel_ref_strength * torch.exp(-self.beta * (abs_ref + self.abs_ref_scale + 1))
+        # scalars[abs_ref] = self.rel_ref_strength * torch.exp(-self.beta * (abs_ref - self.abs_ref_scale))
+        W = diagonal_identity @ scalars.unsqueeze(0)
+        W[:, :, :self.spike_scale] += W0.unsqueeze(2) @ torch.exp(-self.alpha * torch.arange(self.spike_scale)).unsqueeze(0)
+        return W
 
 

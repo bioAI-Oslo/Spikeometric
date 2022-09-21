@@ -1,16 +1,17 @@
 from torch_geometric.nn import MessagePassing
 import torch
+import torch.sparse
 import torch.nn.functional as F
 
 class GraphGLM(MessagePassing):
     def __init__(self, aggr='add'):
         super(GraphGLM, self).__init__(aggr=aggr)
 
-    def forward(self, x, edge_index, W_ij):
-        return self.propagate(edge_index, x=x, W_ij=W_ij)
+    def forward(self, x, edge_index, edge_attr):
+        return self.propagate(edge_index, x=x, edge_attr=edge_attr)
 
-    def message(self, x_j, W_ij):
-        return (W_ij * x_j).sum(dim=1).unsqueeze(1)
+    def message(self, x_j, edge_attr):
+        return torch.einsum('ij, ij -> i', x_j, edge_attr).unsqueeze(1)
 
     def update(self, aggr_out):
         return torch.sigmoid(aggr_out - 5)
