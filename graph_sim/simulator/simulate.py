@@ -22,12 +22,12 @@ def simulate(W, edge_index, model, n_steps, n_neurons, rng):
 
     spikes = []
     for t in tqdm(range(n_steps), desc=f"Simulating...", leave=False, colour="#435518"):
-        spikes.extend([(i, t) for i in torch.where(x[:, -1])[0]])
+        if x[:, -1].any():
+            spikes.extend([(i, t) for i in torch.where(x[:, -1])[0]])
 
         probabilities = model(x, edge_index, edge_attr = W)
 
         x[:, -1] = torch.bernoulli(probabilities, generator=rng).squeeze()
-
         x = torch.roll(x, -1, 1)
 
     return np.array(spikes)

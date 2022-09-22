@@ -16,8 +16,8 @@ import torch
 def main():
     mu = 0
     sigma = 5
-    n_neurons = 20
-    n_steps = 100000
+    n_neurons = 100
+    n_steps = 1000
     n_sims = 1
 
     NW = NormalWeights(n_neurons, mu, sigma)
@@ -37,6 +37,8 @@ def main():
         W0 = NW.build_W0(rng)
         W, edge_index = NW.build_W(W0)
 
+        import time
+        start = time.time()
         result = simulate(
             W=W,
             edge_index=edge_index,
@@ -45,6 +47,8 @@ def main():
             n_neurons=n_neurons,
             rng=rng,
         )
+        end = time.time()
+        print(end-start)
 
         fname = f"{seed}.npz"
 

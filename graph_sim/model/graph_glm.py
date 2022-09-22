@@ -11,7 +11,7 @@ class GraphGLM(MessagePassing):
         return self.propagate(edge_index, x=x, edge_attr=edge_attr)
 
     def message(self, x_j, edge_attr):
-        return torch.einsum('ij, ij -> i', x_j, edge_attr).unsqueeze(1)
+        return (x_j * edge_attr).sum(dim=1).unsqueeze(1)
 
     def update(self, aggr_out):
         return torch.sigmoid(aggr_out - 5)
