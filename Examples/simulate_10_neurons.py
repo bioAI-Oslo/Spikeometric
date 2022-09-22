@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     params = {
         'const': 5,
-        'n_neurons': 10,
+        'n_neurons': 100,
         'dt': 1e-3,
         'ref_scale': 10,
         'abs_ref_scale': 3,
@@ -44,7 +44,7 @@ if __name__ == '__main__':
             'mu': 0,
             'sigma': 5
         },
-        'n_time_step': int(1e5),
+        'n_time_step': int(1e3),
         'seed': 12345,
     }
     rng = default_rng(params['seed'])
@@ -61,7 +61,6 @@ if __name__ == '__main__':
     #     pbar=True,
     #     device='cuda'
     # )
-
 
     result = simulate(
         W=W,
