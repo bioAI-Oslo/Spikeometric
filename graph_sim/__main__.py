@@ -1,62 +1,84 @@
-from graph_sim.w0.normal import NormalWeights
-from graph_sim.model.graph_glm import GraphGLM
-from graph_sim.simulator.simulate import simulate
+from connectivity import ConnectivityFilterGenerator, NormalParams, FilterParams
+from models import TorchGraphGLM, NumpyGraphGLM
+from simulator import TorchSimulator, NumpySimulator
 from pathlib import Path
-from torch_sparse import SparseTensor
 from tqdm import tqdm
 from numpy.random import default_rng
 import numpy as np
 import torch
 
-# Priorities:
-# 1. Flexible W, in terms of structure, distribution and time dependence
-# 2. Flexible model, differnt link functions
-# 3. Speed. Parallelize, use GPU, use sparse matrices
+# Next steps
+# 1. Deal with W and edge_index in numpy
+# 2. Tuning with torch
+# 3. Sparsify in numpy
+# 4. Find better way of aggregating in numpy
+# 4. Compare speed gains from parallelization
+# 5. Compare speed gains from sparsification
+# 6. Incorporate connectivity into the Simulator class?
+# 7. Get torch_geometric on the cluster
+
 
 def main():
+    # Simulation parameters
+    n_steps = 1000
+    n_batches = 1
+    p_sims = 5
+    n_neurons = 20
+    threshold = -5
+
+    # Connectivity parameters
     mu = 0
     sigma = 5
-    n_neurons = 100
-    n_steps = 1000
-    n_sims = 1
+    ref_scale=10
+    abs_ref_scale=3
+    spike_scale=5
+    abs_ref_strength=-100
+    rel_ref_strength=-30
+    decay_offdiag=0.2
+    decay_diag=0.5
 
-    NW = NormalWeights(n_neurons, mu, sigma)
+    normal_params = NormalParams(mu, sigma)
+    filter_params = FilterParams(
+            ref_scale=ref_scale,
+            abs_ref_scale=abs_ref_scale,
+            spike_scale=spike_scale,
+            abs_ref_strength=abs_ref_strength,
+            rel_ref_strength=rel_ref_strength,
+            decay_offdiag=decay_offdiag,
+            decay_diag=decay_diag
+        )
 
-    model = GraphGLM()
+    cf_generator = ConnectivityFilterGenerator(n_neurons, normal_params, filter_params)
 
+    # Simulation
+    simulator = NumpySimulator(n_steps, p_sims, n_neurons, threshold)
+
+    # Path to save results
     data_path = "data" / Path(f"jakob_{n_neurons}_neurons_{n_steps}_steps")
-
     data_path.mkdir(parents=True, exist_ok=True)
 
     print(
-        f"Creating dataset with {n_neurons} neurons, {n_sims} sims, {n_steps} steps"
+        f"Creating dataset with {n_neurons} neurons, {n_batches*p_sims} sims, {n_steps} steps"
     )
 
-    for seed in tqdm(range(n_sims), desc="Simulation", leave=False, colour="#435518"):
-        rng = torch.Generator().manual_seed(seed)
-        W0 = NW.build_W0(rng)
-        W, edge_index = NW.build_W(W0)
+    # Create dataset running n_batches of p_sims each
+    for batch in tqdm(range(n_batches), desc="Simulation", leave=False, colour="#435518"):
+        rng = torch.Generator().manual_seed(batch)
+        W, edge_index = cf_generator.new_filter(p_sims, rng)
 
-        import time
-        start = time.time()
-        result = simulate(
-            W=W,
-            edge_index=edge_index,
-            model=model,
-            n_steps=n_steps,
-            n_neurons=n_neurons,
-            rng=rng,
+        result = simulator.run(
+            W=W.numpy(),
+            edge_index=edge_index.numpy(),
+            seed=batch,
         )
-        end = time.time()
-        print(end-start)
 
-        fname = f"{seed}.npz"
+        # Save results
+        n_edges = edge_index.shape[1] // p_sims
+        for i, spikes in enumerate(result):
+            W_i = W[i*n_edges:(i+1)*n_edges, :]
+            edge_index_i = edge_index[:, i*n_edges:(i+1)*n_edges] - i*n_neurons
+            np.savez(data_path / f"batch_{batch}_sim_{i}.npz", X_sparse = spikes, W=W_i, edge_index=edge_index_i)
 
-        np.savez(
-            data_path / fname,
-            X_sparse=result,
-            W0=W0
-        )
 
 if __name__ == "__main__":
     main()

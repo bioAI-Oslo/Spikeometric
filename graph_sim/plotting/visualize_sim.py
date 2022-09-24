@@ -15,12 +15,11 @@ def load_data(file):
     data = np.load(file, allow_pickle=True)
 
     X_sparse = data["X_sparse"].T
-    w0 = data["W0"]
     sparse_x = torch.sparse_coo_tensor(X_sparse, torch.ones(X_sparse.shape[1]), size = (n_neurons, n_timesteps))
 
     X = sparse_x.to_dense()
 
-    return X, w0
+    return X
 
 def visualize(X):
     n_neurons = X.shape[0]
@@ -64,7 +63,7 @@ directory = directories[int(option) - 1]
 while True:
     file = random.choice(list(directory.iterdir()))
 
-    X, w0 = load_data(file)
+    X = load_data(file)
 
     visualize(X)
 
