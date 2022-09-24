@@ -27,8 +27,8 @@ def construct_mikkel(params, rng=None):
 
     return W, W_0, excit_idx, inhib_idx
 
-def construct_filter(connectivity_filter_generator, rng):
-    W, edge_index = connectivity_filter_generator.new_filter(1, rng)
+def construct_filter(connectivity_filter_generator, p_sims, rng):
+    W, edge_index = connectivity_filter_generator.new_filter(p_sims, rng)
     return W, edge_index
 
 def time_mikkel(W, W_0, params, rng, N):
@@ -42,17 +42,16 @@ def time_mikkel(W, W_0, params, rng, N):
 
 def time_graph(W, edge_index, simulator, N):
     total_time = 0
-    for i in range(N):
-        s = time.time()
-        simulator.run(W, edge_index, i)
-        e = time.time()
-        total_time += e - s
+    s = time.time()
+    simulator.run(W, edge_index, N)
+    e = time.time()
+    total_time += e - s
     return total_time / N
 
 def main():
-    n_steps = 100
-    p_sims = 1
+    n_steps = 1000
     threshold = -5
+    n_neurons = 20
 
     # Connectivity parameters
     mu = 0
@@ -95,37 +94,33 @@ def main():
         }
 
 
-    neuron_list = [10*i for i in range(1, 21)]
+    sims_list = [10*i for i in range(1, 11)]
     timings = []
 
     rng_t = torch.Generator().manual_seed(123)
     rng_np = np.random.default_rng(123)
-    for n_neurons in neuron_list:
+    for n_sims in sims_list:
         # Mikkel
         mikkel_params['n_neurons'] = n_neurons // 2
         W_m, W_0, excit_idx, inhib_idx = construct_mikkel(mikkel_params, rng_np)
 
         # Torch
         cf_generator = ConnectivityFilterGenerator(n_neurons, normal_params, filter_params)
-        W_g, edge_index = construct_filter(cf_generator, rng_t)
-        simulator_torch = TorchSimulator(n_steps, p_sims, n_neurons, threshold)
+        W_g, edge_index = construct_filter(cf_generator, n_sims, rng_t)
+        simulator_torch = TorchSimulator(n_steps, n_sims, n_neurons, threshold)
 
         # Numpy
         W_g_numpy, edge_index_numpy = W_g.numpy(), edge_index.numpy()
-        simulator_numpy = NumpySimulator(n_steps, p_sims, n_neurons, threshold)
+        simulator_numpy = NumpySimulator(n_steps, n_sims, n_neurons, threshold)
 
-        # Sparse
-        simulator_sparse = SparseSimulator(n_steps, p_sims, n_neurons, threshold)
+        mikkel_time = time_mikkel(W=W_m, W_0=W_0, params=mikkel_params, rng=rng_np, N=n_sims)
+        torch_time = time_graph(W=W_g, edge_index=edge_index, simulator = simulator_torch, N=n_sims)
+        numpy_time = time_graph(W=W_g_numpy, edge_index=edge_index_numpy, simulator = simulator_numpy, N=n_sims)
+        timings.append([mikkel_time, torch_time, numpy_time])
+        print(f"n_neurons: {n_neurons}, Mikkel: {mikkel_time:.3f}, Torch: {torch_time:.3f}, Numpy: {numpy_time:.3f}")
 
-        mikkel_time = time_mikkel(W=W_m, W_0=W_0, params=mikkel_params, rng=rng_np, N=10)
-        torch_time = time_graph(W=W_g, edge_index=edge_index, simulator = simulator_torch, N=10)
-        numpy_time = time_graph(W=W_g_numpy, edge_index=edge_index_numpy, simulator = simulator_numpy, N=10)
-        # sparse_time = time_graph(W=W_g, edge_index=edge_index, simulator = simulator_sparse, N=10)
 
-        timings.append([mikkel_time, torch_time, numpy_time, sparse_time])
-        print(f"n_neurons: {n_neurons}, Mikkel: {mikkel_time}, Torch: {torch_time}, Numpy: {numpy_time}, Sparse: {sparse_time}")
-
-    np.savez("time_data" + 'comparison_sparse.npz', timings=timings, neuron_list=neuron_list)
+    np.savez('time_data/' + 'sims_dependence.npz', timings=timings, sims_list=sims_list)
 
 if __name__ == '__main__':
     main()

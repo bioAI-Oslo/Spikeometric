@@ -14,12 +14,12 @@ def load_data(file):
 
     data = np.load(file, allow_pickle=True)
 
-    X_sparse = data["X_sparse"].T
-    sparse_x = torch.sparse_coo_tensor(X_sparse, torch.ones(X_sparse.shape[1]), size = (n_neurons, n_timesteps))
+    X_sparse = data["X_sparse"].item()
+    # sparse_x = torch.sparse_coo_tensor(X_sparse, torch.ones(X_sparse.shape[1]), size = (n_neurons, n_timesteps))
 
-    X = sparse_x.to_dense()
+    X = X_sparse.todense()
 
-    return X
+    return torch.tensor(X)
 
 def visualize(X):
     n_neurons = X.shape[0]

@@ -1,6 +1,5 @@
 from connectivity import ConnectivityFilterGenerator, NormalParams, FilterParams
-from models import TorchGraphGLM, NumpyGraphGLM
-from simulator import TorchSimulator, NumpySimulator
+from simulator import TorchSimulator, NumpySimulator, SparseSimulator
 from pathlib import Path
 from tqdm import tqdm
 from numpy.random import default_rng
@@ -22,8 +21,8 @@ def main():
     # Simulation parameters
     n_steps = 1000
     n_batches = 1
-    p_sims = 5
-    n_neurons = 20
+    p_sims = 1
+    n_neurons = 1000
     threshold = -5
 
     # Connectivity parameters
@@ -51,7 +50,7 @@ def main():
     cf_generator = ConnectivityFilterGenerator(n_neurons, normal_params, filter_params)
 
     # Simulation
-    simulator = NumpySimulator(n_steps, p_sims, n_neurons, threshold)
+    simulator = TorchSimulator(n_steps, p_sims, n_neurons, threshold)
 
     # Path to save results
     data_path = "data" / Path(f"jakob_{n_neurons}_neurons_{n_steps}_steps")
@@ -67,8 +66,8 @@ def main():
         W, edge_index = cf_generator.new_filter(p_sims, rng)
 
         result = simulator.run(
-            W=W.numpy(),
-            edge_index=edge_index.numpy(),
+            W=W,
+            edge_index=edge_index,
             seed=batch,
         )
 
