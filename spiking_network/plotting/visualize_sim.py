@@ -20,8 +20,6 @@ def load_data(file):
     X_sparse = data["spikes"].item()
     X = X_sparse.todense()
 
-
-
     W = data["W"]
     edge_index = data["edge_index"]
 
