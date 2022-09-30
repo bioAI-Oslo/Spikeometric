@@ -10,10 +10,10 @@ import seaborn as sns
 sns.set_theme()
 
 def load_data(file):
-    params_match = re.search(r".*_(\d+)_neurons_(\d+)_steps.*", str(file))
+    # params_match = re.search(r".*_(\d+)_neurons_(\d+)_steps.*", str(file))
 
-    n_neurons = int(params_match.group(1))
-    n_timesteps = int(params_match.group(2))
+    # n_neurons = int(params_match.group(1))
+    # n_timesteps = int(params_match.group(2))
 
     data = np.load(file, allow_pickle=True)
 

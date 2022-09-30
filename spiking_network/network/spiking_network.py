@@ -1,5 +1,8 @@
 from torch_geometric.nn import MessagePassing
+import matplotlib.pyplot as plt
+import networkx as nx
 from torch_geometric.data import Data
+from torch_geometric.utils import to_networkx
 import numpy as np
 import torch
 from pathlib import Path
@@ -44,8 +47,8 @@ class SpikingNetwork(MessagePassing):
         self.W, self.edge_index = self._build_clusters(self.n_clusters, self.cluster_size, self.n_hubneurons, start_seed=seed)
         self.data = Data(num_nodes=self.n_neurons, edge_index=self.edge_index, edge_attr=self.W)
         self.n_edges = self.data.num_edges
-
         self.filter_length = self.W.shape[1]
+
         self.seed = seed
 
     def forward(self, x):
@@ -61,18 +64,18 @@ class SpikingNetwork(MessagePassing):
         probs = torch.sigmoid(activation - self.threshold) # Calculates the probability of a neuron firing
         return torch.bernoulli(probs, generator=self.rng).squeeze()
 
-    def next(self, t):
+    def _next(self, t):
         """Calculates the next step of the network"""
         rel_x = self.x[:, t:t+self.filter_length] # Gets the spikes from the last filter_length steps
         self.x[:, self.filter_length + t] = self.forward(rel_x)
 
     def prepare(self, n_steps, equilibration_steps=100):
         """Prepares the network for simulation"""
-        self.initialize_x(n_steps + equilibration_steps) # Sets up matrix X to store spikes
+        self._initialize_x(n_steps + equilibration_steps) # Sets up matrix X to store spikes
         self.to_device() # Moves network to GPU if available
 
         for t in range(equilibration_steps): # Simulates the network for equilibration_steps
-            self.next(t)
+            self._next(t)
 
         self.x = self.x[:, equilibration_steps:] # Removes equilibration steps from X
 
@@ -80,7 +83,7 @@ class SpikingNetwork(MessagePassing):
         """Simulates the network for n_steps"""
         self.prepare(n_steps, equilibration_steps) # Prepares the network for simulation
         for t in range(n_steps): # Simulates the network for n_steps
-            self.next(t) 
+            self._next(t) 
         if save_spikes == True: # Saves the spikes if save_spikes is True
             self.save(data_path)
 
@@ -95,13 +98,15 @@ class SpikingNetwork(MessagePassing):
         """Saves the network structrue to a file"""
         torch.save(self.state_dict(), filename)
 
-    def initialize_x(self, n_steps):
+    def _initialize_x(self, n_steps):
         """Initializes the matrix X to store spikes"""
         self.x = torch.zeros((self.n_neurons, n_steps + self.filter_length), dtype=torch.float32)
         self.x[:, self.filter_length - 1] = torch.randint(0, 2, (self.n_neurons,), dtype=torch.float32, generator=self.rng)
 
     def save(self, data_path):
         """Saves the spikes to a file"""
+        data_path = Path(data_path)
+        data_path.mkdir(parents=True, exist_ok=True)
         sparse_x = csr_array(self.x[:, self.filter_length:])
         np.savez(data_path / Path(f"{self.seed}.npz"), spikes = sparse_x, W=self.W, edge_index=self.edge_index)
 
@@ -111,7 +116,7 @@ class SpikingNetwork(MessagePassing):
         edge_indices = []
         w_seed = start_seed
         for i in range(n_clusters): # Builds the internal structure of each cluster
-            W, edge_index = self.build_filter(w_seed)
+            W, edge_index = self._build_filter(w_seed)
             Ws.append(W)
             edge_indices.append(edge_index)
             w_seed += 1
@@ -141,10 +146,10 @@ class SpikingNetwork(MessagePassing):
         return W, edge_index
 
 
-    def build_filter(self, seed):
+    def _build_filter(self, seed):
         """Generates a new connectivity filter W"""
         W0 = self._generate_w0(self.dist_params, seed)
-        W, edge_index = self.build_W(W0)
+        W, edge_index = self._build_W(W0)
         return W, edge_index
 
     def _generate_w0(self, dist_params, seed):
@@ -178,7 +183,7 @@ class SpikingNetwork(MessagePassing):
         normal_W0 = self._generate_normal_w0(n_neurons, mean, std, seed)
         return normal_W0 / torch.sqrt(torch.tensor(n_neurons // 2))
     
-    def build_W(self, W0):
+    def _build_W(self, W0):
         """Constructs a connectivity filter W from the weight matrix W0 and the filter parameters"""
         # Sets the diagonal elements of the connectivity filter
         diagonal_identity = torch.eye(W0.shape[0]).unsqueeze(2)
@@ -214,3 +219,11 @@ class SpikingNetwork(MessagePassing):
             raise NotImplementedError
         w[:self.spike_scale] = w0 * torch.exp(-self.decay_offdiag * idx)
         return w
+
+    def show_graph(self):
+        """Plots the graph of the connectivity filter"""
+        graph = to_networkx(self.data, remove_self_loops=True)
+        pos = nx.nx_agraph.graphviz_layout(graph, prog='neato')
+        nx.draw(graph, pos, with_labels=False, node_size=20, node_color='red', arrowsize=5)
+        plt.show()
+

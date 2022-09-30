@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from networks import SpikingNetwork
+from network import SpikingNetwork
 
 class NetworkBuilder:
     def __init__(self, filter_params):
