@@ -4,7 +4,7 @@ sys.path.append('..')
 from tqdm import tqdm
 import numpy as np
 
-from network import SpikingNetwork
+from network import SpikingNetwork, FilterParams
 
 sys.path.append('../..')
 
@@ -44,7 +44,7 @@ def time_network(network, n_steps, N=10):
     return total_time / N
 
 def main():
-    n_steps = 100
+    n_steps = 10000
     p_sims = 1
     threshold = -5
 
@@ -59,7 +59,6 @@ def main():
     decay_offdiag=0.2
     decay_diag=0.5
 
-    normal_params = NormalParams(mu, sigma)
     filter_params = FilterParams(n_neurons=10)
 
     mikkel_params = {
@@ -80,7 +79,7 @@ def main():
         # 'seed': 12345,
         }
 
-    neuron_list = [10*i for i in range(1, 101)]
+    neuron_list = [10*i for i in range(1, 11)]
     timings = []
     seed = 12345
     for n_neurons in neuron_list:
@@ -98,7 +97,7 @@ def main():
         timings.append((mikkel_time, torch_time))
         print(f"n_neurons: {n_neurons}, Mikkel: {mikkel_time:.3f}, Torch: {torch_time:.3f}")
 
-    np.savez("benchmark_data" + '/comparison_network_class.npz', timings=timings, neuron_list=neuron_list)
+    np.savez("benchmark_data" + '/short_comp.npz', timings=timings, neuron_list=neuron_list)
 
 if __name__ == '__main__':
     main()

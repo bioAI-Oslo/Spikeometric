@@ -1,4 +1,4 @@
-graph_sim/data
+spiking_network/data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
