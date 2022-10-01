@@ -4,12 +4,12 @@ from tqdm import tqdm
 
 def main():
     filter_params = FilterParams()
-    cluster_size = 80
-    n_clusters = 8
-    for i in tqdm(range(5)):
-        rng = torch.Generator()
-        network = RecursiveNetwork.build_recursively(n_clusters, cluster_size, filter_params, rng)
-        network.simulate(n_steps=1000, data_path="data/example_data/")
+    n_clusters = 1
+    n_neurons = 20
+    n_cluster_connections = 0
+    for i in tqdm(range(500)):
+        network = SpikingNetwork(n_neurons, filter_params, n_clusters, n_cluster_connections, seed=i)
+        network.simulate(n_steps=100000, data_path="data/example_data/", is_parallel=False)
 
 if __name__ == '__main__':
     main()

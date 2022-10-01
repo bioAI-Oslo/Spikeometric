@@ -6,6 +6,9 @@ from pathlib import Path
 import numpy as np
 import torch
 import seaborn as sns
+import networkx as nx
+from torch_geometric.data import Data
+from torch_geometric.utils import to_networkx
 
 sns.set_theme()
 
@@ -22,8 +25,9 @@ def load_data(file):
 
     W = data["W"]
     edge_index = data["edge_index"]
+    hub_W = data["hub_W"]
 
-    return torch.tensor(X), torch.tensor(W), torch.tensor(edge_index)
+    return torch.tensor(X), torch.tensor(W), torch.tensor(edge_index), torch.tensor(hub_W)
 
 def visualize_spikes(X):
     n_neurons = X.shape[0]
@@ -36,7 +40,7 @@ def visualize_spikes(X):
     axes[0].set_title("Firings per neuron")
     axes[0].set_ylabel("Firings")
     axes[0].set_xlabel("Neuron")
-    axes[0].bar(range(1, n_neurons + 1), torch.sum(X, axis=1))
+    axes[0].bar(range(1, n_neurons + 1), torch.sum(X, axis=1), lw=0)
 
     axes[1].set_title("Firings per timestep")
     axes[1].set_ylabel("Firings")
@@ -50,14 +54,58 @@ def visualize_spikes(X):
 
     plt.show()
 
-def visualize_weights(W, edge_index):
-    W = reconstruct_full_W(W, edge_index)
-    W0 = W[:, :, 0].fill_diagonal_(0)
-    fig, ax = plt.subplots(figsize=(10, 10))
-    plt.title(r"$W_0$")
-    sns.heatmap(W0, ax=ax, square=True, vmin=W0.max() * -1, vmax=W0.max())
-    plt.xlabel("Target neuron")
-    plt.ylabel("Source neuron")
+def visualize_weights(W, edge_index, hub_W):
+    W_ = reconstruct_full_W(W, edge_index)
+    W0 = W_[:, :, 0].fill_diagonal_(0)
+    edge_index = W0.nonzero().t()
+    fig, axs = plt.subplots(figsize=(10, 10), nrows=2, ncols=2)
+    fig.tight_layout(pad=3.0)
+    fig.set_figheight(10)
+    fig.set_figwidth(10)
+    axs[0, 1].set_title(r"$W_0$")
+    axs[0, 1].tick_params(axis="both", which="both", labelbottom=False, labelleft=False, bottom=False, left=False)
+
+    sns.heatmap(W0, ax=axs[0, 1], square=True, vmin=W0.max() * -1, vmax=W0.max())
+
+    colors = [float(w) for w in W0[edge_index[0], edge_index[1]]]
+    data = Data(num_nodes = W0.shape[0], edge_index=edge_index, edge_attr=colors)
+    graph = to_networkx(data, remove_self_loops=True)
+    pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
+    nx.draw(graph, pos, with_labels=False, node_size=10, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0, 0])
+    axs[0, 0].set_title("Network graph")
+
+    axs[1, 1].set_title(r"$W_0$ between hub neurons")
+    sns.heatmap(hub_W, ax=axs[1, 1], square=True, vmin=W0.max() * -1, vmax=W0.max())
+
+    axs[1, 0].set_title("Network graph between hub neurons")
+    hub_edge_index = hub_W.nonzero().t()
+    hub_colors = [float(w) for w in hub_W[hub_edge_index[0], hub_edge_index[1]]]
+    data = Data(num_nodes = hub_W.shape[0], edge_index=hub_edge_index, edge_attr=hub_colors)
+    graph = to_networkx(data, remove_self_loops=True)
+    pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
+    nx.draw(graph, pos, with_labels=True, node_size=120, edge_color=data.edge_attr, edge_vmin = W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[1, 0])
+
+    plt.show()
+
+def visualize_cluster(W, edge_index):
+    W_ = reconstruct_full_W(W, edge_index)
+    W0 = W_[:, :, 0].fill_diagonal_(0)
+    edge_index = W0.nonzero().t()
+    fig, axs = plt.subplots(figsize=(10, 10), nrows=1, ncols=2)
+    fig.tight_layout(pad=3.0)
+    fig.set_figheight(5)
+    fig.set_figwidth(10)
+    axs[1].set_title(r"$W_0$")
+
+    sns.heatmap(W0, ax=axs[1], square=True, vmin=W0.max() * -1, vmax=W0.max())
+
+    colors = [float(w) for w in W0[edge_index[0], edge_index[1]]]
+    data = Data(num_nodes = W0.shape[0], edge_index=edge_index, edge_attr=colors)
+    graph = to_networkx(data, remove_self_loops=True)
+    pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
+    nx.draw(graph, pos, with_labels=False, node_size=10, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0])
+    axs[0].set_title("Network graph")
+
     plt.show()
 
 def reconstruct_full_W(W, edge_index):
@@ -81,9 +129,10 @@ directory = directories[int(option) - 1]
 while True:
     file = random.choice(list(directory.iterdir()))
 
-    X, W, edge_index = load_data(file)
+    X, W, edge_index, hub_W = load_data(file)
 
     visualize_spikes(X)
-    visualize_weights(W, edge_index)
+    visualize_cluster(W, edge_index)
+    # visualize_weights(W, edge_index, hub_W)
 
 

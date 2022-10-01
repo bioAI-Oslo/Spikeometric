@@ -4,6 +4,9 @@ from dataclasses import dataclass
 class DistributionParams:
     """Class for storing distribution parameters."""
 
+    def _to_dict(self):
+        return self.__dict__
+
 @dataclass
 class NormalParams(DistributionParams):
     mean: float = 0.0
@@ -31,3 +34,16 @@ class FilterParams:
 
     def __eq__(self, other) -> bool:
         return self.__dict__ == other.__dict__
+
+    def _to_dict(self):
+        return {
+            "dist_params": self.dist_params._to_dict(),
+            "ref_scale": self.ref_scale,
+            "abs_ref_scale": self.abs_ref_scale,
+            "spike_scale": self.spike_scale,
+            "abs_ref_strength": self.abs_ref_strength,
+            "rel_ref_strength": self.rel_ref_strength,
+            "decay_offdiag": self.decay_offdiag,
+            "decay_diag": self.decay_diag,
+            "threshold": self.threshold,
+            }

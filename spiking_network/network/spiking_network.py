@@ -1,4 +1,5 @@
 from torch_geometric.nn import MessagePassing
+import dataclasses
 import matplotlib.pyplot as plt
 import networkx as nx
 from torch_geometric.data import Data
@@ -10,10 +11,11 @@ from scipy.sparse import csr_array
 from network.filter_params import FilterParams, DistributionParams
 
 class SpikingNetwork(MessagePassing):
-    def __init__(self, n_neurons, filter_params: FilterParams, n_clusters=1, n_cluster_connections=0) -> None:
+    def __init__(self, n_neurons, filter_params: FilterParams, n_clusters=1, n_cluster_connections=0, seed=0) -> None:
         super().__init__()
         self.rng = torch.Generator()
-        self.initial_seed = self.rng.initial_seed()
+        self.seed = seed
+        self.rng.manual_seed(seed)
 
         if n_clusters < 1:
             raise ValueError("Must have at least one cluster")
@@ -39,7 +41,7 @@ class SpikingNetwork(MessagePassing):
         self._filter_params = filter_params
         self.threshold = filter_params.threshold
         
-        self.W, self.edge_index, self.hub_neurons = (
+        self.W, self.edge_index, self.hub_neurons, self.clusters = (
             self._build_connectivity_filter(n_clusters, cluster_size, n_cluster_connections, filter_params, self.rng)
         )
 
@@ -47,6 +49,16 @@ class SpikingNetwork(MessagePassing):
         self.time_scale = self.W.shape[1]
 
         self.x = None
+
+    @property
+    def hub_W(self) -> torch.Tensor:
+        """Returns the connectivity filter for the hub neurons"""
+        if self.n_cluster_connections == 0:
+            return torch.Tensor([])
+        hub_edge_index = self.edge_index[:, -self.n_clusters:]
+        hub_edge_index = torch.div(hub_edge_index, self.cluster_size, rounding_mode='floor')
+        hub_W = self.W[-self.n_clusters:, -1]
+        return torch.sparse_coo_tensor(hub_edge_index, hub_W, size=(self.n_clusters, self.n_clusters)).to_dense()
 
     # Methods for calculating the spikes at the next time step
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -90,54 +102,49 @@ class SpikingNetwork(MessagePassing):
         self.save(data_path, is_parallel) # Saves the spikes to data_path
 
     # Methods for building the network
-    def _build_connectivity_filter(self, n_clusters: int, cluster_size: int, n_cluster_connections: int, filter_params: FilterParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    @staticmethod
+    def _build_connectivity_filter(n_clusters: int, cluster_size: int, n_cluster_connections: int, filter_params: FilterParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Builds the connectivity matrix W and the edge_index matrix, also returns the hub neurons"""    
+        if n_clusters == 1:
+            W, edge_index = SpikingNetwork._build_cluster(cluster_size, filter_params, rng)
+            return W, edge_index, torch.tensor([]), torch.tensor([])
+
         Ws = []
         edge_indices = []
+        clusters = []
         for i in range(n_clusters): # Builds the internal structure of each cluster
-            W, edge_index = self._build_cluster(cluster_size, filter_params, self.rng)
-            Ws.append(W)
-            edge_indices.append(edge_index)
+            cluster = SpikingNetwork(cluster_size, filter_params, 1, 0, rng.seed()+i)
+            clusters.append(cluster)
 
-        W = torch.concat([Ws], dim=0)
-        edge_index = torch.concat(edge_indices, dim=1)
+        W = torch.cat([cluster.W for cluster in clusters], dim=0) # Concatenates the W matrices of the clusters
+        edge_index = torch.cat([cluster.edge_index + i*cluster_size for i, cluster in enumerate(clusters)], dim=1) # Concatenates the edge_index matrices of the clusters
 
-        # Shifts the edge_index to account for the clusters
-        edges_in_each_cluster = [W.shape[0] for W in Ws]
-        edge_index += self._shift(n_clusters, cluster_size, edges_in_each_cluster)
+        if n_cluster_connections > 1:
+            raise NotImplementedError("n_cluster_connections > 1 not implemented")
+        elif n_cluster_connections == 1:
+            # Identifies the hub neurons
+            hub_neurons = SpikingNetwork._select_hub_neurons(n_clusters, cluster_size, rng)
 
-        # Identifies the hub neurons
-        hub_neurons = self._select_hub_neurons(n_clusters, cluster_size)
+            # Connects the hub neurons and adds them to the graph
+            W_hub, edge_index_hub = SpikingNetwork._connect_hub_neurons(hub_neurons, cluster_size, filter_params)
+            W = torch.cat((W, W_hub), dim=0)
+            edge_index = torch.cat((edge_index, edge_index_hub), dim=1)
+        else:
+            hub_neurons = []
 
-        # Connects the hub neurons and adds them to the graph
-        W_hub, edge_index_hub = self._connect_hub_neurons(hub_neurons, cluster_size, filter_params)
-        W = torch.cat((W, W_hub), dim=0)
-        edge_index = torch.cat((edge_index, edge_index_hub), dim=1)
+        return W, edge_index, torch.tensor(hub_neurons), clusters
 
-        # Implement further connections between clusters
-
-        return W, edge_index, torch.tensor(hub_neurons)
-
-    def _shift(self, n_clusters, cluster_size, edges_in_each_cluster: list[int]) -> torch.Tensor:
-        """Shifts the edge_index to account for the clusters"""
-        shifts = []
-        for i in range(n_clusters):
-            num_edges = edges_in_each_cluster[i]
-            shift_i = torch.full((num_edges,), i * cluster_size, dtype=torch.long)
-            shifts.append(shift_i)
-        shift = torch.cat(shifts)
-
-        return shift
-
-    def _select_hub_neurons(self, n_clusters: int, cluster_size: int) -> list[int]:
+    @staticmethod
+    def _select_hub_neurons(n_clusters: int, cluster_size: int, rng: torch.Generator) -> list[int]:
         """Chooses the hubneurons for the network"""
         hub_neurons = []
         for i in range(n_clusters):
-            hub_neuron = torch.randint(0, cluster_size, (1,), dtype=torch.long, generator=self.rng) + i * cluster_size
+            hub_neuron = torch.randint(0, cluster_size, (1,), dtype=torch.long, generator=rng) + i * cluster_size
             hub_neurons.append(hub_neuron)
         return hub_neurons
-
-    def _connect_hub_neurons(self, hub_neurons: list[int], cluster_size, filter_params) -> tuple[torch.Tensor, torch.Tensor]:
+    
+    @staticmethod
+    def _connect_hub_neurons(hub_neurons: list[int], cluster_size, filter_params) -> tuple[torch.Tensor, torch.Tensor]:
         """For each hubneuron, connects it to a randomly selected hubneuron in another cluster"""
         edge_index = torch.tensor([], dtype=torch.long)
         W = torch.tensor([])
@@ -147,49 +154,55 @@ class SpikingNetwork(MessagePassing):
             new_edge = torch.tensor([i, j], dtype=torch.long).unsqueeze(1)
 
             chm_action = "excitatory" if (i % cluster_size) < (cluster_size // 2) else "inhibitory"  # Determines the type of connection based on which half of the cluster the hubneuron is in
-            w = self._new_single_weight(chemical_action=chm_action, filter_params=filter_params).unsqueeze(0).flip(1)
+            w = SpikingNetwork._new_single_weight(chemical_action=chm_action, cluster_size=cluster_size, filter_params=filter_params).unsqueeze(0).flip(1)
             edge_index = torch.cat((edge_index, new_edge), dim=1)
             W = torch.cat((W, w), dim=0)
         return W, edge_index
 
-    def _build_cluster(self, cluster_size: int, filter_params: FilterParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor]:
+    @staticmethod
+    def _build_cluster(cluster_size: int, filter_params: FilterParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor]:
         """Builds the internal structure of a cluster"""
-        W0 = self._generate_w0(cluster_size, filter_params.dist_params, rng)
-        W, edge_index = self._build_cluster_W_and_edge_index(W0, filter_params)
+        W0 = SpikingNetwork._generate_w0(cluster_size, filter_params.dist_params, rng)
+        W, edge_index = SpikingNetwork._build_cluster_W_and_edge_index(W0, filter_params)
         return W, edge_index
 
-    def _generate_w0(self, cluster_size, dist_params: DistributionParams, rng: torch.Generator) -> torch.Tensor:
+    @staticmethod
+    def _generate_w0(cluster_size, dist_params: DistributionParams, rng: torch.Generator) -> torch.Tensor:
         """Generates a normally-drawn connectivity matrix W0 that follows Dale's law and has zeros on the diagonal"""
         if dist_params.name == 'glorot':
-            W0 = self._generate_glorot_w0(cluster_size, dist_params.mean, dist_params.std, rng)
+            W0 = SpikingNetwork._generate_glorot_w0(cluster_size, dist_params.mean, dist_params.std, rng)
         if dist_params.name == 'normal':
-            W0 = self._generate_normal_w0(cluster_size, dist_params.mean, dist_params.std, rng)
+            W0 = SpikingNetwork._generate_normal_w0(cluster_size, dist_params.mean, dist_params.std, rng)
         elif dist_params.name == 'uniform':
-            W0 = self._generate_uniform_w0((cluster_size, cluster_size), rng)
+            W0 = SpikingNetwork._generate_uniform_w0((cluster_size, cluster_size), rng)
         elif dist_params.name == 'mexican_hat':
-            W0 = self._generate_mexican_hat_w0((cluster_size, cluster_size), rng)
-        W0 = self._dales_law(W0)
+            W0 = SpikingNetwork._generate_mexican_hat_w0((cluster_size, cluster_size), rng)
+        W0 = SpikingNetwork._dales_law(W0)
         W0 = W0.fill_diagonal_(0)
         return W0
-
-    def _dales_law(self, W0: torch.Tensor) -> torch.Tensor:
+    
+    @staticmethod
+    def _dales_law(W0: torch.Tensor) -> torch.Tensor:
         """Applies Dale's law to the connectivity matrix W0"""
         W0 = torch.concat((W0 * (W0 > 0), W0 * (W0 < 0)), 0)
         return W0
 
-    def _generate_normal_w0(self, cluster_size: int, mean: float, std: float, rng: torch.Generator) -> torch.Tensor:
+    @staticmethod
+    def _generate_normal_w0(cluster_size: int, mean: float, std: float, rng: torch.Generator) -> torch.Tensor:
         """Generates a normal n_neurons/2*n_neurons/2 matrux from a normal distribution"""
         half_cluster_size = cluster_size // 2
         W0 = torch.normal(mean, std, (half_cluster_size, cluster_size), generator=rng)
         return W0
-
-    def _generate_glorot_w0(self, cluster_size: int, mean: float, std: float, rng: torch.Generator) -> torch.Tensor:
+    
+    @staticmethod
+    def _generate_glorot_w0(cluster_size: int, mean: float, std: float, rng: torch.Generator) -> torch.Tensor:
         """Generates a normal n_neurons/2*n_neurons/2 matrux from a normal distribution"""
-        normal_W0 = self._generate_normal_w0(cluster_size, mean, std, rng)
+        normal_W0 = SpikingNetwork._generate_normal_w0(cluster_size, mean, std, rng)
         glorot_W0 = normal_W0 / torch.sqrt(torch.tensor(cluster_size, dtype=torch.float32))
         return glorot_W0
-    
-    def _build_cluster_W_and_edge_index(self, W0: torch.Tensor, filter_params: FilterParams) -> tuple[torch.Tensor, torch.Tensor]:
+
+    @staticmethod 
+    def _build_cluster_W_and_edge_index(W0: torch.Tensor, filter_params: FilterParams) -> tuple[torch.Tensor, torch.Tensor]:
         """Constructs a connectivity filter W from the weight matrix W0 and the filter parameters"""
         # Sets the diagonal elements of the connectivity filter
         diagonal_identity = torch.eye(W0.shape[0]).unsqueeze(2)
@@ -214,12 +227,13 @@ class SpikingNetwork(MessagePassing):
 
         return flattened_W, edge_index
 
-    def _new_single_weight(self, chemical_action: str, filter_params: FilterParams) -> torch.Tensor:
+    @staticmethod
+    def _new_single_weight(chemical_action: str, cluster_size, filter_params: FilterParams) -> torch.Tensor:
         """Generates a new weight for one of the hub neurons"""
         w = torch.zeros(filter_params.ref_scale)
         idx = torch.arange(filter_params.spike_scale)
         if filter_params.dist_params.name == 'glorot':
-            w0 = torch.normal(filter_params.dist_params.mean, filter_params.dist_params.std, (1,)) / torch.sqrt(torch.tensor(self.cluster_size))
+            w0 = torch.normal(filter_params.dist_params.mean, filter_params.dist_params.std, (1,)) / torch.sqrt(torch.tensor(cluster_size))
         elif filter_params.dist_params.name == 'normal':
             w0 = torch.normal(filter_params.dist_params.mean, filter_params.dist_params.std, (1,))
         else:
@@ -230,6 +244,7 @@ class SpikingNetwork(MessagePassing):
         elif chemical_action == 'inhibitory':
             w  = w * -torch.sign(w0)
         return w
+
 
     # Helper methods
     def to_device(self) -> None:
@@ -246,17 +261,37 @@ class SpikingNetwork(MessagePassing):
         data_path = Path(data_path)
         data_path.mkdir(parents=True, exist_ok=True)
         sparse_x = csr_array(self.x[:, self.time_scale:])
-        np.savez(data_path / Path(f"{self.initial_seed}.npz"), spikes = sparse_x, W=self.W, edge_index=self.edge_index)
+        np.savez(
+                data_path / Path(f"{self.seed}.npz"),
+                spikes = sparse_x,
+                W=self.W,
+                edge_index=self.edge_index,
+                hub_W=self.hub_W,
+                filter_params = self._filter_params._to_dict(),
+                seed=self.seed,
+            )
     
     def _save_parallel(self, data_path: str) -> None:
         """Saves the spikes to a file"""
+        if self.n_cluster_connections > 0:
+            raise ValueError("Parallel saving is not supported for networks with cluster connections")
         data_path = Path(data_path)
         data_path.mkdir(parents=True, exist_ok=True)
         x = self.x[:, self.time_scale:]
-        x_sims = torch.split(x, self.cluster_size, dim=0)
-        for i, x_sim in enumerate(x_sims):
+        x_sims = torch.split(x, [cluster.n_neurons for cluster in self.clusters], dim=0)
+        Ws = [cluster.W for cluster in self.clusters]
+        edge_indices = [cluster.edge_index for cluster in self.clusters]
+        for i, (x_sim, W_sim, edge_index_sim) in enumerate(zip(x_sims, Ws, edge_indices)):
             sparse_x = csr_array(x_sim)
-            np.savez(data_path / Path(f"{self.initial_seed}_{i}.npz"), spikes = sparse_x, W=self.W, edge_index=self.edge_index)
+            np.savez(
+                    data_path / Path(f"{self.seed}_{i}.npz"),
+                    spikes = sparse_x,
+                    W=W_sim,
+                    edge_index=edge_index_sim,
+                    seed=self.seed,
+                    hub_W=self.hub_W,
+                    filter_params = self._filter_params._to_dict()
+                )
 
     def show_graph(self) -> None:
         """Plots the graph of the connectivity filter"""
@@ -265,3 +300,4 @@ class SpikingNetwork(MessagePassing):
         pos = nx.nx_agraph.graphviz_layout(graph, prog='neato')
         nx.draw(graph, pos, with_labels=False, node_size=20, node_color='red', arrowsize=5)
         plt.show()
+
