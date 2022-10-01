@@ -1,12 +1,15 @@
-from network import SpikingNetwork, FilterParams, NormalParams
+from network import SpikingNetwork, FilterParams, RecursiveNetwork
+import torch
 from tqdm import tqdm
 
 def main():
-    filter_params = FilterParams(n_neurons=500, n_clusters=1, n_hubneurons=0)
-
+    filter_params = FilterParams()
+    cluster_size = 80
+    n_clusters = 8
     for i in tqdm(range(5)):
-        network = SpikingNetwork(filter_params, seed=i)
-        network.simulate(n_steps=1000, save_spikes=True, data_path="data/example_data/")
+        rng = torch.Generator()
+        network = RecursiveNetwork.build_recursively(n_clusters, cluster_size, filter_params, rng)
+        network.simulate(n_steps=1000, data_path="data/example_data/")
 
 if __name__ == '__main__':
     main()

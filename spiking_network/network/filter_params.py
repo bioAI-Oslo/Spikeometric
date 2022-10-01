@@ -1,17 +1,17 @@
 from dataclasses import dataclass
 
 @dataclass
-class DistibutionParams:
+class DistributionParams:
     """Class for storing distribution parameters."""
 
 @dataclass
-class NormalParams(DistibutionParams):
+class NormalParams(DistributionParams):
     mean: float = 0.0
     std: float = 5.0
     name: str = "normal"
 
 @dataclass
-class GlorotParams(DistibutionParams):
+class GlorotParams(DistributionParams):
     mean: float = 0.0
     std: float = 5.0
     name: str = "glorot"
@@ -19,10 +19,7 @@ class GlorotParams(DistibutionParams):
 @dataclass
 class FilterParams:
     """Filter parameters for the network"""
-    n_neurons: int
-    dist_params: DistibutionParams = GlorotParams()
-    n_clusters: int = 1
-    n_hubneurons: int = 0
+    dist_params: DistributionParams = GlorotParams()
     ref_scale = 10
     abs_ref_scale = 3
     spike_scale = 5
@@ -31,3 +28,6 @@ class FilterParams:
     decay_offdiag = 0.2
     decay_diag = 0.5
     threshold = -5
+
+    def __eq__(self, other) -> bool:
+        return self.__dict__ == other.__dict__
