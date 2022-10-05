@@ -20,7 +20,7 @@ def load_data(file):
 
     data = np.load(file, allow_pickle=True)
 
-    X_sparse = data["spikes"].item()
+    X_sparse = data["X_sparse"].item()
     X = X_sparse.todense()
 
     W = data["W"]
@@ -103,7 +103,7 @@ def visualize_cluster(W, edge_index):
     data = Data(num_nodes = W0.shape[0], edge_index=edge_index, edge_attr=colors)
     graph = to_networkx(data, remove_self_loops=True)
     pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
-    nx.draw(graph, pos, with_labels=False, node_size=10, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0])
+    nx.draw(graph, pos, with_labels=True, node_size=150, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0])
     axs[0].set_title("Network graph")
 
     plt.show()
@@ -132,7 +132,7 @@ while True:
     X, W, edge_index, hub_W = load_data(file)
 
     visualize_spikes(X)
-    visualize_cluster(W, edge_index)
-    # visualize_weights(W, edge_index, hub_W)
+    # visualize_cluster(W, edge_index)
+    visualize_weights(W, edge_index, hub_W)
 
 

@@ -34,14 +34,14 @@ def time_mikkel(W, W_0, params, rng, N):
         total_time += e - s
     return total_time / N
 
-def time_network(network, n_steps, N=10):
+def time_network(network, n_steps, N=10, parallel=10):
     total_time = 0
     for i in range(N):
         s = time.perf_counter()
         network.simulate(n_steps, save_spikes=False, equilibration_steps=0)
         e = time.perf_counter()
         total_time += e - s
-    return total_time / N
+    return total_time / (N*parallel)
 
 def main():
     n_steps = 10000
@@ -59,7 +59,7 @@ def main():
     decay_offdiag=0.2
     decay_diag=0.5
 
-    filter_params = FilterParams(n_neurons=10)
+    filter_params = FilterParams()
 
     mikkel_params = {
         'const': 5,
@@ -79,7 +79,7 @@ def main():
         # 'seed': 12345,
         }
 
-    neuron_list = [10*i for i in range(1, 11)]
+    neuron_list = [10*i for i in range(1, 21)]
     timings = []
     seed = 12345
     for n_neurons in neuron_list:
@@ -89,15 +89,16 @@ def main():
         W_m, W_0, excit_idx, inhib_idx = construct_mikkel(mikkel_params, rng)
 
         filter_params.n_neurons = n_neurons
-        torch_network = SpikingNetwork(filter_params, seed=seed)
+        torch_network = SpikingNetwork(n_neurons, filter_params=filter_params, n_clusters=1, n_cluster_connections=0, seed=seed)
 
         mikkel_time = time_mikkel(W=W_m, W_0=W_0, params=mikkel_params, rng=rng, N=1)
-        torch_time = time_network(torch_network, n_steps, N=1)
+        torch_time = time_network(torch_network, n_steps, N=1, parallel=1)
 
         timings.append((mikkel_time, torch_time))
-        print(f"n_neurons: {n_neurons}, Mikkel: {mikkel_time:.3f}, Torch: {torch_time:.3f}")
+        print(f'{n_neurons} neurons: {mikkel_time} vs {torch_time}')
 
-    np.savez("benchmark_data" + '/short_comp.npz', timings=timings, neuron_list=neuron_list)
+
+    np.savez("benchmark_data" + '/comp_with_rolling_for_memory.npz', timings=timings, neuron_list=neuron_list)
 
 if __name__ == '__main__':
     main()

@@ -94,12 +94,13 @@ class SpikingNetwork(MessagePassing):
 
         self.x = self.x[:, equilibration_steps:] # Removes equilibration steps from X
 
-    def simulate(self, n_steps: int, data_path: str, equilibration_steps=100, is_parallel=False) -> None:
+    def simulate(self, n_steps: int, data_path="", equilibration_steps=100, save_spikes = True, is_parallel=False) -> None:
         """Simulates the network for n_steps"""
         self.prepare(n_steps, equilibration_steps) # Prepares the network for simulation
         for t in range(n_steps): # Simulates the network for n_steps
             self._next(t) 
-        self.save(data_path, is_parallel) # Saves the spikes to data_path
+        if save_spikes:
+            self.save(data_path, is_parallel) # Saves the spikes to data_path
 
     # Methods for building the network
     @staticmethod
@@ -263,7 +264,7 @@ class SpikingNetwork(MessagePassing):
         sparse_x = csr_array(self.x[:, self.time_scale:])
         np.savez(
                 data_path / Path(f"{self.seed}.npz"),
-                spikes = sparse_x,
+                X_sparse = sparse_x,
                 W=self.W,
                 edge_index=self.edge_index,
                 hub_W=self.hub_W,
@@ -285,7 +286,7 @@ class SpikingNetwork(MessagePassing):
             sparse_x = csr_array(x_sim)
             np.savez(
                     data_path / Path(f"{self.seed}_{i}.npz"),
-                    spikes = sparse_x,
+                    X_sparse = sparse_x,
                     W=W_sim,
                     edge_index=edge_index_sim,
                     seed=self.seed,
