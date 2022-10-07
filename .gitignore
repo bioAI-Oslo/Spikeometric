@@ -1,5 +1,7 @@
 spiking_network/data
 spiking_network/benchmarking/benchmark_data
+run
+./run
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

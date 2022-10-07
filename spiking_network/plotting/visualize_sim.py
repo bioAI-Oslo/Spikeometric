@@ -25,9 +25,8 @@ def load_data(file):
 
     W = data["W"]
     edge_index = data["edge_index"]
-    hub_W = data["hub_W"]
 
-    return torch.tensor(X), torch.tensor(W), torch.tensor(edge_index), torch.tensor(hub_W)
+    return torch.tensor(X), torch.tensor(W), torch.tensor(edge_index)
 
 def visualize_spikes(X):
     n_neurons = X.shape[0]
@@ -54,7 +53,7 @@ def visualize_spikes(X):
 
     plt.show()
 
-def visualize_weights(W, edge_index, hub_W):
+def visualize_weights(W, edge_index, W_hub):
     W_ = reconstruct_full_W(W, edge_index)
     W0 = W_[:, :, 0].fill_diagonal_(0)
     edge_index = W0.nonzero().t()
@@ -75,12 +74,12 @@ def visualize_weights(W, edge_index, hub_W):
     axs[0, 0].set_title("Network graph")
 
     axs[1, 1].set_title(r"$W_0$ between hub neurons")
-    sns.heatmap(hub_W, ax=axs[1, 1], square=True, vmin=W0.max() * -1, vmax=W0.max())
+    sns.heatmap(W_hub, ax=axs[1, 1], square=True, vmin=W0.max() * -1, vmax=W0.max())
 
     axs[1, 0].set_title("Network graph between hub neurons")
-    hub_edge_index = hub_W.nonzero().t()
-    hub_colors = [float(w) for w in hub_W[hub_edge_index[0], hub_edge_index[1]]]
-    data = Data(num_nodes = hub_W.shape[0], edge_index=hub_edge_index, edge_attr=hub_colors)
+    hub_edge_index = W_hub.nonzero().t()
+    hub_colors = [float(w) for w in W_hub[hub_edge_index[0], hub_edge_index[1]]]
+    data = Data(num_nodes = W_hub.shape[0], edge_index=hub_edge_index, edge_attr=hub_colors)
     graph = to_networkx(data, remove_self_loops=True)
     pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
     nx.draw(graph, pos, with_labels=True, node_size=120, edge_color=data.edge_attr, edge_vmin = W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[1, 0])
@@ -96,6 +95,7 @@ def visualize_cluster(W, edge_index):
     fig.set_figheight(5)
     fig.set_figwidth(10)
     axs[1].set_title(r"$W_0$")
+    axs[1].tick_params(axis="both", which="both", labelbottom=False, labelleft=False, bottom=False, left=False)
 
     sns.heatmap(W0, ax=axs[1], square=True, vmin=W0.max() * -1, vmax=W0.max())
 
@@ -103,7 +103,7 @@ def visualize_cluster(W, edge_index):
     data = Data(num_nodes = W0.shape[0], edge_index=edge_index, edge_attr=colors)
     graph = to_networkx(data, remove_self_loops=True)
     pos = nx.nx_agraph.graphviz_layout(graph, prog="neato")
-    nx.draw(graph, pos, with_labels=True, node_size=150, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0])
+    nx.draw(graph, pos, with_labels=False, node_size=10, edge_color=data.edge_attr, edge_vmin=W0.max()*-1, edge_vmax=W0.max(), arrowsize=5, ax=axs[0])
     axs[0].set_title("Network graph")
 
     plt.show()
@@ -114,25 +114,30 @@ def reconstruct_full_W(W, edge_index):
     sparse_W = torch.sparse_coo_tensor(edge_index, W, size=(n_neurons, n_neurons, W.shape[1]))
     return sparse_W.to_dense()
 
-dataset_path = (
-    Path("data")
-)
 
-directories = list(dataset_path.iterdir())
-for i, path in enumerate(directories):
-    print(f"{i+1}) {path}")
+def main():
+    dataset_path = (
+        Path("data")
+    )
 
-option = input("\nSelect option: ")
+    directories = list(dataset_path.iterdir())
+    for i, path in enumerate(directories):
+        print(f"{i+1}) {path}")
 
-directory = directories[int(option) - 1]
+    option = input("\nSelect option: ")
 
-while True:
-    file = random.choice(list(directory.iterdir()))
+    directory = directories[int(option) - 1]
 
-    X, W, edge_index, hub_W = load_data(file)
+    while True:
+        file = random.choice(list(directory.iterdir()))
 
-    visualize_spikes(X)
-    # visualize_cluster(W, edge_index)
-    visualize_weights(W, edge_index, hub_W)
+        X, W, edge_index = load_data(file)
+
+        visualize_spikes(X)
+        visualize_cluster(W, edge_index)
+        #  visualize_weights(W, edge_index, W_hub)
+
+if __name__ == "__main__":
+    main()
 
 
