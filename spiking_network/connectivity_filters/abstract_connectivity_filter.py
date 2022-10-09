@@ -7,14 +7,31 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 class AbstractConnectivityFilter(ABC):
-    def __init__(self, W0, time_scale, filter_params):
+    def __init__(self, W0, filter_params):
         self.W0 = W0
-        self.time_scale = time_scale
         self._filter_parameters = filter_params
-        self._build_W(W0, time_scale, filter_params)
+        self._build_W(W0, filter_params)
 
     @abstractmethod
-    def time_dependence(self, t, filter_params):
+    def time_dependence(self, W0: torch.Tensor, i: torch.Tensor, j: torch.Tensor, filter_params={}) -> torch.Tensor:
+        """Determine how the connection between neurons i, j changes over time
+
+        Parameters:
+        ----------
+        W0: torch.Tensor
+            The edge weights of the initial connectivity matrix [num_edges]
+        i: torch.Tensor
+            The source neurons of the edges [num_edges]
+        j: torch.Tensor
+            The target neurons of the edges [num_edges]
+        filter_params: dict
+            The parameters of the connectivity filter
+
+        Returns:
+        -------
+        W: torch.Tensor
+            The edge weights of the connectivity filter [num_edges, time_steps]
+        """
         pass
 
     @property
@@ -37,15 +54,18 @@ class AbstractConnectivityFilter(ABC):
     def n_edges(self):
         return self._W.shape[0]
 
-    def _build_W(self, W0: torch.Tensor, time_scale: int, filter_params: dict) -> torch.Tensor:
-        """Constructs a connectivity filter W from the weight matrix W0"""
-        edge_index = W0.nonzero()
-        W0 = W0[edge_index[:, 0], edge_index[:, 1]]
-        time = torch.arange(self.time_scale).repeat(W0.shape[0], 1)
-        i, j = edge_index[:, 0], edge_index[:, 1]
-        W = self.time_dependence(W0, time, filter_params, i, j)
+    @property
+    def time_scale(self):
+        return self._W.shape[1]
 
-        self._edge_index = edge_index.T
+    def _build_W(self, W0: torch.Tensor, filter_params={}) -> torch.Tensor:
+        """Constructs a connectivity filter W from the weight matrix W0"""
+        edge_index = W0.nonzero().T
+        W0 = W0[edge_index[0], edge_index[1]]
+        i, j = edge_index[0], edge_index[1]
+        W = self.time_dependence(W0, i, j, filter_params)
+
+        self._edge_index = edge_index
         self._W = W
 
     def _update(self, filter_params):

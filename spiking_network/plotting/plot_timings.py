@@ -33,5 +33,20 @@ def plot_parallization(filename):
     plt.savefig("plots/" + filename + ".png")
     plt.show()
 
-# plot_parallization("parallelization_compare_across_neurons")
-plot_timings("comp_with_rolling_for_memory")
+def plot_gpu():
+    gpu = np.load("benchmarking/benchmark_data/" + "gpu_timing" + ".npz")
+    cpu = np.load("benchmarking/benchmark_data/" + "cpu_timing" + ".npz")
+    gpu_timings = gpu["timings"]
+    cpu_timings = cpu["timings"]
+    n_neurons = gpu["neuron_list"]
+    plt.figure()
+    plt.plot(n_neurons[2:], np.array([gpu_timings[2:], cpu_timings[2:]]).transpose(), label=["GPU", "CPU"])
+    plt.legend()
+    plt.xlabel("Number of neurons")
+    plt.ylabel("Avg time (s) per simulation")
+    plt.savefig("plots/" + "cpu_vs_gpu" + ".png")
+    plt.show()
+
+#  plot_parallization("parallelization_compare_across_neurons")
+#  plot_timings("comp_with_rolling_for_memory")
+plot_gpu()

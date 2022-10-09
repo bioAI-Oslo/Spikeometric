@@ -3,11 +3,13 @@ import torch
 from scipy.sparse import coo_matrix
 import numpy as np
 
-def save(x, connectivity_filter, seed, data_path:str) -> None:
-    """Saves the spikes to a file"""
+def save(spikes, connectivity_filter, n_steps, seed, data_path:str) -> None:
     data_path = Path(data_path)
     data_path.mkdir(parents=True, exist_ok=True)
-    sparse_x = coo_matrix(x[:, connectivity_filter.time_scale:])
+    x = spikes[0]
+    t = spikes[1]
+    data = torch.ones_like(t)
+    sparse_x = coo_matrix((data, (x, t)), shape=(connectivity_filter.W0.shape[0], n_steps))
     np.savez(
             data_path / Path(f"{seed}.npz"),
             X_sparse = sparse_x,
@@ -16,6 +18,7 @@ def save(x, connectivity_filter, seed, data_path:str) -> None:
             filter_params = connectivity_filter.filter_parameters,
             seed=seed,
         )
+
 
 def save_parallel(x, connectivity_filter, n_neurons_list, n_edges_list, seed, data_path: str) -> None:
     """Saves the spikes to a file"""

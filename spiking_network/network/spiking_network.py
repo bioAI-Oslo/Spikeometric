@@ -1,27 +1,57 @@
-from torch_geometric.nn import MessagePassing
-import dataclasses
-import matplotlib.pyplot as plt
-import networkx as nx
-from torch_geometric.data import Data
-from torch_geometric.utils import to_networkx
-import numpy as np
 import torch
-from pathlib import Path
 from spiking_network.network.abstract_network import AbstractNetwork
-from spiking_network.network.filter_params import FilterParams, DistributionParams
 
 class SpikingNetwork(AbstractNetwork):
-    def __init__(self, connectivity_filter, seed, trainable=False):
-        super().__init__(connectivity_filter, seed, trainable)
+    def __init__(self, connectivity_filter, seed, device):
+        super().__init__(connectivity_filter, seed, device)
+        self.threshold = 5
 
-    def message(self, x_j: torch.Tensor) -> torch.Tensor:
-        """Defines the message function"""
-        if self.trainable:
-            self.connectivity_filter.update(self.params)
-        return torch.sum(x_j * self.connectivity_filter.W, dim=1, keepdim=True)
+    def forward(self, x: torch.Tensor, t: int) -> torch.Tensor:
+        """Calculates the new state of the network
+
+        Parameters:
+        ----------
+        x: torch.Tensor
+            The state of the network from time t - time_scale to time t [n_neurons, time_scale]
+        t: int
+            The current time step
+
+        Returns:
+        -------
+        x_t: torch.Tensor
+            The new state of the network at time t [n_neurons]
+        """
+        return self.propagate(edge_index=self.connectivity_filter.edge_index, x=x, W=self.connectivity_filter.W)
+
+    def message(self, x_j: torch.Tensor, W) -> torch.Tensor:
+        """Calculates the activation of the neurons
+
+        Parameters:
+        ----------
+        x_j: torch.Tensor
+            The state of the source neurons from time t - time_scale to time t [n_edges, time_scale]
+        W: torch.Tensor
+            The edge weights of the connectivity filter [n_edges, time_scale]
+
+        Returns:
+        -------
+        activation: torch.Tensor
+            The activation of the neurons at time t[n_edges]
+        """
+        return torch.sum(x_j*W, dim=1, keepdim=True)
 
     def update(self, activation: torch.Tensor) -> torch.Tensor:
-        """Calculates new spikes based on the activation of the neurons"""
-        probs = torch.sigmoid(activation + self.connectivity_filter.filter_parameters["threshold"]) # Calculates the probability of a neuron firing
-        return torch.bernoulli(probs, generator=self.rng).squeeze()
+        """Calculates new spikes based on the activation of the neurons
 
+        Parameters:
+        ----------
+        activation: torch.Tensor
+            The activation of the neurons at time t [n_neurons]
+
+        Returns:
+        -------
+        x_t: torch.Tensor
+            The new state of the neurons at time t [n_neurons]
+        """
+        probs = torch.sigmoid(activation - self.threshold)
+        return torch.bernoulli(probs, generator=self.rng).squeeze()

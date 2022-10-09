@@ -5,11 +5,46 @@ class W0Generator:
     @staticmethod
     def generate(n_clusters, cluster_size, n_cluster_connections, dist_params, seed=None):
         rng = torch.Generator().manual_seed(seed) if seed else torch.Generator()
-        W0, edge_index, n_neurons_list, n_edges_list = W0Generator._build_clusters(n_clusters, cluster_size, n_cluster_connections, dist_params, rng)
+        W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(n_clusters, cluster_size, n_cluster_connections, dist_params, rng)
+        return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list, hub_neurons
+
+    @staticmethod
+    def generate_parallel(n_sims, n_neurons, dist_params, seed=None):
+        rng = torch.Generator().manual_seed(seed) if seed else torch.Generator()
+        W0, edge_index, n_neurons_list, n_edges_list = W0Generator._build_clusters_parallel(n_sims, n_neurons, dist_params, rng)
         return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list
 
     @staticmethod
-    def _build_clusters(n_clusters: int, cluster_size: int, n_cluster_connections: int, dist_params: DistributionParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def generate_simple(n_neurons, dist_params, seed=None):
+        rng = torch.Generator().manual_seed(seed) if seed else torch.Generator()
+        W0, edge_index, n_neurons_list, n_edges_list = W0Generator._build_clusters_simple(1, n_neurons, dist_params, rng)
+        return W0Generator._to_tensor(W0, edge_index)
+
+    @staticmethod
+    def _build_clusters_parallel(n_sims, n_neurons, dist_params, rng):
+        return W0Generator._build_clusters(n_sims, n_neurons, dist_params, rng)
+
+    @staticmethod
+    def _build_connected_clusters(n_clusters, cluster_size, n_cluster_connections, dist_params, rng):
+        W0, edge_index, n_neurons_list, n_edges_list = W0Generator._build_clusters(n_clusters, cluster_size, dist_params, rng)
+        
+        if n_cluster_connections > 1:
+            raise NotImplementedError("n_cluster_connections != 1 not implemented")
+        elif n_cluster_connections == 1:
+            # Identifies the hub neurons
+            hub_neurons = W0Generator._select_hub_neurons(n_clusters, cluster_size, rng)
+
+            # Connects the hub neurons and adds them to the graph
+            W0_hub, edge_index_hub = W0Generator._connect_hub_neurons(hub_neurons, cluster_size, dist_params)
+            W0 = torch.cat((W0, W0_hub), dim=0)
+            edge_index = torch.cat((edge_index, edge_index_hub), dim=1)
+        else:
+            hub_neurons = []
+
+        return W0, edge_index, n_neurons_list, n_edges_list, hub_neurons
+
+    @staticmethod
+    def _build_clusters(n_clusters: int, cluster_size: int, dist_params: DistributionParams, rng: torch.Generator) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Builds the connectivity matrix W and the edge_index matrix, also returns the hub neurons"""    
         if n_clusters == 1:
             W0, edge_index = W0Generator._build_cluster(cluster_size, dist_params, rng)
@@ -27,22 +62,11 @@ class W0Generator:
             n_neurons_list.append(cluster_size)
             n_edges_list.append(edge_index.shape[1])
 
-        W = torch.cat(W0s, dim=0) # Concatenates the W matrices of the clusters
+        W0 = torch.cat(W0s, dim=0) # Concatenates the W matrices of the clusters
         edge_index = torch.cat([edge_index + i*cluster_size for i, edge_index in enumerate(edge_indices)], dim=1) # Concatenates the edge_index matrices of the clusters
 
+        return W0, edge_index, n_neurons_list, n_edges_list
 
-        if n_cluster_connections > 1:
-            raise NotImplementedError("n_cluster_connections > 1 not implemented")
-        elif n_cluster_connections == 1:
-            # Identifies the hub neurons
-            hub_neurons = W0Generator._select_hub_neurons(n_clusters, cluster_size, rng)
-
-            # Connects the hub neurons and adds them to the graph
-            W_hub, edge_index_hub = W0Generator._connect_hub_neurons(hub_neurons, cluster_size, dist_params)
-            W = torch.cat((W, W_hub), dim=0)
-            edge_index = torch.cat((edge_index, edge_index_hub), dim=1)
-        else:
-            hub_neurons = []
 
         return W, edge_index, n_neurons_list, n_edges_list
 

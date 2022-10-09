@@ -1,4 +1,5 @@
-from network import SpikingNetwork, GlorotParams
+from network.spiking_network import SpikingNetwork
+from network.filter_params import GlorotParams
 import torch
 from connectivity_filters.connectivity_filter import ConnectivityFilter
 from w0_generator import W0Generator

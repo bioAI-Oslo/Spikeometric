@@ -25,7 +25,7 @@ def main():
     print(f"n_steps: {args.n_steps}")
     print(f"n_datasets: {args.n_datasets}")
 
-    make_dataset(args.n_clusters, args.cluster_size, args.n_cluster_connections, args.n_steps, args.n_datasets, is_parallel=True)
+    make_dataset(args.n_clusters, args.cluster_size, args.n_cluster_connections, args.n_steps, args.n_datasets)
 
 if __name__ == "__main__":
     main()
