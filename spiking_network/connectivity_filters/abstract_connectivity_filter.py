@@ -7,13 +7,12 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 class AbstractConnectivityFilter(ABC):
-    def __init__(self, W0, filter_params):
-        self.W0 = W0
-        self._filter_parameters = filter_params
-        self._build_W(W0, filter_params)
+    def __init__(self, W0):
+        self._W0 = W0
+        self._build_W(W0)
 
     @abstractmethod
-    def time_dependence(self, W0: torch.Tensor, i: torch.Tensor, j: torch.Tensor, filter_params={}) -> torch.Tensor:
+    def time_dependence(self, W0: torch.Tensor, i: torch.Tensor, j: torch.Tensor) -> torch.Tensor:
         """Determine how the connection between neurons i, j changes over time
 
         Parameters:
@@ -24,8 +23,6 @@ class AbstractConnectivityFilter(ABC):
             The source neurons of the edges [num_edges]
         j: torch.Tensor
             The target neurons of the edges [num_edges]
-        filter_params: dict
-            The parameters of the connectivity filter
 
         Returns:
         -------
@@ -35,12 +32,12 @@ class AbstractConnectivityFilter(ABC):
         pass
 
     @property
-    def filter_parameters(self):
-        return self._filter_parameters
-
-    @property
     def W(self):
         return self._W
+
+    @property
+    def W0(self):
+        return self._W0
 
     @property
     def edge_index(self):
@@ -54,24 +51,15 @@ class AbstractConnectivityFilter(ABC):
     def n_edges(self):
         return self._W.shape[0]
 
-    @property
-    def time_scale(self):
-        return self._W.shape[1]
-
-    def _build_W(self, W0: torch.Tensor, filter_params={}) -> torch.Tensor:
+    def _build_W(self, W0: torch.Tensor) -> torch.Tensor:
         """Constructs a connectivity filter W from the weight matrix W0"""
         edge_index = W0.nonzero().T
         W0 = W0[edge_index[0], edge_index[1]]
         i, j = edge_index[0], edge_index[1]
-        W = self.time_dependence(W0, i, j, filter_params)
+        W = self.time_dependence(W0, i, j)
 
         self._edge_index = edge_index
         self._W = W
-
-    def _update(self, filter_params):
-        """Updates the connectivity filter W with new parameters"""
-        self._W = self._build_W(self.W0, filter_params)
-        self._edge_index = self._W.nonzero().T
 
     def to_device(self, device):
         self._W = self._W.to(device)
@@ -88,3 +76,4 @@ class AbstractConnectivityFilter(ABC):
         pos = nx.nx_agraph.graphviz_layout(graph, prog='neato')
         nx.draw(graph, pos, with_labels=False, node_size=20, node_color='red', arrowsize=5)
         plt.show()
+

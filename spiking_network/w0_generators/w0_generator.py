@@ -1,12 +1,36 @@
 import torch
-from spiking_network.network import DistributionParams
+from dataclasses import dataclass
+
+@dataclass
+class DistributionParams:
+    """Class for storing distribution parameters."""
+
+    def _to_dict(self):
+        return self.__dict__
+
+@dataclass
+class NormalParams(DistributionParams):
+    mean: float = 0.0
+    std: float = 5.0
+    name: str = "normal"
+
+@dataclass
+class GlorotParams(DistributionParams):
+    mean: float = 0.0
+    std: float = 5.0
+    name: str = "glorot"
 
 class W0Generator:
-    @staticmethod
-    def generate(n_clusters, cluster_size, n_cluster_connections, dist_params, seed=None):
-        rng = torch.Generator().manual_seed(seed) if seed else torch.Generator()
-        W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(n_clusters, cluster_size, n_cluster_connections, dist_params, rng)
-        return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list, hub_neurons
+    def __init__(self, n_clusters, cluster_size, n_cluster_connections, dist_params: DistributionParams):
+        self.n_clusters = n_clusters
+        self.cluster_size = cluster_size
+        self.n_cluster_connections = n_cluster_connections
+        self.dist_params = dist_params
+
+    def generate(self, seed):
+        rng = torch.Generator().manual_seed(seed)
+        W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(self.n_clusters, self.cluster_size, self.n_cluster_connections, self.dist_params, rng)
+        return W0Generator._to_tensor(W0, edge_index)
 
     @staticmethod
     def generate_parallel(n_sims, n_neurons, dist_params, seed=None):
@@ -66,9 +90,6 @@ class W0Generator:
         edge_index = torch.cat([edge_index + i*cluster_size for i, edge_index in enumerate(edge_indices)], dim=1) # Concatenates the edge_index matrices of the clusters
 
         return W0, edge_index, n_neurons_list, n_edges_list
-
-
-        return W, edge_index, n_neurons_list, n_edges_list
 
     @staticmethod
     def _select_hub_neurons(n_clusters: int, cluster_size: int, rng: torch.Generator) -> list[int]:
