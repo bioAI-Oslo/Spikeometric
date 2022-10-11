@@ -30,10 +30,7 @@ class SpikingLayer(MessagePassing):
         new_state: torch.Tensor
             The new state of the network from time t+1 - time_scale to time t+1 [n_neurons]
         """
-        old_state = state[:, 1:]
-        x_new = self.propagate(edge_index, x=state, edge_attr=edge_attr)
-        new_state = torch.cat((old_state, x_new), dim=1)
-        return new_state
+        return self.propagate(edge_index, x=state, edge_attr=edge_attr)
 
     def message(self, x_j: torch.Tensor, edge_attr: torch.Tensor):
         """Calculates the activation of the neurons

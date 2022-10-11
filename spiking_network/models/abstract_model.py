@@ -19,11 +19,12 @@ class AbstractModel(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Simulates the network for n_steps"""
         x = self._equilibrate(x)
+        self._spikes = torch.zeros(x.shape[0], self._n_steps + x.shape[1], device=x.device)
+        self._spikes[:, :x.shape[1]] = x
         for t in range(self._n_steps):
-            x = self._layer(x, self.edge_index, self.W)
-            self._register_spikes(x, t) # Registers the spikes of the network in self._spikes
+            self._spikes[:, x.shape[1] + t] = self._layer(self._spikes[:, t:t+x.shape[1]], self.edge_index, self.W).squeeze()
         self.to_device("cpu") 
-        return self._spikes
+        return self._spikes[:, x.shape[1]:]
 
     def _register_spikes(self, x: torch.Tensor, t: int) -> None:
         """Registers the spikes of the network"""

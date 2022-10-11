@@ -17,14 +17,14 @@ def initial_condition(n_neurons, time_scale, seed):
     x_initial[:, -1] = init_cond
     return x_initial
 
-def save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, seed, data_path: str) -> None:
+def save_parallel(x, connectivity_filter, n_steps, n_neurons_list, n_edges_list, seed, data_path: str) -> None:
     """Saves the spikes to a file"""
     data_path = Path(data_path)
     data_path.mkdir(parents=True, exist_ok=True)
     n_clusters = len(n_neurons_list)
     cluster_size = connectivity_filter.n_neurons  // n_clusters
 
-    x = torch.sparse_coo_tensor(spikes, torch.ones_like(spikes[0]), size=(connectivity_filter.n_neurons, n_steps)).to_dense()
+    #  x = torch.sparse_coo_tensor(spikes, torch.ones_like(spikes[0]), size=(connectivity_filter.n_neurons, n_steps)).to_dense()
 
     x_sims = torch.split(x, n_neurons_list, dim=0)
     Ws = torch.split(connectivity_filter.W, n_edges_list, dim=0)
@@ -45,6 +45,7 @@ def save(spikes, connectivity_filter, n_steps, seed, data_path):
     x = spikes[0]
     t = spikes[1]
     data = torch.ones_like(t)
+
     sparse_x = coo_matrix((data, (x, t)), shape=(connectivity_filter.W0.shape[0], n_steps))
     np.savez_compressed(
             data_path,
@@ -66,7 +67,8 @@ def make_dataset(n_clusters, cluster_size, n_cluster_connections, n_steps, n_dat
     dist_params = GlorotParams(0, 5)
     w0_generator = W0Generator(n_clusters, cluster_size, n_cluster_connections, dist_params)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu" 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    #  device = "cpu"
     with torch.no_grad(): # Disables gradient computation (the models are built on top of torch)
         for i in tqdm(range(n_datasets)):
             w0, n_neurons_list, n_edges_list, hub_neurons = w0_generator.generate(i) # Generates a random W0
@@ -79,8 +81,9 @@ def make_dataset(n_clusters, cluster_size, n_cluster_connections, n_steps, n_dat
             x_initial = x_initial.to(device)
 
             spikes = model(x_initial) # Simulates the network
-            save(spikes, connectivity_filter, n_steps, i, data_path / Path(f"{i}.npz")) # Saves the spikes and the connectivity filter to a file
-            #  save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, i, data_path) # Saves the spikes and the connectiv 7ity filter to a file
+
+            #  save(spikes, connectivity_filter, n_steps, i, data_path / Path(f"{i}.npz")) # Saves the spikes and the connectivity filter to a file
+            save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, i, data_path) # Saves the spikes and the connectiv 7ity filter to a file
 
 if __name__ == "__main__":
     make_dataset(10, 20, 1, 1000, 1)
