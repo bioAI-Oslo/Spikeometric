@@ -26,9 +26,10 @@ def main():
     print(f"n_cluster_connections: {args.n_cluster_connections}")
     print(f"n_steps: {args.n_steps}")
     print(f"n_datasets: {args.n_datasets}")
+    print(f"path: {args.data_path}")
 
     make_dataset(args.n_clusters, args.cluster_size, args.n_cluster_connections, args.n_steps, args.n_datasets, args.data_path)
-    #  make_herman_dataset(100, 0.025, int(4e6), 1, "spiking_network/data")
+    #  make_herman_dataset(100, 0.025, int(4e4), 1, "spiking_network/data")
 
 
 if __name__ == "__main__":

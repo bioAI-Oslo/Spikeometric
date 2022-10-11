@@ -4,7 +4,6 @@ from dataclasses import dataclass
 @dataclass
 class DistributionParams:
     """Class for storing distribution parameters."""
-
     def _to_dict(self):
         return self.__dict__
 
@@ -30,7 +29,7 @@ class W0Generator:
     def generate(self, seed):
         rng = torch.Generator().manual_seed(seed)
         W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(self.n_clusters, self.cluster_size, self.n_cluster_connections, self.dist_params, rng)
-        return W0Generator._to_tensor(W0, edge_index)
+        return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list, hub_neurons
 
     @staticmethod
     def generate_parallel(n_sims, n_neurons, dist_params, seed=None):

@@ -6,7 +6,7 @@ class HermanFilter(AbstractConnectivityFilter):
 
     def time_dependence(self, W0, i, j):
         r"""Determines the time-dependendence of the connection between neuorns i, j"""
-        return W0.unsqueeze(1) 
+        return W0.unsqueeze(1)
 
     @property
     def parameters(self):

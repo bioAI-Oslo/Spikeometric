@@ -7,15 +7,21 @@ class HermanModel(AbstractModel):
         super().__init__(W, edge_index, n_steps, seed, device, equilibration_steps)
         self._layer = HermanLayer(r, threshold, b, noise_sparsity, noise_std, tau, dt, self._rng)
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, activation: torch.Tensor) -> torch.Tensor:
         """Simulates the network for n_steps"""
-        self.to_device(self.device)
-        x = self._equilibrate(x)
+        activation = self._equilibrate(activation)
+        x = torch.zeros((len(activation), self._n_steps), dtype=torch.bool, device=self.device)
         for t in range(self._n_steps): # Simulates the network for n_steps
-            s, x = self._layer(x, self.edge_index, self.W)
-            self._register_spikes(s, t)
+            x_t, activation = self._layer(activation, self.edge_index, self.W)
+            x[:, t] = x_t
+        self._spikes = x.nonzero().T
         self.to_device("cpu") # Moves the network to the CPU
-        return self._spikes.T
+        return self._spikes
+
+    def _equilibrate(self, activation):
+        for _ in range(self._equilibration_steps):
+            _, activation = self._layer(activation, self.edge_index, self.W)
+        return activation
 
 class HermanLayer(MessagePassing):
     def __init__(self, r, threshold, b, noise_sparsity, noise_std, tau, dt, rng):
@@ -30,17 +36,18 @@ class HermanLayer(MessagePassing):
 
         self.rng = rng
 
+
     def forward(self, state: torch.Tensor, edge_index: torch.Tensor, edge_attr: torch.Tensor):
         return self.propagate(edge_index, x=state, edge_attr=edge_attr)
 
     def message(self, x_j: torch.Tensor, edge_attr: torch.Tensor):
         return x_j * edge_attr
 
-    def update(self, activation: torch.Tensor) -> torch.Tensor:
-        noise = torch.normal(0, self.noise_std, size=activation.shape, device=activation.device)
-        filtered_noise = torch.normal(0, 1, size=activation.shape, device=activation.device) > self.noise_sparsity
+    def update(self, activation: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        noise = torch.normal(0., self.noise_std, size=activation.shape, device=activation.device)
+        filtered_noise = torch.normal(0., 1., size=activation.shape, device=activation.device) > self.noise_sparsity
         b_term = self.b * (1 + noise * filtered_noise)
         l = self.r * activation + b_term
         spikes = l > self.threshold
         activation = activation + spikes - (activation / self.tau) * self.dt
-        return spikes, activation
+        return spikes.squeeze(), activation
