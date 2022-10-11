@@ -56,7 +56,7 @@ def save(spikes, connectivity_filter, n_steps, seed, data_path):
             seed=seed,
         )
 
-def make_dataset(n_clusters, cluster_size, n_cluster_connections, n_steps, n_datasets, data_path):
+def make_dataset(n_clusters, cluster_size, n_cluster_connections, n_steps, n_datasets, data_path, is_parallel=False):
     """Generates a dataset"""
     # Set data path
     data_path = Path(data_path) / f"n_clusters_{n_clusters}_cluster_size_{cluster_size}_n_cluster_connections_{n_cluster_connections}_n_steps_{n_steps}"
@@ -82,8 +82,10 @@ def make_dataset(n_clusters, cluster_size, n_cluster_connections, n_steps, n_dat
 
             spikes = model(x_initial) # Simulates the network
 
-            #  save(spikes, connectivity_filter, n_steps, i, data_path / Path(f"{i}.npz")) # Saves the spikes and the connectivity filter to a file
-            save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, i, data_path) # Saves the spikes and the connectiv 7ity filter to a file
+            if is_parallel:
+                save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, i, data_path) # Saves the spikes and the connectiv 7ity filter to a file
+            else:
+                save(spikes, connectivity_filter, n_steps, i, data_path / Path(f"{i}.npz")) # Saves the spikes and the connectivity filter to a file
 
 if __name__ == "__main__":
     make_dataset(10, 20, 1, 1000, 1)

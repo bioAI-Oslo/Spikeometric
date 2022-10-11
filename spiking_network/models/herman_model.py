@@ -14,7 +14,7 @@ class HermanModel(AbstractModel):
         for t in range(self._n_steps): # Simulates the network for n_steps
             x_t, activation = self._layer(activation, self.edge_index, self.W)
             x[:, t] = x_t
-        self._spikes = x.nonzero().T
+        self._spikes = x
         self.to_device("cpu") # Moves the network to the CPU
         return self._spikes
 

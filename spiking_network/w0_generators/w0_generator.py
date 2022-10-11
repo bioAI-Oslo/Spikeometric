@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from dataclasses import dataclass
 
 @dataclass
@@ -30,6 +31,37 @@ class W0Generator:
         rng = torch.Generator().manual_seed(seed)
         W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(self.n_clusters, self.cluster_size, self.n_cluster_connections, self.dist_params, rng)
         return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list, hub_neurons
+
+    @staticmethod
+    def generate_herman(n_sims, n_neurons, seed):
+        W0_list = []
+        edge_indices = []
+        n_neurons_list = []
+        n_edges_list = []
+        for i in range(n_sims):
+            W0, edge_index = W0Generator._build_herman_cluster(n_neurons, seed)
+            W0_list.append(W0)
+            edge_indices.append(edge_index)
+            n_neurons_list.append(n_neurons)
+            n_edges_list.append(edge_index.shape[1])
+
+        W0 = torch.cat(W0_list, dim=0) # Concatenates the W matrices of the clusters
+        edge_index = torch.cat([edge_index + i*n_neurons for i, edge_index in enumerate(edge_indices)], dim=1) # Concatenates the edge_index matrices of the clusters
+
+
+        return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list
+
+    @staticmethod
+    def _build_herman_cluster(n, seed):
+        rng = np.random.default_rng(seed)
+        mexican_hat_lowest = -0.002289225919299652
+        mat = rng.uniform(mexican_hat_lowest, 0, size=(n, n))
+        mat[rng.random((n, n)) < 0.9] = 0
+        w0 = torch.tensor(mat, dtype=torch.float32)
+        edge_index = w0.nonzero().t()
+        w0 = w0[edge_index[0], edge_index[1]]
+        return w0, edge_index
+
 
     @staticmethod
     def generate_parallel(n_sims, n_neurons, dist_params, seed=None):
@@ -120,7 +152,7 @@ class W0Generator:
         W0 = W0Generator._generate_w0(cluster_size, dist_params, rng)
 
         # Get on sparse form
-        edge_index = W0.nonzero().t()
+        edge_index = W0.nonzero(as_tuple=False).t()
         W0 = W0[edge_index[0], edge_index[1]]
 
         return W0, edge_index

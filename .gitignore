@@ -2,6 +2,7 @@ spiking_network/data
 spiking_network/benchmarking/benchmark_data
 run
 run_simula
+run_herman
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
