@@ -12,7 +12,7 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--n_clusters", type=int, default=1, help="Number of clusters")
+    parser.add_argument("-n", "--n_clusters", type=int, default=50, help="Number of clusters")
     parser.add_argument("-s", "--cluster_size", type=int, default=20, help="Size of each cluster")
     parser.add_argument("-t", "--n_steps", type=int, default=1000, help="Number of steps in simulation")
     parser.add_argument("-d", "--n_datasets", type=int, default=1, help="Number of datasets to generate")
