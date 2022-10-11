@@ -12,12 +12,12 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--n_clusters", type=int, default=1, help="Number of clusters")
+    parser.add_argument("-n", "--n_clusters", type=int, default=50, help="Number of clusters")
     parser.add_argument("-s", "--cluster_size", type=int, default=20, help="Size of each cluster")
     parser.add_argument("-c", "--n_cluster_connections", type=int, default=0, help="Number of cluster connections")
-    parser.add_argument("-t", "--n_steps", type=int, default=1000, help="Number of steps in simulation")
-    parser.add_argument("-d", "--n_datasets", type=int, default=1, help="Number of datasets to generate")
-    parser.add_argument("-p", "--data_path", type=str, default="spiking_network/data", help="The path where the data should be saved")
+    parser.add_argument("-t", "--n_steps", type=int, default=100_000, help="Number of steps in simulation")
+    parser.add_argument("-d", "--n_datasets", type=int, default=10, help="Number of datasets to generate")
+    parser.add_argument("-p", "--data_path", type=str, default="data", help="The path where the data should be saved")
     args = parser.parse_args()
 
     print("Generating datasets...")
