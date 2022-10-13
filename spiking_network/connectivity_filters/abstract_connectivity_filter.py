@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from torch_geometric.data import Data
-from torch_geometric.utils import to_networkx
+from torch_geometric.utils import to_networkx, add_remaining_self_loops
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,6 +10,7 @@ class AbstractConnectivityFilter(ABC):
     def __init__(self, W0):
         self._W0 = W0
         self._build_W(W0)
+        self._W0.fill_diagonal_(0) # Remove self-loops
 
     @abstractmethod
     def time_dependence(self, W0: torch.Tensor, i: torch.Tensor, j: torch.Tensor) -> torch.Tensor:
@@ -60,6 +61,7 @@ class AbstractConnectivityFilter(ABC):
             The initial connectivity matrix [n_neurons, n_neurons]
         """
         edge_index = W0.nonzero().T # Non-zero indices in W0
+        add_remaining_self_loops(edge_index, num_nodes=W0.shape[0])
         W0 = W0[edge_index[0], edge_index[1]] # Non-zero values in W0
         i, j = edge_index[0], edge_index[1] # Source and target neurons
         W = self.time_dependence(W0, i, j) # Uses the time_dependence method to build the connectivity filter
