@@ -1,4 +1,5 @@
 from spiking_network.data_generators.make_dataset import make_dataset
+from spiking_network.data_generators.make_stimulation_dataset import make_stimulation_dataset
 from spiking_network.data_generators.make_herman_dataset import make_herman_dataset
 import argparse
 
@@ -33,7 +34,9 @@ def main():
     if args.herman:
         make_herman_dataset(args.n_clusters, args.cluster_size, 0.025, args.n_steps, args.n_datasets, "spiking_network/data", is_parallel=(args.parallel == True))
     else:
-        make_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
+        #  make_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
+        make_stimulation_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
+
 
 
 if __name__ == "__main__":
