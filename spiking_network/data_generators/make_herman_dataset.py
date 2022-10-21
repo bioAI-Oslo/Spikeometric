@@ -49,7 +49,7 @@ def save_parallel(x, connectivity_filter, n_steps, n_neurons_list, n_edges_list,
                 filter_params = connectivity_filter.parameters
 )
 
-def make_herman_dataset(n_sims, N, r, n_steps, n_datasets, data_path, is_parallel=False):
+def make_herman_dataset(n_sims, N, r, threshold, n_steps, n_datasets, data_path, is_parallel=False):
     # Path to save results
     data_path = Path(data_path) / f"herman_{N}_{r}_{n_steps}"
     data_path.mkdir(parents=True, exist_ok=True)
@@ -67,6 +67,7 @@ def make_herman_dataset(n_sims, N, r, n_steps, n_datasets, data_path, is_paralle
                     W,
                     edge_index,
                     r=r,
+                    threshold=threshold,
                     n_steps=n_steps,
                     seed=i,
                     device=device

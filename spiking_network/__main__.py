@@ -17,6 +17,8 @@ def main():
     parser.add_argument("-s", "--cluster_size", type=int, default=20, help="Size of each cluster")
     parser.add_argument("-t", "--n_steps", type=int, default=10_000, help="Number of steps in simulation")
     parser.add_argument("-d", "--n_datasets", type=int, default=1, help="Number of datasets to generate")
+    parser.add_argument("-r", "--r", type=float, default=0.025, help="The r to use for the herman case")
+    parser.add_argument("-th", "--threshold", type=float, default=1.378e-3, help="The threshold to use for the herman case")
     parser.add_argument("--herman", help="Run hermans simulation", action="store_true")
     parser.add_argument("-p", "--parallel", help="Run in parallel", action="store_true")
     parser.add_argument("--data_path", type=str, default="data", help="The path where the data should be saved")
@@ -32,10 +34,10 @@ def main():
     print(f"is_parallel: {args.parallel}")
     
     if args.herman:
-        make_herman_dataset(args.n_clusters, args.cluster_size, 0.025, args.n_steps, args.n_datasets, args.data_path, is_parallel=(args.parallel == True))
+        make_herman_dataset(args.n_clusters, args.cluster_size, args.r, args.threshold, args.n_steps, args.n_datasets, args.data_path, is_parallel=args.parallel)
     else:
         #  make_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
-        make_stimulation_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
+        make_stimulation_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel=args.parallel)
 
 
 
