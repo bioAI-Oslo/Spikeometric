@@ -60,10 +60,12 @@ def make_herman_dataset(n_sims, N, r, threshold, n_steps, n_datasets, data_path,
     #  device = "cuda" if torch.cuda.is_available() else "cpu"
     device = "cpu"
     with torch.no_grad():
-        for i in tqdm(range(n_datasets)):
+        for i in tqdm(range(n_datasets), leave=False):
             w0, n_neurons_list, n_edges_list = W0Generator.generate_herman(n_sims, N, i)
 
-            connectivity_filter = HermanFilter(w0)
+            noise_sparsity = 1.0
+
+            connectivity_filter = HermanFilter(w0,N=N,nsteps=n_steps, noise_sparsity=noise_sparsity)
             W, edge_index = connectivity_filter.W, connectivity_filter.edge_index
 
             model = HermanModel(
@@ -73,19 +75,17 @@ def make_herman_dataset(n_sims, N, r, threshold, n_steps, n_datasets, data_path,
                     threshold=threshold,
                     n_steps=n_steps,
                     seed=i,
-                    device=device
+                    device=device,
+                    noise_sparsity=noise_sparsity
                 )
 
             act_initial = torch.zeros((N*n_sims,1), dtype=torch.float32, device=device)
             act_initial = act_initial.to(device)
 
             spikes = model(act_initial)
-        
+
             if is_parallel:
                 save_parallel(spikes, connectivity_filter, n_steps, n_neurons_list, n_edges_list, i, data_path)
             else:
-                print(calculate_isi(spikes, N, n_steps))
+                print("isi:",calculate_isi(spikes, N, n_steps))
                 save(spikes, connectivity_filter, n_steps, i, data_path / Path(f"{i}.npz"))
-
-if __name__ == "__main__":
-    make_dataset(10, 20, 1, 1000, 1)
