@@ -28,7 +28,7 @@ def save(spikes, connectivity_filter, n_steps, seed, data_path):
             seed=seed,
         )
 
-def save_parallel(x, connectivity_filter, n_steps, n_neurons_list, n_edges_list, seed, data_path: Path | str) -> None:
+def save_parallel(x, connectivity_filter, n_steps, n_neurons_list, n_edges_list, seed, data_path: Path) -> None:
     """Saves the spikes to a file"""
     data_path = Path(data_path)
     data_path.mkdir(parents=True, exist_ok=True)
