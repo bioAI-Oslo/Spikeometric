@@ -13,13 +13,13 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--n_clusters", type=int, default=50, help="Number of clusters")
+    parser.add_argument("-n", "--n_clusters", type=int, default=1, help="Number of clusters")
     parser.add_argument("-s", "--cluster_size", type=int, default=20, help="Size of each cluster")
-    parser.add_argument("-t", "--n_steps", type=int, default=1000, help="Number of steps in simulation")
+    parser.add_argument("-t", "--n_steps", type=int, default=10_000, help="Number of steps in simulation")
     parser.add_argument("-d", "--n_datasets", type=int, default=1, help="Number of datasets to generate")
     parser.add_argument("--herman", help="Run hermans simulation", action="store_true")
     parser.add_argument("-p", "--parallel", help="Run in parallel", action="store_true")
-    parser.add_argument("--data_path", type=str, default="spiking_network/data", help="The path where the data should be saved")
+    parser.add_argument("--data_path", type=str, default="data", help="The path where the data should be saved")
     args = parser.parse_args()
 
     print("Generating datasets...")
@@ -32,7 +32,7 @@ def main():
     print(f"is_parallel: {args.parallel}")
     
     if args.herman:
-        make_herman_dataset(args.n_clusters, args.cluster_size, 0.025, args.n_steps, args.n_datasets, "spiking_network/data", is_parallel=(args.parallel == True))
+        make_herman_dataset(args.n_clusters, args.cluster_size, 0.025, args.n_steps, args.n_datasets, args.data_path, is_parallel=(args.parallel == True))
     else:
         #  make_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
         make_stimulation_dataset(args.n_clusters, args.cluster_size, 0, args.n_steps, args.n_datasets, args.data_path, is_parallel = (args.parallel == True))
