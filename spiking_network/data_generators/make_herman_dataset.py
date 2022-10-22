@@ -1,7 +1,7 @@
 import numpy as np
 from spiking_network.w0_generators.w0_generator import W0Generator
 from spiking_network.w0_generators.w0_dataset import HermanDataset
-from spiking_network.models.herman_model import HermanModel, RealHermanModel
+from spiking_network.models.herman_model import HermanModel
 from pathlib import Path
 from tqdm import tqdm
 import torch

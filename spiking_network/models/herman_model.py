@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 class HermanModel(AbstractModel):
     def __init__(self, W0, edge_index, n_neurons, stimulation=[], seed=0, device="cpu"):
-        super(RealHermanModel, self).__init__(W0, edge_index, stimulation, device)
+        super(HermanModel, self).__init__(W0, edge_index, stimulation, device)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 

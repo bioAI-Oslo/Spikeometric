@@ -12,32 +12,28 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--n_clusters",   type=int,   default=1,        help="Number of clusters")
-    parser.add_argument("-s", "--cluster_size", type=int,   default=20,       help="Size of each cluster")
+    parser.add_argument("-n", "--n_neurons",    type=int,   default=20,       help="Number of neurons in the network")
     parser.add_argument("-t", "--n_steps",      type=int,   default=10_000,   help="Number of steps in simulation")
-    parser.add_argument("-d", "--n_datasets",   type=int,   default=1,        help="Number of datasets to generate")
+    parser.add_argument("-s", "--n_sims",       type=int,   default=1,        help="Number of simulations to run")
     parser.add_argument("-r", "--r",            type=float, default=0.025,    help="The r to use for the herman case")
     parser.add_argument("-th", "--threshold",   type=float, default=1.378e-3, help="The threshold to use for the herman case")
     parser.add_argument("--data_path",          type=str,   default="data",   help="The path where the data should be saved")
+    parser.add_argument("-p", "--max_parallel", type=int,   default=100,      help="The max number of simulations to run in parallel")
     parser.add_argument("--herman",                                           help="Run hermans simulation", action="store_true")
-    parser.add_argument("-p", "--parallel",                                   help="Run in parallel", action="store_true")
     args = parser.parse_args()
 
     print("Generating datasets...")
-    print(f"n_clusters:   {args.n_clusters}")
-    print(f"cluster_size: {args.cluster_size}")
-    print(f"n_steps:      {args.n_steps}")
-    print(f"n_datasets:   {args.n_datasets}")
-    print(f"path:         {args.data_path}")
-    print(f"herman_sim:   {args.herman}")
-    print(f"is_parallel:  {args.parallel}")
+    print(f"Number of neurons:                            {args.n_neurons}")
+    print(f"Number of simulations:                        {args.n_sims}")
+    print(f"Number of steps:                              {args.n_steps}")
+    print(f"Path to store data:                           {args.data_path}")
+    print(f"Running Hermans simulation?:                  {args.herman}")
+    print(f"Max number of simulation to run in parallel:  {args.max_parallel}")
 
     if args.herman:
-        make_herman_dataset(args.cluster_size, args.n_datasets, args.n_steps, args.data_path, max_parallel = 100)
+        make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
     else:
-        make_dataset(args.cluster_size, args.n_datasets, args.n_steps, args.data_path, max_parallel=100)
-
-
+        make_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
 
 if __name__ == "__main__":
     main()
