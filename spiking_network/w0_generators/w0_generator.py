@@ -1,4 +1,5 @@
 import torch
+from torch_geometric.data import Data, InMemoryDataset
 import numpy as np
 from dataclasses import dataclass
 
@@ -19,6 +20,7 @@ class GlorotParams(DistributionParams):
     mean: float = 0.0
     std: float = 5.0
     name: str = "glorot"
+
 
 class W0Generator:
     def __init__(self, n_clusters, cluster_size, n_cluster_connections, dist_params: DistributionParams):

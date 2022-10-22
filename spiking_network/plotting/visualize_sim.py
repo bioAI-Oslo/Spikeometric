@@ -21,6 +21,7 @@ def load_data(file):
 
     W0_sparse = data["w_0"].item()
     W0 = W0_sparse.toarray()
+    np.fill_diagonal(W0, 0)
 
     #  W = data["W"]
     #  edge_index = data["edge_index"]
@@ -94,7 +95,12 @@ def main():
     directory = directories[int(option) - 1]
 
     while True:
-        file = random.choice(list(directory.iterdir()))
+        files = list(directory.iterdir())
+        for i, path in enumerate(files):
+            print(f"{i+1}) {path}")
+
+        option = input("\nSelect option: ")
+        file = files[int(option) - 1]
 
         X, W0 = load_data(file)
 

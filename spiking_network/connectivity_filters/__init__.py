@@ -1,2 +1,0 @@
-from spiking_network.connectivity_filters.connectivity_filter import ConnectivityFilter
-from spiking_network.connectivity_filters.abstract_connectivity_filter import AbstractConnectivityFilter

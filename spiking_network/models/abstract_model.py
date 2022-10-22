@@ -2,46 +2,55 @@ from torch_geometric.nn import MessagePassing
 import torch
 import numpy as np
 
-class AbstractModel(torch.nn.Module):
-    def __init__(self, W, edge_index, n_steps, seed=0, device="cpu", equilibration_steps = 100):
-        super().__init__()
-        self.W = W
-        self.edge_index = edge_index
-        self._seed = seed
-        self._rng = torch.Generator().manual_seed(self._seed)
-        self._spikes = torch.tensor([], dtype=torch.long)
+class AbstractModel(MessagePassing):
+    def __init__(self, W0, edge_index, stimulation, device="cpu"):
+        super(AbstractModel, self).__init__(aggr='add')
+        self.W0 = W0.to(device)
+        self.edge_index = edge_index.to(device)
+        self._stimulation = stimulation if isinstance(stimulation, list) else [stimulation]
         self.device = device
-        self.to_device(self.device)
-
-        self._n_steps = n_steps
-        self._equilibration_steps = equilibration_steps
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Simulates the network for n_steps"""
-        x = self._equilibrate(x)
-        self._spikes = torch.zeros(x.shape[0], self._n_steps + x.shape[1], device=x.device)
-        self._spikes[:, :x.shape[1]] = x
-        for t in range(self._n_steps):
-            self._spikes[:, x.shape[1] + t] = self._layer(self._spikes[:, t:t+x.shape[1]], self.edge_index, self.W).squeeze()
-        self.to_device("cpu") 
-        return self._spikes[:, x.shape[1]:]
-
-    def _register_spikes(self, x: torch.Tensor, t: int) -> None:
-        """Registers the spikes of the network"""
-        for s in torch.nonzero(x[:, -1], as_tuple=False):
-            spike = torch.tensor([s, t], device=self._spikes.device)
-            self._spikes = torch.cat([self._spikes, spike.unsqueeze(1)], dim=1)
-
-    def _equilibrate(self, x: torch.Tensor) -> None:
-        """Equilibrates the network"""
-        for t in range(self._equilibration_steps): # Simulates the network for equilibration_steps
-            x = self._layer(x, self.edge_index, self.W)
-        return x
     
-    # Helper methods
-    def to_device(self, device):
-        """Moves the network to the GPU if available"""
-        self.W = self.W.to(device)
-        self.edge_index = self.edge_index.to(device)
-        self._rng = torch.Generator(device = device).manual_seed(self._seed)
-        self._spikes = self._spikes.to(device)
+    def time_dependence(self, W0, edge_index):
+        return W0
+
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, edge_attr: torch.Tensor):
+        r"""Calculates the new state of the network
+
+        Parameters:
+        ----------
+        x: torch.Tensor
+            The state of the network from time t - time_scale to time t [n_neurons, time_scale]
+        edge_index: torch.Tensor
+            The connectivity of the network [2, n_edges]
+        edge_attr: torch.Tensor
+            The edge weights of the connectivity filter [n_edges, time_scale]
+
+        Returns:
+        -------
+        new_state: torch.Tensor
+            The new state of the network from time t+1 - time_scale to time t+1 [n_neurons]
+        """
+        return self.propagate(edge_index, x=x, edge_attr=edge_attr)
+
+    def message(self, x_j: torch.Tensor, edge_attr: torch.Tensor):
+        """Calculates the activation of the neurons
+
+        Parameters:
+        ----------
+        x_j: torch.Tensor
+            The state of the source neurons from time t - time_scale to time t [n_edges, time_scale]
+        edge_attr: torch.Tensor
+            The edge weights of the connectivity filter [n_edges, time_scale]
+
+        Returns:
+        -------
+        activation: torch.Tensor
+            The activation of the neurons at time t[n_edges]
+        """
+        return torch.sum(x_j*edge_attr, dim=1, keepdim=True)
+
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
