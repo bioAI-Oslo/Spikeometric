@@ -24,6 +24,8 @@ def save(x, model, seed, data_path):
         seed=seed,
     )
 
+def calculate_isi(spikes: np.ndarray, N, n_steps, dt=0.0001) -> float:
+    return N * n_steps * dt / spikes.sum()
 
 def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel):
     # Path to save results
@@ -31,14 +33,13 @@ def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel):
     data_path.mkdir(parents=True, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
     batch_size = min(n_sims, max_parallel)
     herman_dataset = HermanDataset(n_neurons, n_sims, seed=0)
     data_loader = DataLoader(herman_dataset, batch_size=batch_size, shuffle=False)
     for i, batch in enumerate(data_loader):
         batch.to(device)
 
-        model = RealHermanModel(
+        model = HermanModel(
                 batch.W0,
                 batch.edge_index,
                 n_neurons*batch_size,
@@ -48,8 +49,6 @@ def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel):
 
         spikes = model.simulate(n_steps)
 
-        save(spikes, model, i, data_path / Path(f"{i}.npz"))
+        print(f"ISI: {calculate_isi(spikes, n_neurons, n_steps)}")
 
-
-if __name__ == "__main__":
-    make_dataset(10, 20, 1, 1000, 1)
+        save(spikes, model, i, data_path / Path(f"herman_{i}.npz"))
