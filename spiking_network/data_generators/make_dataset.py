@@ -38,7 +38,8 @@ def make_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, p=0.1):
         )
 
         # If we already have a tuned model for this initial distribution, 
-        # number of neurons and probability of firing, we can load it. Otherwise we need to tune it
+        # number of neurons and probability of firing, we can load it. Otherwise we need to tune it.
+        # Note that p is the probability that each neuron will fire per timestep.
         model_path = (
                 Path("spiking_network/models/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{p}_probability.pt"
         )
@@ -57,7 +58,7 @@ def make_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, p=0.1):
         spikes = model.simulate(n_steps, stimulation)
 
         # Save the data and the model
-        save(spikes, model, w0_data, stimulation, i, data_path)
+        save(spikes, model, w0_data, i, data_path, stimulation=stimulation)
         model.save(model_path)
 
 if __name__ == "__main__":

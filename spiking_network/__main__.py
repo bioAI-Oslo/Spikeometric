@@ -1,5 +1,6 @@
 from spiking_network.data_generators.make_dataset import make_dataset
 from spiking_network.data_generators.make_herman_dataset import make_herman_dataset
+from spiking_network.data_generators.make_sara_dataset import make_sara_dataset
 import argparse
 
 # Next steps

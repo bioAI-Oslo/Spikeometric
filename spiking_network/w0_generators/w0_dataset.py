@@ -9,10 +9,11 @@ class ConnectivityDataset:
         dataset = cls()
         dataset.data = []
         for w0 in w0_list:
+            n_neurons = w0.shape[0]
             edge_index = w0.nonzero().t()
             w0 = w0[edge_index[0], edge_index[1]]
-            dataset.data.append(Data(W0=w0, edge_index=edge_index, num_nodes=w0.shape[0]))
-        return cls
+            dataset.data.append(Data(W0=w0, edge_index=edge_index, num_nodes=n_neurons))
+        return dataset
 
     @property
     def w0_list(self):

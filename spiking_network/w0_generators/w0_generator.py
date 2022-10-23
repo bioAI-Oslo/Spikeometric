@@ -34,6 +34,9 @@ class W0Generator:
         W0, edge_index, n_neurons_list, n_edges_list, hub_neurons = W0Generator._build_connected_clusters(self.n_clusters, self.cluster_size, self.n_cluster_connections, self.dist_params, rng)
         return W0Generator._to_tensor(W0, edge_index), n_neurons_list, n_edges_list, hub_neurons
 
+    def generate_list(self, n_sims, seed):
+        return [self.generate(seed + i)[0] for i in range(n_sims)]
+
     @staticmethod
     def generate_herman(n_sims, n_neurons, seed):
         W0_list = []
