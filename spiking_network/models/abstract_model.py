@@ -1,15 +1,16 @@
 from torch_geometric.nn import MessagePassing
 import torch
 import numpy as np
+from torch_scatter import scatter_add
 
 class AbstractModel(MessagePassing):
-    def __init__(self, W0, edge_index, stimulation, device="cpu"):
+    def __init__(self, W0, edge_index, device="cpu"):
         super(AbstractModel, self).__init__(aggr='add')
         self.W0 = W0.to(device)
         self.edge_index = edge_index.to(device)
-        self._stimulation = stimulation if isinstance(stimulation, list) else [stimulation]
+        self.to(device)
         self.device = device
-    
+
     def time_dependence(self, W0, edge_index):
         return W0
 

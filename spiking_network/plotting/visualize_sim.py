@@ -105,7 +105,7 @@ def main():
         X, W0 = load_data(file)
 
         visualize_spikes(X)
-        visualize_weights(W0)
+        #  visualize_weights(W0)
 
 if __name__ == "__main__":
     main()
