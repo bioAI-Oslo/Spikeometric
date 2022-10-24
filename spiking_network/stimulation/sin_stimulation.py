@@ -17,3 +17,13 @@ class SinStimulation(Stimulation):
             return torch.zeros(self.n_neurons, device=self.device)
         stimuli = self.amplitude * torch.sin(2 * torch.pi * self.frequency * t)
         return self.distribute(stimuli)
+
+    def __dict__(self):
+        return {
+            "stimulation_type": "sin",
+            "targets": self.targets,
+            "duration": self.duration,
+            "n_neurons": self.n_neurons,
+            "amplitudes": self.amplitude,
+            "frequencies": self.frequency
+        }

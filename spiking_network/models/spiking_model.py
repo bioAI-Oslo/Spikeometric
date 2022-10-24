@@ -36,7 +36,7 @@ class SpikingModel(AbstractModel):
 
         return torch.where(is_self_edge, self_edges, other_edges).flip(1) # Flip to get latest time step last
 
-    def simulate(self, n_steps, stimulation=[]) -> torch.Tensor:
+    def simulate(self, n_steps, stimulation=None) -> torch.Tensor:
         """Simulates the network for n_steps"""
         W = self.time_dependence(self.W0, self.edge_index)
         spikes = torch.zeros(self.n_neurons, n_steps + self.time_scale, device=self.device)
@@ -44,9 +44,7 @@ class SpikingModel(AbstractModel):
             self.eval()
             for t in (pbar := tqdm(range(n_steps), colour="#3E5641")):
                 pbar.set_description(f"Simulating... t={t}")
-                activation = self(spikes[:, t:t+self.time_scale], self.edge_index, W)
-                for stim in stimulation:
-                    activation += stim(t)
+                activation = self(spikes[:, t:t+self.time_scale], self.edge_index, W) + stimulation(t)
                 spikes[:, t + self.time_scale] = self._update(activation)
         return spikes[:, self.time_scale:]
 

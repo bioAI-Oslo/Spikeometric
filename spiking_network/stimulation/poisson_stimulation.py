@@ -6,13 +6,13 @@ from spiking_network.stimulation.abstract_stimulation import Stimulation
 class PoissonStimulation(Stimulation):
     def __init__(self, targets, periods, temporal_scales, strengths, duration, n_neurons, seed=0, device='cpu'):
         super().__init__(targets, duration, n_neurons, device)
-        periods = periods if isinstance(periods, list) else [periods]*len(targets)
-        temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(targets)
-        strengths = strengths if isinstance(strengths, list) else [strengths]*len(targets)
-        self.max_temporal_scale = max(temporal_scales)
+        self.periods = periods if isinstance(periods, list) else [periods]*len(targets)
+        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(targets)
+        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(targets)
+        self.max_temporal_scale = max(self.temporal_scales)
 
-        self.stimulation_times = self._get_stimulation_times(periods, duration, seed).to(device)
-        self.strengths = self._get_strengths(strengths, temporal_scales).to(device)
+        self.stimulation_times = self._get_stimulation_times(self.periods, duration, seed).to(device)
+        self.stimulation_strengths = self._get_strengths(self.strengths, self.temporal_scales).to(device)
 
     def _get_stimulation_times(self, periods, duration, seed, low=1, high=10e3):
         """Generate Poisson stimulus onset times"""
@@ -28,10 +28,10 @@ class PoissonStimulation(Stimulation):
     def _get_strengths(self, strengths, temporal_scales):
         """Construct strength tensor from temporal_scales."""
         max_temp_scale = max(temporal_scales)
-        strength_tensor = torch.zeros((len(strengths), max_temp_scale))
+        stimulation_strengths = torch.zeros((len(strengths), max_temp_scale))
         for i, (strength, temp_scale) in enumerate(zip(strengths, temporal_scales)):
-            strength_tensor[i, :temp_scale] = strength
-        return strength_tensor
+            stimulation_strengths[i, :temp_scale] = strength
+        return stimulation_strengths
 
     def __call__(self, t):
         """Return stimulus at time t."""
@@ -39,7 +39,7 @@ class PoissonStimulation(Stimulation):
             return torch.zeros((self.n_neurons, 1), device=self.device)
         temp_scale = self.max_temporal_scale if t > self.max_temporal_scale else t
         stim_times = self.stimulation_times[:, t - temp_scale:t]
-        strengths = self.strengths[:, :temp_scale]
+        strengths = self.stimulation_strengths[:, :temp_scale]
         stimuli = torch.sum(stim_times * strengths, axis=1)
         return self.distribute(stimuli)
 
@@ -124,6 +124,17 @@ class PoissonStimulation(Stimulation):
         binned_stim_times = np.zeros(size)
         binned_stim_times[cum] = 1
         return np.expand_dims(binned_stim_times, 0)
+
+    def __dict__(self):
+        return {
+            "stimulation_type": "poisson",
+            'targets': self.targets,
+            'periods': self.periods,
+            'temporal_scales': self.temporal_scales,
+            'strengths': self.strengths,
+            'duration': self.duration,
+            'n_neurons': self.n_neurons,
+        }
 
 if __name__ == '__main__':
     targets = [0, 5]
