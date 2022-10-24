@@ -20,6 +20,7 @@ def main():
     parser.add_argument("-th", "--threshold",   type=float, default=1.378e-3, help="The threshold to use for the herman case")
     parser.add_argument("--data_path",          type=str,   default="data",   help="The path where the data should be saved")
     parser.add_argument("-p", "--max_parallel", type=int,   default=100,      help="The max number of simulations to run in parallel")
+    parser.add_argument("-pr", "--probability", type=float, default=0.1,      help="The probability that the neurons fire")
     parser.add_argument("--herman",                                           help="Run hermans simulation", action="store_true")
     args = parser.parse_args()
 
@@ -34,7 +35,7 @@ def main():
     if args.herman:
         make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
     else:
-        make_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
+        make_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
 
 if __name__ == "__main__":
     main()
