@@ -36,7 +36,7 @@ def main():
     if args.herman:
         make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
     else:
-        make_connectivity_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
+        #  make_connectivity_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
         make_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
 
 if __name__ == "__main__":

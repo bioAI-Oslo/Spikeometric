@@ -1,9 +1,10 @@
 import torch
 import numpy as np
+from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from spiking_network.w0_generators.w0_generator import DistributionParams
 
-class ConnectivityDataset:
+class ConnectivityDataset(Dataset):
     @classmethod
     def from_list(cls, w0_list):
         dataset = cls()
@@ -45,7 +46,7 @@ class W0Dataset(ConnectivityDataset):
         self.distribution_params = distribution_params
         self.data = self._generate_data(n_neurons, n_datasets, seed, dist_params=distribution_params)
 
-    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> tuple[torch.Tensor, torch.Tensor]:
+    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> torch.Tensor:
         """Builds the internal structure of a cluster"""
         rng = torch.Generator().manual_seed(seed)
         if dist_params.name == 'glorot':
@@ -72,6 +73,17 @@ class W0Dataset(ConnectivityDataset):
         normal_W0 = self._generate_normal_w0(n_neurons, mean, std, rng)
         glorot_W0 = normal_W0 / torch.sqrt(torch.tensor(n_neurons, dtype=torch.float32))
         return glorot_W0
+
+class SparseW0Dataset(W0Dataset):
+    def __init__(self, n_neurons, n_datasets, distribution_params, emptiness, seed=0):
+        self.emptiness = emptiness
+        super().__init__(n_neurons, n_datasets, distribution_params, seed)
+
+    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> torch.Tensor:
+        """Builds the internal structure of a cluster"""
+        W0 = super()._generate(n_neurons, seed, dist_params)
+        W0 = W0 * (torch.rand_like(W0) > self.emptiness)
+        return W0
 
 class HermanDataset(ConnectivityDataset):
     MEXICAN_HAT_LOWEST = -0.002289225919299652
