@@ -1,6 +1,7 @@
 from spiking_network.data_generators.make_dataset import make_dataset
 from spiking_network.data_generators.make_herman_dataset import make_herman_dataset
 from spiking_network.data_generators.make_sara_dataset import make_sara_dataset
+from spiking_network.data_generators.make_connectivity_dataset import make_connectivity_dataset
 import argparse
 
 # Next steps
@@ -35,6 +36,7 @@ def main():
     if args.herman:
         make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel)
     else:
+        make_connectivity_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
         make_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, p=args.probability)
 
 if __name__ == "__main__":

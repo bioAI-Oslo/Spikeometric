@@ -23,6 +23,7 @@ def load_data(file):
     W0 = W0_sparse.toarray()
     np.fill_diagonal(W0, 0)
 
+
     #  W = data["W"]
     #  edge_index = data["edge_index"]
 

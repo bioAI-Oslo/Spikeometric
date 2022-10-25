@@ -34,7 +34,7 @@ def save_parallel(
         )
 
 
-def save(x, model, w0_data, seed, data_path, stimulation=[]):
+def save(x, model, w0_data, seed, data_path, stimulation=None):
     """Saves the spikes and the connectivity filter to a file"""
     x = x.cpu()
     xs = torch.split(x, w0_data[0].num_nodes, dim=0)
@@ -48,7 +48,7 @@ def save(x, model, w0_data, seed, data_path, stimulation=[]):
             data_path / Path(f"seed_{seed}_simulation_{i}.npz"),
             X_sparse=sparse_x,
             w_0=sparse_W0,
-            stimulation=stimulation,
+            stimulation=stimulation.__dict__() if stimulation is not None else None,
             parameters=model.save_parameters(),
             seed=seed,
         )
