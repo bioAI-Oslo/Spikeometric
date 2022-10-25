@@ -51,6 +51,7 @@ class AbstractModel(MessagePassing):
         return torch.sum(x_j*edge_attr, dim=1, keepdim=True)
 
     def save(self, path):
+        path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.state_dict(), path)
 
     def load(self, path):

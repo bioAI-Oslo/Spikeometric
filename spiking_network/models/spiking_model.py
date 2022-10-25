@@ -42,7 +42,7 @@ class SpikingModel(AbstractModel):
         spikes = torch.zeros(self.n_neurons, n_steps + self.time_scale, device=self.device)
         with torch.no_grad():
             self.eval()
-            for t in (pbar := tqdm(range(n_steps), colour="#3E5641")):
+            for t in (pbar := tqdm(range(n_steps), colour="#3E5641", leave=False)):
                 pbar.set_description(f"Simulating... t={t}")
                 activation = self(spikes[:, t:t+self.time_scale], self.edge_index, W)
                 for stim in stimulation:

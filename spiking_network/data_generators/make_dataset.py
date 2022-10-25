@@ -29,7 +29,7 @@ def make_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, p=0.1):
     data_loader = DataLoader(w0_data, batch_size=batch_size, shuffle=False)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    for i, batch in enumerate(data_loader):
+    for i, batch in enumerate(tqdm(data_loader, desc="Batch")):
         batch = batch.to(device)
 
         # Initalize model
