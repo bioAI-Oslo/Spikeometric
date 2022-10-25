@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 class HermanModel(AbstractModel):
     def __init__(self, W0, edge_index, n_neurons, stimulation=[], seed=0, device="cpu"):
-        super(HermanModel, self).__init__(W0, edge_index, stimulation, device)
+        super(HermanModel, self).__init__(W0, edge_index, device)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 
@@ -18,15 +18,18 @@ class HermanModel(AbstractModel):
         #  self.noise_sparsity = torch.nn.Parameter(torch.tensor(1.5, device=device))
         #  self.tau = torch.nn.Parameter(torch.tensor(0.01, device=device))
             
-        self.r = torch.tensor(0.025, device=device)
-        self.threshold = torch.tensor(1.378e-3, device=device)
-        self.noise_std = torch.tensor(0.3, device=device) # noise amplitude
-        self.b = torch.tensor(0.001, device=device) #uniform feedforward input
-        self.noise_sparsity = torch.tensor(1.0, device=device) #noise is injected with the prob that a standard normal exceeds this
+        # Learnable parameters
 
-        self.tau = torch.tensor(0.01, device=device)
-        self.dt = torch.tensor(0.0001, device=device)
-        self.n_neurons = n_neurons
+        # Network parameters
+        self.threshold      = torch.tensor(1.378e-3, device=device)
+        self.noise_std      = torch.tensor(0.3, device=device) # noise amplitude
+        self.b              = torch.tensor(0.001, device=device) #uniform feedforward input
+        self.noise_sparsity = torch.tensor(1.0, device=device) #noise is injected with the prob that a standard normal exceeds this
+        self.r              = torch.tensor(0.025, device=device)
+
+        self.tau            = torch.tensor(0.01, device=device)
+        self.dt             = torch.tensor(0.0001, device=device)
+        self.n_neurons      = n_neurons
 
 
     def simulate(self, n_steps) -> torch.Tensor:
@@ -40,13 +43,13 @@ class HermanModel(AbstractModel):
             for t in (pbar := tqdm(range(n_steps), colour="#3E5641")):
                 pbar.set_description(f"Simulating... t={t}")
                 activation = self(activation, self.edge_index, W)
-                for stim in self._stimulation:
-                    stim(t, activation)
+                #  for stim in self._stimulation:
+                #      stim(t, activation)
                 spikes[:, t] = self._update(activation) > self.threshold
                 activation += spikes[:, t].unsqueeze(-1) - (activation / self.tau) * self.dt
         return spikes
 
-    def tune(self, p, lr = 0.01, N=100, max_iter=1000):
+    def tune(self, p, lr = 0.01, N=100, max_iter=1000, epsilon=1e-6):
         """Tunes the parameters of the network to match the desired firing rate"""
         self.train()
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
@@ -65,6 +68,8 @@ class HermanModel(AbstractModel):
                 probabilities += spikes[:, i].sum()
             avg_probabilities = probabilities / (N * self.n_neurons)
             loss = loss_fn(avg_probabilities, p)
+            if loss < epsilon:
+                break
             loss.backward()
             optimizer.step()
             t.set_description(f"Tuning... p={avg_probabilities.item():.3f}, s={avg_spikes.item():.3f}")
