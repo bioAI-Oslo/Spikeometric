@@ -4,6 +4,13 @@ from spiking_network.data_generators.make_sara_dataset import make_sara_dataset
 from spiking_network.data_generators.make_connectivity_dataset import make_connectivity_dataset
 import argparse
 
+import sys
+from IPython.core import ultratb
+
+sys.excepthook = ultratb.FormattedTB(
+    mode="Context", color_scheme="Linux", call_pdb=False
+)
+
 # Next steps
 # 2. Tuning with torch
 # 4. Find better way of aggregating in numpy
