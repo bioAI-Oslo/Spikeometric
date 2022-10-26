@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 class Stimulation(ABC):
     def __init__(self, targets, duration, n_neurons, device):
+        targets = targets if isinstance(targets, list) else [targets]
         self.targets = torch.tensor(targets, device=device)
         self.duration = duration
         self.n_neurons = n_neurons
@@ -19,7 +20,7 @@ class Stimulation(ABC):
 
     def distribute(self, stimuli):
         """Distribute stimuli to targets."""
-        return scatter_add(stimuli, self.targets, dim=0, dim_size=self.n_neurons).unsqueeze(-1)
+        return scatter_add(stimuli, self.targets, dim=0, dim_size=self.n_neurons)
 
     def to(self, device):
         """Move to device."""

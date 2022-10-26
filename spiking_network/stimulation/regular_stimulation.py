@@ -5,9 +5,9 @@ from spiking_network.stimulation.abstract_stimulation import Stimulation
 class RegularStimulation(Stimulation):
     def __init__(self, targets, rates, strengths, temporal_scales, duration, n_neurons, device="cpu"):
         super(RegularStimulation, self).__init__(targets, duration, n_neurons, device)
-        self.rates = rates if isinstance(rates, list) else [rates]*len(targets)
-        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(targets)
-        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(targets)
+        self.rates = rates if isinstance(rates, list) else [rates]*len(self.targets)
+        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(self.targets)
+        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(self.targets)
         self.max_temporal_scale = max(self.temporal_scales)
 
         self.stimulation_strengths = self._get_strengths(self.strengths, self.temporal_scales).to(device)
@@ -37,7 +37,7 @@ class RegularStimulation(Stimulation):
 
     def __call__(self, t):
         if self.duration < t:
-            return torch.zeros((self.n_neurons, 1), device=self.device)
+            return torch.zeros((self.n_neurons,), device=self.device)
         temp_scale = self.max_temporal_scale if self.max_temporal_scale < t else t
         stim_times = self.stimulation_times[:, t - temp_scale:t]
         strengths = self.stimulation_strengths[:, :temp_scale]

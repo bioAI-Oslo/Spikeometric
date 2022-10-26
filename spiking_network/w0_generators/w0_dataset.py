@@ -23,15 +23,13 @@ class ConnectivityDataset:
     def edge_index_list(self):
         return [data.edge_index for data in self.data]
 
-    def _generate_data(self, n_neurons, n_datasets, seed=0, **kwargs):
+    def _generate_data(self, n_neurons, n_datasets, seeds, **kwargs):
         datasets = []
-        rng = torch.Generator()
         for i in range(n_datasets):
-            W0 = self._generate(n_neurons, seed, **kwargs)
+            W0 = self._generate(n_neurons, seeds[i], **kwargs)
             edge_index = W0.nonzero().t()
             W0 = W0[edge_index[0], edge_index[1]]
             datasets.append(Data(W0=W0, edge_index=edge_index, num_nodes=n_neurons))
-            seed += 1
         return datasets
 
     def __len__(self):
@@ -41,9 +39,9 @@ class ConnectivityDataset:
         return self.data[idx]
 
 class W0Dataset(ConnectivityDataset):
-    def __init__(self, n_neurons, n_datasets, distribution_params, seed=0):
+    def __init__(self, n_neurons, n_datasets, distribution_params, seeds=0):
         self.distribution_params = distribution_params
-        self.data = self._generate_data(n_neurons, n_datasets, seed, dist_params=distribution_params)
+        self.data = self._generate_data(n_neurons, n_datasets, seeds, dist_params=distribution_params)
 
     def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> tuple[torch.Tensor, torch.Tensor]:
         """Builds the internal structure of a cluster"""
@@ -84,5 +82,8 @@ class HermanDataset(ConnectivityDataset):
         mat[rng.random((n_neurons, n_neurons)) < 0.9] = 0
         w0 = torch.tensor(mat, dtype=torch.float32)
         return w0
+
+    def name(self):
+        return 'herman'
     
 

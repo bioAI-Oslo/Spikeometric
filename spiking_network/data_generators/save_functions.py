@@ -29,7 +29,7 @@ def save_parallel(
             filter_params=connectivity_filter.parameters,
         )
 
-def save(x, model, w0_data, seed, data_path, stimulation=None):
+def save_old(x, model, w0_data, seed, data_path, stimulation=None):
     """Saves the spikes and the connectivity filter to a file"""
     x = x.cpu()
     xs = torch.split(x, w0_data[0].num_nodes, dim=0)
@@ -44,3 +44,24 @@ def save(x, model, w0_data, seed, data_path, stimulation=None):
             parameters=model.save_parameters(),
             seed=seed,
         )
+
+def save(x, model, w0_data, seeds, data_path, stimulation=None):
+    """Saves the spikes and the connectivity filter to a file"""
+    x = torch.cat(x, dim=0)
+    x = x.cpu()
+    xs = torch.split(x, w0_data[0].num_nodes, dim=0)
+    for i, (x, network) in enumerate(zip(xs, w0_data)):
+        sparse_x = coo_matrix(x)
+        sparse_W0 = coo_matrix((network.W0, network.edge_index), shape=(network.num_nodes, network.num_nodes))
+        np.savez_compressed(
+            data_path / Path(f"{i}.npz"),
+            X_sparse=sparse_x,
+            w_0=sparse_W0,
+            stimulation=stimulation.__dict__() if stimulation is not None else None,
+            parameters={k: v.item() for k, v in model.state_dict().items()},
+            seeds={
+                "model": seeds["model"],
+                "w0": seeds["w0"][i],
+                },
+        )
+

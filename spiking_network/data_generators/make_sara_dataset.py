@@ -1,4 +1,5 @@
 from spiking_network.models.spiking_model import SpikingModel
+from spiking_network.connectivity_filters.connectivity_filter import ConnectivityFilter
 from spiking_network.w0_generators.w0_dataset import ConnectivityDataset
 from spiking_network.w0_generators.w0_generator import W0Generator, GlorotParams
 from spiking_network.data_generators.save_functions import save
@@ -10,6 +11,8 @@ from torch_geometric.loader import DataLoader
 
 def make_sara_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel):
     """Generates a dataset"""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     # Set data path
     data_path = (
         "spiking_network" / Path(data_path) / f"{n_neurons}_neurons_{n_sims}_datasets_{n_steps}_steps"
@@ -29,21 +32,19 @@ def make_sara_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel):
     # Note that the square w0s will be split into a sparse representation with w0.shape = [n_edges] and edge_index.shape = [2, n_edges]
     w0_data = ConnectivityDataset.from_list(w0_list)
     data_loader = DataLoader(w0_data, batch_size=batch_size, shuffle=False)
+    # Initalize model
+    model = SpikingModel(
+        connectivity_filter = ConnectivityFilter(),
+        seed=0,
+        device=device,
+    )
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    for i, batch in enumerate(data_loader):
-        batch = batch.to(device)
+    results = []
+    for batch_idx, data in enumerate(data_loader):
+        data = data.to(device)
 
-        # Initalize model
-        model = SpikingModel(
-            batch.W0, batch.edge_index, total_neurons, seed=i, device=device
-        )
+        spikes = model.simulate(data, n_steps)
+        results.append(spikes)
 
-        # Simulate the model for n_steps
-        spikes = model.simulate(n_steps)
-
-        # Save the data and the model
-        save(spikes, model, w0_data, i, data_path) # Insert your own way of saving the data here (see save_functions.py)
-
-if __name__ == "__main__":
-    make_dataset(10, 20, 1, 1000, 1)
+    # Save the data and the model
+    save(spikes, model, w0_data, i, data_path) # Insert your own way of saving the data here (see save_functions.py)
