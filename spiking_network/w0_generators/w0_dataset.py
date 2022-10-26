@@ -1,9 +1,10 @@
 import torch
 import numpy as np
+from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from spiking_network.w0_generators.w0_generator import DistributionParams
 
-class ConnectivityDataset:
+class ConnectivityDataset(Dataset):
     @classmethod
     def from_list(cls, w0_list):
         dataset = cls()
@@ -43,7 +44,7 @@ class W0Dataset(ConnectivityDataset):
         self.distribution_params = distribution_params
         self.data = self._generate_data(n_neurons, n_datasets, seeds, dist_params=distribution_params)
 
-    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> tuple[torch.Tensor, torch.Tensor]:
+    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> torch.Tensor:
         """Builds the internal structure of a cluster"""
         rng = torch.Generator().manual_seed(seed)
         if dist_params.name == 'glorot':
@@ -71,15 +72,27 @@ class W0Dataset(ConnectivityDataset):
         glorot_W0 = normal_W0 / torch.sqrt(torch.tensor(n_neurons, dtype=torch.float32))
         return glorot_W0
 
+class SparseW0Dataset(W0Dataset):
+    def __init__(self, n_neurons, n_datasets, distribution_params, emptiness, seed=0):
+        self.emptiness = emptiness
+        super().__init__(n_neurons, n_datasets, distribution_params, seed)
+
+    def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> torch.Tensor:
+        """Builds the internal structure of a cluster"""
+        W0 = super()._generate(n_neurons, seed, dist_params)
+        W0 = W0 * (torch.rand_like(W0) > self.emptiness)
+        return W0
+
 class HermanDataset(ConnectivityDataset):
     MEXICAN_HAT_LOWEST = -0.002289225919299652
-    def __init__(self, n_neurons, n_datasets, seed=0):
+    def __init__(self, n_neurons, n_datasets, emptiness=0.9, seed=0):
+        self.emptiness = emptiness
         self.data = self._generate_data(n_neurons, n_datasets, seed)
-    
+
     def _generate(self, n_neurons, seed):
         rng = np.random.default_rng(seed)
         mat = rng.uniform(self.MEXICAN_HAT_LOWEST, 0, size=(n_neurons, n_neurons))
-        mat[rng.random((n_neurons, n_neurons)) < 0.9] = 0
+        mat[rng.random((n_neurons, n_neurons)) < self.emptiness] = 0
         w0 = torch.tensor(mat, dtype=torch.float32)
         return w0
 

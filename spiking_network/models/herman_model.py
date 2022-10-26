@@ -28,7 +28,6 @@ class HermanModel(BaseModel):
                 }
         )
 
-
     def forward(self, x, edge_index, W, activation, **kwargs):
         activation += x - (activation / self.params["tau"]) * self.params["dt"]
         return self.propagate(edge_index, x=activation, W=W).squeeze()

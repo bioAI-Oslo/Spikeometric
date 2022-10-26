@@ -14,7 +14,7 @@ class SpikingModel(BaseModel):
             {
                 "threshold": nn.Parameter(torch.tensor(0.0, device=device), requires_grad="threshold" in tuneable_parameters),
             }
-          )
+        )
 
     def _init_state(self, n_neurons, time_scale):
         x_initial = torch.zeros(n_neurons, time_scale, device=self.device)

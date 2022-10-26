@@ -1,4 +1,5 @@
-from spiking_network.w0_generators.w0_dataset import W0Dataset
+from spiking_network.models.spiking_model import SpikingModel
+from spiking_network.w0_generators.w0_dataset import W0Dataset, SparseW0Dataset
 from spiking_network.stimulation.regular_stimulation import RegularStimulation
 from spiking_network.stimulation.poisson_stimulation import PoissonStimulation
 from spiking_network.stimulation.sin_stimulation import SinStimulation
@@ -36,13 +37,13 @@ def make_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing
     w0_data = W0Dataset(n_neurons, n_sims, w0_params, seeds=seeds["w0"])
     data_loader = DataLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False)
 
-    # Prepare model
-    model_path = Path("spiking_network/models/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
     model = SpikingModel(
             connectivity_filter=ConnectivityFilter(),
             seed=seeds["model"],
-            device=device
-        )
+            device=device,
+    )
+    model_path = Path("spiking_network/models/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
+    print(f"Loading model from {model_path}")
     if model_path.exists():
         model.load(model_path)
     else:
