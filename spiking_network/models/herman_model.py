@@ -5,28 +5,24 @@ from torch import nn
 from tqdm import tqdm
 
 class HermanModel(BaseModel):
-    def __init__(self, connectivity_filter, tuneable_parameters=[], seed=0, device="cpu"):
-        super(HermanModel, self).__init__(connectivity_filter, device)
+    def __init__(self, params={}, tuneable_parameters=[], seed=0, device="cpu"):
+        super(HermanModel, self).__init__(device)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 
         # Parameters
         parameters = {
-            "r": 0.025,
-            "threshold": 1.378e-3,
-            "noise_std": 0.3,           # noise amplitude
-            "b": 0.001,                 # uniform feedforward input
-            "noise_sparsity": 1.0,      # noise is injected with the prob that a standard normal exceeds this
-            "tau": 0.01,
-            "dt": 0.0001,
+            "r": 0.025 if "r" not in params else params["r"],
+            "b": 0.001 if "b" not in params else params["b"],
+            "tau": 0.01 if "tau" not in params else params["tau"],
+            "dt": 0.0001 if "dt" not in params else params["dt"],
+            "noise_std": 0.3 if "noise_std" not in params else params["noise_std"],
+            "noise_sparsity": 1.0 if "noise_sparsity" not in params else params["noise_sparsity"],
+            "threshold": 1.378e-3 if "threshold" not in params else params["threshold"],
         }
+
+        self.params = self._init_parameters(parameters, tuneable_parameters, device)
         
-        self.params = nn.ParameterDict(
-            {
-                key: nn.Parameter(torch.tensor(value), requires_grad=True if key in tuneable_parameters else False)
-                for key, value in parameters.items()
-                }
-        )
 
     def forward(self, x, edge_index, W, activation, **kwargs):
         activation += x - (activation / self.params["tau"]) * self.params["dt"]

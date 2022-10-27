@@ -49,15 +49,9 @@ def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, fir
 
     model_path = Path("spiking_network/models/saved_models") / f"herman_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
     model = HermanModel(
-            connectivity_filter=None,
             seed=seeds["model"],
             device=device
-        )
-    if model_path.exists():
-        model.load(model_path)
-    else:
-        print("Model not found, using default parameters")
-
+        ).load(model_path) if model_path.exists() else HermanModel(seed=seeds["model"], device=device)
 
     batch_size = min(n_sims, max_parallel)
     herman_dataset = HermanDataset(n_neurons, n_sims, seed=seeds["w0"])

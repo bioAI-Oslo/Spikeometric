@@ -7,9 +7,8 @@ from tqdm import tqdm
 from abc import ABC, abstractmethod
 
 class BaseModel(MessagePassing, ABC):
-    def __init__(self, connectivity_filter, device="cpu"):
+    def __init__(self, device="cpu"):
         super(BaseModel, self).__init__(aggr='add')
-        self.connectivity_filter = connectivity_filter.to(device) if connectivity_filter else None
         self.device = device
 
     def simulate(self, data, n_steps, stimulation=None, verbose=True) -> torch.Tensor:
@@ -17,7 +16,7 @@ class BaseModel(MessagePassing, ABC):
         n_neurons = data.num_nodes
         edge_index = data.edge_index
         W0 = data.W0
-        W = self.connectivity_filter(W0, edge_index) if self.connectivity_filter else W0.unsqueeze(1)
+        W = self.connectivity_filter(W0, edge_index)
         time_scale = W.shape[1]
 
         if not stimulation:
@@ -47,9 +46,8 @@ class BaseModel(MessagePassing, ABC):
 
         edge_index = data.edge_index
         W0 = data.W0
-        connectivity_filter = self.connectivity_filter if self.connectivity_filter else lambda W, edge_index: W0.unsqueeze(1)
         n_neurons = data.num_nodes
-        time_scale = connectivity_filter(W0, edge_index).shape[1]
+        time_scale = self.connectivity_filter(W0, edge_index).shape[1]
 
         self.train()
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
@@ -64,7 +62,7 @@ class BaseModel(MessagePassing, ABC):
             x[:, :time_scale] = self._init_state(n_neurons, time_scale)
 
             for t in range(time_scale, n_steps + time_scale):
-                activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, connectivity_filter(W0, edge_index), t=t, activation=activation[:, t-time_scale:t])
+                activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, self.connectivity_filter(W0, edge_index), t=t, activation=activation[:, t-time_scale:t])
                 x[:, t] = self._update_state(activation[:, t])
 
             # Compute the loss
@@ -122,6 +120,7 @@ class BaseModel(MessagePassing, ABC):
         if not path.exists():
             raise FileNotFoundError(f"File {path} not found, please tune the model first")
         self.load_state_dict(torch.load(path))
+        return self
     
     def _init_state(self, n_neurons, time_scale):
         return torch.zeros((n_neurons, time_scale), device=self.device)
@@ -133,3 +132,14 @@ class BaseModel(MessagePassing, ABC):
     @abstractmethod
     def _update_state(self, activation):
         pass
+
+    def _init_parameters(self, params, tuneable, device):
+        return nn.ParameterDict(
+                {
+                key: nn.Parameter(torch.tensor(value, device=device), requires_grad=key in tuneable)
+                for key, value in params.items()
+            }
+        )
+
+    def connectivity_filter(self, W0, edge_index):
+        return W0.unsqueeze(1)

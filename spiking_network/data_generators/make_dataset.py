@@ -3,6 +3,7 @@ from spiking_network.w0_generators.w0_dataset import W0Dataset, SparseW0Dataset
 from spiking_network.stimulation.regular_stimulation import RegularStimulation
 from spiking_network.stimulation.poisson_stimulation import PoissonStimulation
 from spiking_network.stimulation.sin_stimulation import SinStimulation
+from spiking_network.stimulation.mixed_stimulation import MixedStimulation
 from spiking_network.w0_generators.w0_generator import GlorotParams, NormalParams
 from spiking_network.data_generators.save_functions import save
 from spiking_network.models.spiking_model import SpikingModel
@@ -37,25 +38,18 @@ def make_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing
     w0_data = W0Dataset(n_neurons, n_sims, w0_params, seeds=seeds["w0"])
     data_loader = DataLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False)
 
-    model = SpikingModel(
-            connectivity_filter=ConnectivityFilter(),
-            seed=seeds["model"],
-            device=device,
-    )
     model_path = Path("spiking_network/models/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
-    print(f"Loading model from {model_path}")
-    if model_path.exists():
-        model.load(model_path)
-    else:
-        print("No saved model found, using default parameters")
+    model = SpikingModel(seed=seeds["model"], device=device).load(model_path) if model_path.exists() else SpikingModel(seed=seeds["model"], device=device)
 
     results = []
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
-        stim = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
-        spikes = model.simulate(data, n_steps, stimulation=stim)
-        #  print(f"Results: {calculate_isi(spikes, data.num_nodes, n_steps)}")
-        print(f"Results:", spikes.mean().item())
+        stim0 = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
+        stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
+        mixed_stim = MixedStimulation([stim0, stim1])
+        spikes = model.simulate(data, n_steps, stimulation=mixed_stim)
+        #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
+        print(f"Firing rate: {spikes.mean()}")
         results.append(spikes)
 
     save(results, model, w0_data, seeds, data_path)

@@ -6,9 +6,9 @@ from spiking_network.stimulation.abstract_stimulation import Stimulation
 class PoissonStimulation(Stimulation):
     def __init__(self, targets, periods, temporal_scales, strengths, duration, n_neurons, seed=0, device='cpu'):
         super().__init__(targets, duration, n_neurons, device)
-        self.periods = periods if isinstance(periods, list) else [periods]*len(targets)
-        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(targets)
-        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(targets)
+        self.periods = periods if isinstance(periods, list) else [periods]*len(self.targets)
+        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(self.targets)
+        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(self.targets)
         self.max_temporal_scale = max(self.temporal_scales)
 
         self.stimulation_times = self._get_stimulation_times(self.periods, duration, seed).to(device)

@@ -24,16 +24,12 @@ class RegularStimulation(Stimulation):
         """Generate regular stimulus onset times"""
         stim_times = []
         for rate in rates:
+            times = torch.zeros(duration)
+            times[torch.arange(0, duration, int(1/rate))] = 1
             stim_times.append(
-                self._regular_stimulation_times(rate, duration)
+                times.unsqueeze(0)
             )
         return torch.cat(stim_times, dim=0)
-
-    def _regular_stimulation_times(self, rate, duration):
-        """Generate regular stimulus onset times"""
-        stim_times = torch.zeros(duration)
-        stim_times[torch.arange(0, duration, int(1/rate))] = 1
-        return stim_times.unsqueeze(0)
 
     def __call__(self, t):
         if self.duration < t:

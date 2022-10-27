@@ -23,19 +23,13 @@ def tune_connectivity_model(n_neurons, dataset_size, n_steps, n_epochs, firing_r
     w0_params = GlorotParams(0, 5)
     w0_data = W0Dataset(n_neurons, dataset_size, w0_params, seeds=seeds["w0"])
 
-
     # Put the data in a dataloader
     max_parallel = 100
     data_loader = DataLoader(w0_data, batch_size=min(max_parallel, dataset_size), shuffle=False)
-    
-    #  Connectivity filter parameters
-    connectivity_filter = ConnectivityFilter(
-            tuneable_parameters=["alpha", "beta", "abs_ref_strength", "rel_ref_strength"],
-        )
 
+    tuneable_params = ["alpha", "beta", "threshold"]
     model = SpikingModel(
-            connectivity_filter,
-            tuneable_parameters=["threshold"],
+            tuneable_parameters=tuneable_params,
             seed=seeds["model"],
             device=device
         )
@@ -43,6 +37,8 @@ def tune_connectivity_model(n_neurons, dataset_size, n_steps, n_epochs, firing_r
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
         model.tune(data, firing_rate, n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
+
+    print("Parameters:", {key: val.item() for key, val in model.state_dict().items()})
 
     # Save the model
     model.save(model_path / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")
