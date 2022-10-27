@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--data_path",          type=str,   default="data",   help="The path where the data should be saved")
     parser.add_argument("-p", "--max_parallel", type=int,   default=100,      help="The max number of simulations to run in parallel")
     parser.add_argument("-pr", "--probability", type=float, default=0.1,      help="The probability that the neurons fire")
+    parser.add_argument("-em", "--emptiness",   type=float, default=0.9,      help="The sparsity of the w_0 matrices")
     parser.add_argument("--herman",                                           help="Run hermans simulation", action="store_true")
     parser.add_argument("--tune",                                             help="Tune the connectivity model", action="store_true")
     parser.add_argument("-e", "--n_epochs",     type=int,   default=100,      help="Number of epochs to train for")
@@ -44,7 +45,8 @@ def main():
     print(f"Average probability that a neuron fires:      {args.probability}")
 
     if args.herman:
-        make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, args.probability)
+        print(f"Emtipness:                                    {args.probability}")
+        make_herman_dataset(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, args.probability, args.emptiness)
     elif args.tune:
         tune_connectivity_model(args.n_neurons, args.n_sims, args.n_steps, args.n_epochs, args.probability)
     else:
