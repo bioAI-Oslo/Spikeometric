@@ -82,9 +82,7 @@ def reconstruct_full_W(W, edge_index):
 
 
 def main():
-    dataset_path = (
-        Path("data")
-    )
+    dataset_path = Path("data") / "simulation_data" 
 
     directories = list(dataset_path.iterdir())
     for i, path in enumerate(directories):

@@ -12,7 +12,22 @@ class BaseModel(MessagePassing, ABC):
         self.device = device
 
     def simulate(self, data, n_steps, stimulation=None, verbose=True) -> torch.Tensor:
-        """Simulates the network for n_steps"""
+        """
+        Simulates the network for n_steps time steps given the connectivity.
+        It is also possible to stimulate the network by passing a stimulation function.
+        Returns the state of the network at each time step.
+
+        Parameters:
+        ----------
+        data: torch_geometric.data.Data
+        n_steps: int
+        stimulation: callable
+        verbose: bool
+
+        Returns:
+        -------
+        x: torch.Tensor
+        """
         n_neurons = data.num_nodes
         edge_index = data.edge_index
         W0 = data.W0
@@ -38,7 +53,22 @@ class BaseModel(MessagePassing, ABC):
         return x[:, time_scale:]
 
     def tune(self, data, firing_rate, lr = 0.01, n_steps=1000, n_epochs=100, verbose=True):
-        """Tunes the parameters of the network to match the desired firing rate"""
+        """
+        Tunes the model parameters to match the firing rate of the network.
+
+        Parameters:
+        ----------
+        data: torch_geometric.data.Data
+        firing_rate: torch.Tensor
+        lr: float
+        n_steps: int
+        n_epochs: int
+        verbose: bool
+
+        Returns:
+        -------
+        self: BaseModel
+        """
         if verbose:
             pbar = tqdm(range(n_epochs), colour="#3E5641")
         else:
@@ -74,6 +104,8 @@ class BaseModel(MessagePassing, ABC):
             # Backpropagate
             loss.backward()
             optimizer.step()
+        
+        return self
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward pass of the network"""
@@ -87,6 +119,10 @@ class BaseModel(MessagePassing, ABC):
             The connectivity of the network [2, n_edges]
         edge_attr: torch.Tensor
             The edge weights of the connectivity filter [n_edges, time_scale]
+        t: int
+            The current time step
+        activation: torch.Tensor
+            The activation of the network from time t - time_scale to time t [n_neurons, time_scale]
 
         Returns:
         -------
@@ -114,26 +150,32 @@ class BaseModel(MessagePassing, ABC):
         return torch.sum(W*x_j, dim=1, keepdim=True)
 
     def save(self, path):
+        """Saves the model"""
         torch.save(self.state_dict(), path)
 
     def load(self, path):
+        """Loads the model"""
         if not path.exists():
             raise FileNotFoundError(f"File {path} not found, please tune the model first")
         self.load_state_dict(torch.load(path))
         return self
     
     def _init_state(self, n_neurons, time_scale):
+        """Initializes the state of the network"""
         return torch.zeros((n_neurons, time_scale), device=self.device)
 
     @abstractmethod
     def _spike_probability(self, activation):
+        """Calculates the probability of a neuron to spike"""
         pass
 
     @abstractmethod
     def _update_state(self, activation):
+        """Updates the state of the network"""
         pass
 
     def _init_parameters(self, params, tuneable, device):
+        """Initializes the parameters of the model"""
         return nn.ParameterDict(
                 {
                 key: nn.Parameter(torch.tensor(value, device=device), requires_grad=key in tuneable)
