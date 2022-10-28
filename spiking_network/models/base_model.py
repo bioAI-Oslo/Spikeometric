@@ -19,8 +19,6 @@ class BaseModel(MessagePassing, ABC):
         W = self.connectivity_filter(W0, edge_index)
         time_scale = W.shape[1]
 
-        if not stimulation:
-            stimulation = lambda t: torch.zeros((n_neurons,), device=self.device)
         if verbose:
             pbar = tqdm(range(time_scale, n_steps + time_scale), colour="#3E5641")
         else:
@@ -33,7 +31,7 @@ class BaseModel(MessagePassing, ABC):
             self.eval()
             for t in pbar:
                 activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, W, t=t, activation=activation[:, t-time_scale:t])
-                x[:, t] = self._update_state(activation[:, t] + stimulation(t-time_scale))
+                x[:, t] = self._update_state(activation[:, t] + stimulation(t-time_scale)) if stimulation else 0
 
         return x[:, time_scale:]
 
