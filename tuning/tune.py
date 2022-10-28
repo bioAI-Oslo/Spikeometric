@@ -1,15 +1,13 @@
-from spiking_network.models.spiking_model import SpikingModel
-from spiking_network.models.herman_model import HermanModel
-from spiking_network.connectivity_filters.connectivity_filter import ConnectivityFilter
-from spiking_network.w0_generators.w0_dataset import W0Dataset, HermanDataset
-from spiking_network.w0_generators.w0_generator import GlorotParams
+from spiking_network.models import SpikingModel, HermanModel
+from spiking_network.datasets import W0Dataset, HermanDataset, GlorotParams
+
 from pathlib import Path
 import torch
 from torch_geometric.loader import DataLoader
 
-def tune_connectivity_model(n_neurons, dataset_size, n_steps, n_epochs, firing_rate):
+def tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model_path = Path("spiking_network/models/saved_models")
+    model_path = Path(model_path)
     model_path.mkdir(parents=True, exist_ok=True)
 
     # Reproducibility
@@ -37,8 +35,6 @@ def tune_connectivity_model(n_neurons, dataset_size, n_steps, n_epochs, firing_r
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
         model.tune(data, firing_rate, n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
-
-    print("Parameters:", {key: val.item() for key, val in model.state_dict().items()})
 
     # Save the model
     model.save(model_path / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")

@@ -23,13 +23,61 @@ class HermanModel(BaseModel):
         self.params = self._init_parameters(parameters, tuneable_parameters, device)
 
     def forward(self, x, edge_index, W, activation, **kwargs):
+        """
+        Computes the forward pass of the model for a single time step.
+
+        Parameters
+        ----------
+        x : torch.Tensor [n_neurons, time_scale]
+            The state of the network at the previous time_scale time steps.
+        edge_index : torch.Tensor [2, n_edges]
+            The connectivity of the network.
+        W : torch.Tensor [n_edges, time_scale]
+            The edge weights of the connectivity filter.
+        activation : torch.Tensor [n_neurons, time_scale]
+            The activation of the network at the previous time_scale time steps.
+
+        Returns
+        -------
+        spikes : torch.Tensor [n_neurons, time_scale]
+            The spikes of the network at the current time step.
+        """
         activation += x - (activation / self.params["tau"]) * self.params["dt"]
         return self.propagate(edge_index, x=activation, W=W).squeeze()
 
     def message(self, x_j, W):
+        """
+        Compute the message from x_j to x_i
+        
+        Parameters
+        ----------
+        x_j : torch.Tensor [n_edges, 1]
+            The activation of the neurons at the previous time step.
+        W : torch.Tensor [n_edges, 1]
+            The edge weights of the connectivity filter.
+
+        Returns
+        -------
+        message : torch.Tensor [n_edges, 1]
+        """
         return W * x_j
 
     def _update_state(self, activation):
+        """
+        Update the state of the neurons.
+        The network will spike if the activation is above the threshold.
+        Explanation of the model <-- here
+
+        Parameters
+        ----------
+        activation : torch.Tensor [n_neurons, time_scale]
+            The activation of the neurons at the current time step.
+
+        Returns
+        -------
+        spikes : torch.Tensor [n_neurons, time_scale]
+            The spikes of the network at the current time step.
+        """
         noise = torch.normal(0., self.params["noise_std"], size=activation.shape, device=activation.device)
         filtered_noise = torch.normal(0., 1., size=activation.shape, device=activation.device) > self.params["noise_sparsity"]
         b_term = self.params["b"] * (1 + noise * filtered_noise)

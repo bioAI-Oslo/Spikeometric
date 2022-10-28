@@ -1,18 +1,15 @@
 import numpy as np
-from spiking_network.w0_generators.w0_generator import W0Generator
-from spiking_network.w0_generators.w0_dataset import HermanDataset
-from spiking_network.models.herman_model import HermanModel
-from spiking_network.connectivity_filters.base_connectivity_filter import BaseConnectivityFilter
-from spiking_network.stimulation.regular_stimulation import RegularStimulation
+from spiking_network.datasets import HermanDataset
+from spiking_network.models import HermanModel
+
 from pathlib import Path
-from tqdm import tqdm
 import torch
 from torch_geometric.loader import DataLoader
-from spiking_network.data_generators.save_functions import save
 from scipy.sparse import coo_matrix
 
 def herman_save(x, model, w0_data, seed, data_path, n_neurons, stimulation=None):
     """Saves the spikes and the connectivity filter to a file"""
+    x = torch.cat(x, dim=0)
     x = x.cpu()
     w0_data = w0_data.cpu()
     xs = torch.split(x, n_neurons, dim=0)
@@ -34,7 +31,7 @@ def herman_save(x, model, w0_data, seed, data_path, n_neurons, stimulation=None)
 def calculate_isi(spikes: np.ndarray, N, n_steps, dt=0.0001) -> float:
     return N * n_steps * dt / spikes.sum()
 
-def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, firing_rate=0.016, emptiness=0.9):
+def simulate_herman(n_neurons, n_sims, n_steps, data_path, max_parallel, firing_rate=0.016):
     # Path to save results
     data_path = Path(data_path) / Path(f"herman_{n_neurons}_neurons_{n_sims}_sims_{n_steps}_steps")
     data_path.mkdir(parents=True, exist_ok=True)
@@ -67,5 +64,4 @@ def make_herman_dataset(n_neurons, n_sims, n_steps, data_path, max_parallel, fir
         #  print(f"ISI: {calculate_isi(spikes, n_neurons, n_steps)}")
         results.append(spikes)
 
-    save(results, model, herman_dataset, seeds, data_path)
-        #  herman_save(spikes, model, batch.W0, i, data_path, n_neurons)
+    herman_save(results, model, herman_dataset, seeds, data_path)
