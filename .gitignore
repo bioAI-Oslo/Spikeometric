@@ -1,6 +1,6 @@
-spiking_network/data
-spiking_network/models/saved_models
-spiking_network/benchmarking/benchmark_data
+data/simulation_data
+data/saved_models
+benchmarking/benchmark_data
 run
 run_simula
 run_herman

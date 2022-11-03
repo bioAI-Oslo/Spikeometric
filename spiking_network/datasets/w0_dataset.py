@@ -21,8 +21,12 @@ class GlorotParams(DistributionParams):
     name: str = "glorot"
 
 class W0Dataset(ConnectivityDataset):
-    def __init__(self, n_neurons, n_datasets, distribution_params, seeds=0):
+    def __init__(self, n_neurons, n_datasets, distribution_params, seeds=None, transform=None):
+        super().__init__(transform=transform)
         self.distribution_params = distribution_params
+        if seeds is None:
+            seeds = torch.randint(0, 1000000, (n_datasets,)).tolist()
+
         self.data = self._generate_data(n_neurons, n_datasets, seeds, dist_params=distribution_params)
 
     def _generate(self, n_neurons: int, seed, dist_params: DistributionParams) -> torch.Tensor:

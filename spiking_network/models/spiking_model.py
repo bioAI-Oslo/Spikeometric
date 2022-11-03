@@ -1,4 +1,6 @@
 from spiking_network.models.base_model import BaseModel
+from torch_sparse import SparseTensor
+from torch_sparse import matmul
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -18,12 +20,12 @@ class SpikingModel(BaseModel):
             "rel_ref_scale": 7 if "rel_ref_scale" not in params else params["rel_ref_scale"],
             "time_scale": 10 if "time_scale" not in params else params["time_scale"],
             "influence_scale": 5 if "influence_scale" not in params else params["influence_scale"],
-            "threshold": 2.5 if "threshold" not in params else params["threshold"],
+            "threshold": 5. if "threshold" not in params else params["threshold"],
         }
 
         self.params = self._init_parameters(parameters, tuneable_parameters, device)
 
-    def _init_state(self, n_neurons, time_scale):
+    def _init_state(self, n_neurons:int , time_scale: int) -> torch.Tensor:
         """
         Initialize the state of the neurons
 
@@ -43,7 +45,7 @@ class SpikingModel(BaseModel):
         x_initial[:, time_scale-1] = torch.randint(0, 2, (n_neurons,), generator=self._rng, device=self.device)
         return x_initial
 
-    def message(self, x_j, W):
+    def message(self, x_j: torch.Tensor, W: torch.Tensor) -> torch.Tensor:
         """
         Compute the message from x_j to x_i
 
@@ -61,7 +63,7 @@ class SpikingModel(BaseModel):
         """
         return torch.sum(x_j * W, dim=1, keepdim=True)
 
-    def _spike_probability(self, activation):
+    def _spike_probability(self, activation: torch.Tensor) -> torch.Tensor:
         """
         Compute the probability that a neuron spikes given its activation
 
@@ -77,7 +79,7 @@ class SpikingModel(BaseModel):
         """
         return torch.sigmoid(activation - self.params["threshold"])
 
-    def _update_state(self, activation):
+    def _update_state(self, activation: torch.Tensor) -> torch.Tensor:
         """
         Update the state of the neurons
 
@@ -94,7 +96,7 @@ class SpikingModel(BaseModel):
         probabilities = self._spike_probability(activation)
         return torch.bernoulli(probabilities, generator=self._rng)
     
-    def connectivity_filter(self, W0, edge_index):
+    def connectivity_filter(self, W0: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """
         Compute the connectivity filter for the spiking model given the initial weights W0 and the edge index
 
@@ -121,9 +123,9 @@ class SpikingModel(BaseModel):
 
         W = torch.where(is_self_edge, self_edges, other_edges).flip(1)
 
-        return W
+        return W.to(dtype=torch.float16)
 
-    def _self_edges(self, t):
+    def _self_edges(self, t: torch.Tensor) -> torch.Tensor:
         """
         Compute the self-edges for the spiking model.
         The first abs_ref_scale time steps are absolute refractory, the next rel_ref_scale time steps are relative refractory.
@@ -159,7 +161,7 @@ class SpikingModel(BaseModel):
             )
         return abs_ref + rel_ref
 
-    def _other_edges(self, W0, t):
+    def _other_edges(self, W0: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
         Compute the other-edges for the spiking model.
         The weight decays exponentially with decay rate alpha.

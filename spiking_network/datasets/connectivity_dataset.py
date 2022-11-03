@@ -1,7 +1,10 @@
-from torch.utils.data import Dataset
+from torch_geometric.data import InMemoryDataset
 from torch_geometric.data import Data
 
-class ConnectivityDataset(Dataset):
+class ConnectivityDataset(InMemoryDataset):
+    def __init__(self, transform=None):
+        super().__init__(transform=transform)
+
     @classmethod
     def from_list(cls, w0_list):
         dataset = cls()
@@ -22,7 +25,6 @@ class ConnectivityDataset(Dataset):
         return [data.edge_index for data in self.data]
 
     def _generate_data(self, n_neurons, n_datasets, seeds, **kwargs):
-        seeds = seeds if isinstance(seeds, list) else [seeds]
         datasets = []
         for i in range(n_datasets):
             W0 = self._generate(n_neurons, seeds[i], **kwargs)

@@ -1,10 +1,12 @@
 from torch_geometric.nn import MessagePassing
+from torch_sparse import SparseTensor
 import torch
 import torch.nn as nn 
 import numpy as np
 from torch_scatter import scatter_add
 from tqdm import tqdm
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 class BaseModel(MessagePassing, ABC):
     def __init__(self, device="cpu"):
@@ -41,14 +43,15 @@ class BaseModel(MessagePassing, ABC):
         else:
             pbar = range(time_scale, n_steps + time_scale)
 
-        x = torch.zeros(n_neurons, n_steps + time_scale, device=self.device)
-        activation = torch.zeros((n_neurons, n_steps + time_scale), device=self.device)
+        x = torch.zeros(n_neurons, n_steps + time_scale, device=self.device, dtype=torch.uint8)
+        #  activation = torch.zeros((n_neurons, n_steps + time_scale), device=self.device)
+        activation = torch.zeros((n_neurons,), device=self.device)
         x[:, :time_scale] = self._init_state(n_neurons, time_scale)
         with torch.no_grad():
             self.eval()
             for t in pbar:
-                activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, W, t=t, activation=activation[:, t-time_scale:t])
-                x[:, t] = self._update_state(activation[:, t] + stimulation(t-time_scale))
+                activation = self.forward(x[:, t-time_scale:t], edge_index, W=W, t=t, activation=activation)
+                x[:, t] = self._update_state(activation + stimulation(t-time_scale))
 
         return x[:, time_scale:]
 
@@ -92,14 +95,14 @@ class BaseModel(MessagePassing, ABC):
             x[:, :time_scale] = self._init_state(n_neurons, time_scale)
 
             for t in range(time_scale, n_steps + time_scale):
-                activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, self.connectivity_filter(W0, edge_index), t=t, activation=activation[:, t-time_scale:t])
+                activation[:, t] = self.forward(x[:, t-time_scale:t], edge_index, W=self.connectivity_filter(W0, edge_index), t=t, activation=activation[:, t-time_scale:t])
                 x[:, t] = self._update_state(activation[:, t])
 
             # Compute the loss
             avg_probability_of_spike = self._spike_probability(activation[:, time_scale:]).mean()
             loss = loss_fn(avg_probability_of_spike, firing_rate)
             if verbose:
-                pbar.set_description(f"Tuning... p={avg_probability_of_spike.item():.5f}")
+                pbar.set_description(f"Tuning... fr={avg_probability_of_spike.item():.5f}")
 
             # Backpropagate
             loss.backward()
@@ -107,7 +110,7 @@ class BaseModel(MessagePassing, ABC):
         
         return self
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward pass of the network"""
         r"""Calculates the new state of the network
 
@@ -129,7 +132,7 @@ class BaseModel(MessagePassing, ABC):
         new_state: torch.Tensor
             The new state of the network from time t+1 - time_scale to time t+1 [n_neurons]
         """
-        return self.propagate(edge_index, x=x, W=W, **kwargs).squeeze()
+        return self.propagate(edge_index, x=x, **kwargs).squeeze()
 
     @abstractmethod
     def message(self, x_j: torch.Tensor, W: torch.Tensor):
@@ -153,12 +156,15 @@ class BaseModel(MessagePassing, ABC):
         """Saves the model"""
         torch.save(self.state_dict(), path)
 
-    def load(self, path):
+    @classmethod
+    def load(cls, path):
         """Loads the model"""
+        path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"File {path} not found, please tune the model first")
-        self.load_state_dict(torch.load(path))
-        return self
+        model = cls()
+        model.load_state_dict(torch.load(path))
+        return model
     
     def _init_state(self, n_neurons, time_scale):
         """Initializes the state of the network"""

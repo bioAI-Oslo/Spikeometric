@@ -1,7 +1,8 @@
 from spiking_network.models import SpikingModel
-from spiking_network.datasets import W0Dataset, GlorotParams
+from spiking_network.datasets import W0Dataset, GlorotParams, SparseW0Dataset
 from spiking_network.stimulation import RegularStimulation, PoissonStimulation, MixedStimulation
 
+import torch_geometric.transforms as T
 from pathlib import Path
 from tqdm import tqdm
 import torch
@@ -55,17 +56,17 @@ def simulate(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing_rat
     data_loader = DataLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False)
 
     model_path = Path("data/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
-    model = SpikingModel(seed=seeds["model"], device=device).load(model_path) if model_path.exists() else SpikingModel(seed=seeds["model"], device=device)
+    model = SpikingModel(seed=seeds["model"], device=device)
 
     results = []
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
-        stim0 = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
-        stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
-        mixed_stim = MixedStimulation([stim0, stim1])
-        spikes = model.simulate(data, n_steps, stimulation=mixed_stim)
+        #  stim0 = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
+        #  stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
+        #  mixed_stim = MixedStimulation([stim0, stim1])
+        spikes = model.simulate(data, n_steps, stimulation=None)
         #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
-        print(f"Firing rate: {spikes.mean()}")
+        print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes)}")
         results.append(spikes)
 
     save(results, model, w0_data, seeds, data_path)
