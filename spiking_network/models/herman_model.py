@@ -20,9 +20,7 @@ class HermanModel(BaseModel):
             "noise_sparsity": 1.0 if "noise_sparsity" not in params else params["noise_sparsity"],
             "threshold": 1.378e-3 if "threshold" not in params else params["threshold"],
         }
-
         self.params = self._init_parameters(parameters, tuneable_parameters, device)
-        
 
     def forward(self, x, edge_index, W, activation, **kwargs):
         """
