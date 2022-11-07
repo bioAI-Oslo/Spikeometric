@@ -4,6 +4,7 @@ benchmarking/benchmark_data
 run
 run_simula
 run_herman
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
