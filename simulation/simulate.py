@@ -63,7 +63,6 @@ def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=10
         #  stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
         #  mixed_stim = MixedStimulation([stim0, stim1])
         spikes = model.simulate(data, n_steps, stimulation=None)
-        from IPython import embed; embed()
         #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
