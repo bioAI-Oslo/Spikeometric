@@ -51,7 +51,7 @@ class BaseModel(MessagePassing, ABC):
                 #  print("\n\x1b[31mForward out:", self.forward(x[:, t-time_scale:t], edge_index, W=W, t=t, activation=activation).shape, "\x1b[0m") # ]]
                 #  exit()
                 activation = self.forward(x[:, t-time_scale:t], edge_index, W=W, t=t, activation=activation)
-                x[:, t] = self._update_state(activation + stimulation(t-time_scale)) if stimulation else 0
+                x[:, t] = self._update_state(activation + stimulation(t-time_scale) if stimulation else 0)
 
         return x[:, time_scale:]
 
