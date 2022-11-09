@@ -29,6 +29,7 @@ def main():
     parser.add_argument("-th", "--threshold",   type=float, default=1.378e-3, help="The threshold to use for the herman case")
     parser.add_argument("-em", "--emptiness",   type=float, default=0.9,      help="The sparsity of the w_0 matrices")
     parser.add_argument("-e", "--n_epochs",     type=int,   default=100,      help="Number of epochs to train for")
+    parser.add_argument("-fn", "--folder_name", type=str,   default="",       help="The name for the folder for the saved data")
     parser.add_argument("--herman",                                           help="Run hermans simulation", action="store_true")
     args = parser.parse_args()
 
@@ -41,7 +42,7 @@ def main():
     print(f"Average firing rate for the neurons:          {args.firing_rate}")
 
     if args.herman:
-        simulate_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, firing_rate=args.firing_rate)
+        simulate_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
     else:
         simulate(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, firing_rate=args.firing_rate)
 
