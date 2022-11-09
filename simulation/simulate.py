@@ -53,7 +53,7 @@ def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=10
     w0_data = W0Dataset(n_neurons, n_sims, w0_params, seeds=seeds["w0"])
     data_loader = DataLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False)
 
-    model_path = Path("data/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
+    #  model_path = Path("data/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
     model = SpikingModel(seed=seeds["model"], device=device)
 
     results = []
@@ -63,6 +63,7 @@ def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=10
         #  stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
         #  mixed_stim = MixedStimulation([stim0, stim1])
         spikes = model.simulate(data, n_steps, stimulation=None)
+        from IPython import embed; embed()
         #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)

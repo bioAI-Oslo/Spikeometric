@@ -123,7 +123,7 @@ class SpikingModel(BaseModel):
 
         W = torch.where(is_self_edge, self_edges, other_edges).flip(1)
 
-        return W.to(dtype=torch.float16)
+        return W.to(dtype=torch.float32)
 
     def _self_edges(self, t: torch.Tensor) -> torch.Tensor:
         """
