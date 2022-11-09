@@ -22,7 +22,7 @@ class HermanModel(BaseModel):
         }
         self.params = self._init_parameters(parameters, tuneable_parameters, device)
 
-    def forward(self, x, edge_index, W, activation, **kwargs):
+    def forward(self, x:torch.Tensor, edge_index, W, activation, **kwargs):
         """
         Computes the forward pass of the model for a single time step.
 
@@ -42,6 +42,7 @@ class HermanModel(BaseModel):
         spikes : torch.Tensor [n_neurons, time_scale]
             The spikes of the network at the current time step.
         """
+        activation = activation.unsqueeze(dim=1)
         activation += x - (activation / self.params["tau"]) * self.params["dt"]
         return self.propagate(edge_index, x=activation, W=W).squeeze()
 
