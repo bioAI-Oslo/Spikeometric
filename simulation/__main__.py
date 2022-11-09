@@ -44,7 +44,7 @@ def main():
     if args.herman:
         simulate_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
     else:
-        simulate(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.max_parallel, firing_rate=args.firing_rate)
+        simulate(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
 
 if __name__ == "__main__":
     main()

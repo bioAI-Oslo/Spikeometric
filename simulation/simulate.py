@@ -33,7 +33,7 @@ def save(x, model, w0_data, seeds, data_path, stimulation=None):
 def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
     return N * n_steps * dt / spikes.sum()
 
-def simulate(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing_rate=0.1):
+def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100, firing_rate=0.1):
     """Generates a dataset"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -45,9 +45,7 @@ def simulate(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing_rat
          }
 
     # Set path for saving data
-    data_path = (
-        Path(data_path) / f"{n_neurons}_neurons_{n_sims}_datasets_{n_steps}_steps"
-    )
+    data_path = Path(data_path) / (folder_name if folder_name else Path(f"{n_neurons}_neurons_{n_sims}_datasets_{n_steps}_steps"))
     data_path.mkdir(parents=True, exist_ok=True)
 
     # Prepare dataset
@@ -66,7 +64,7 @@ def simulate(n_neurons, n_sims, n_steps, data_path, max_parallel=100, firing_rat
         #  mixed_stim = MixedStimulation([stim0, stim1])
         spikes = model.simulate(data, n_steps, stimulation=None)
         #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
-        print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes)}")
+        print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
 
     save(results, model, w0_data, seeds, data_path)
