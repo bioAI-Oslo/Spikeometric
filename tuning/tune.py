@@ -1,11 +1,12 @@
 from spiking_network.models import SpikingModel, HermanModel
 from spiking_network.datasets import W0Dataset, HermanDataset, GlorotParams
+from spiking_network.utils import tune
 
 from pathlib import Path
 import torch
 from torch_geometric.loader import DataLoader
 
-def tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate):
+def run_tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_path = Path(model_path)
     model_path.mkdir(parents=True, exist_ok=True)
@@ -34,7 +35,7 @@ def tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate):
 
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
-        model.tune(data, firing_rate, n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
+        tune(model, data, firing_rate, n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
 
     # Save the model
     model.save(model_path / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")

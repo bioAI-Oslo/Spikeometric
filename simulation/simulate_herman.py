@@ -1,6 +1,7 @@
 import numpy as np
 from spiking_network.datasets import HermanDataset
 from spiking_network.models import HermanModel
+from spiking_network.utils import simulate
 
 from pathlib import Path
 import torch
@@ -31,7 +32,7 @@ def herman_save(x, model, w0_data, seeds, data_path, stimulation=None):
 def calculate_isi(spikes: np.ndarray, N, n_steps, dt=0.0001) -> float:
     return N * n_steps * dt / spikes.sum()
 
-def simulate_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel, firing_rate=0.16, emptiness=0.9):
+def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel, firing_rate=0.16, emptiness=0.9):
     # Path to save results
     data_path = Path(data_path) / (folder_name if folder_name else Path(f"herman_{n_neurons}_neurons_{n_sims}_sims_{n_steps}_steps"))
     data_path.mkdir(parents=True, exist_ok=True)
@@ -60,7 +61,7 @@ def simulate_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_para
 
         #  stim = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
         #  spikes = model.simulate(data, n_steps, stimulation=stim)
-        spikes = model.simulate(data, n_steps)
+        spikes = simulate(model, data, n_steps)
         #  print(f"ISI: {calculate_isi(spikes, n_neurons, n_steps)}")
         results.append(spikes)
 

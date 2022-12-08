@@ -1,4 +1,4 @@
-from tuning.tune import tune
+from tuning.tune import run_tune
 import argparse
 
 def main():
@@ -19,7 +19,7 @@ def main():
     print(f"Path to store model:                          {args.model_path}")
     print(f"Targe firing rate:                            {args.firing_rate}")
 
-    tune(args.n_neurons, args.dataset_size, args.n_steps, args.n_epochs, args.model_path, args.firing_rate)
+    run_tune(args.n_neurons, args.dataset_size, args.n_steps, args.n_epochs, args.model_path, args.firing_rate)
 
 if __name__ == "__main__":
     main()

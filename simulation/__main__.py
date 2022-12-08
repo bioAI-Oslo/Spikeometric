@@ -1,5 +1,5 @@
-from simulation.simulate import simulate
-from simulation.simulate_herman import simulate_herman
+from simulation.simulate import run_simulation
+from simulation.simulate_herman import run_herman
 import argparse
 
 import sys
@@ -42,9 +42,9 @@ def main():
     print(f"Average firing rate for the neurons:          {args.firing_rate}")
 
     if args.herman:
-        simulate_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
+        run_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
     else:
-        simulate(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
+        run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
 
 if __name__ == "__main__":
     main()

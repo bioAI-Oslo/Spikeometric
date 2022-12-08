@@ -1,6 +1,7 @@
 from spiking_network.models import SpikingModel
 from spiking_network.datasets import W0Dataset, GlorotParams, SparseW0Dataset
 from spiking_network.stimulation import RegularStimulation, PoissonStimulation, MixedStimulation
+from spiking_network.utils import simulate
 
 import torch_geometric.transforms as T
 from pathlib import Path
@@ -33,7 +34,7 @@ def save(x, model, w0_data, seeds, data_path, stimulation=None):
 def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
     return N * n_steps * dt / spikes.sum()
 
-def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100, firing_rate=0.1):
+def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100, firing_rate=0.1):
     """Generates a dataset"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -62,7 +63,7 @@ def simulate(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=10
         #  stim0 = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
         #  stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
         #  mixed_stim = MixedStimulation([stim0, stim1])
-        spikes = model.simulate(data, n_steps, stimulation=None)
+        spikes = simulate(model, data, n_steps, stimulation=None)
         #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
