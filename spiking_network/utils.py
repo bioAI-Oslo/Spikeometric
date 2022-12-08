@@ -2,6 +2,49 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from spiking_network.models import BaseModel
+import numpy as np
+
+def load_data(file):
+    """
+    Loads the data from the given file.
+
+    Parameters:
+    ----------
+    file: str
+
+    Returns:
+    -------
+    X: np.ndarray
+    W0: np.ndarray
+    """
+    data = np.load(file, allow_pickle=True)
+
+    X_sparse = data["X_sparse"].item()
+    X = X_sparse.toarray()
+
+    W0_sparse = data["w_0"].item()
+    W0 = W0_sparse.toarray()
+    np.fill_diagonal(W0, 0)
+
+    return X, W0
+
+def sparse_to_dense(W, edge_index):
+    """
+    Converts a sparse weight matrix to a dense one.
+
+    Parameters:
+    ----------
+    W: torch.Tensor
+    edge_index: torch.Tensor
+
+    Returns:
+    -------
+    W: torch.Tensor
+    """ 
+    n_neurons = edge_index.max() + 1
+    W = W.flip(dims=(1,))
+    sparse_W = torch.sparse_coo_tensor(edge_index, W, size=(n_neurons, n_neurons, W.shape[1]))
+    return sparse_W.to_dense()
 
 def simulate(model, data, n_steps, stimulation=None, verbose=True) -> torch.Tensor:
     """
