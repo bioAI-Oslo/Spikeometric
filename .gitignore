@@ -1,10 +1,12 @@
 data/simulation_data
 data/saved_models
+data/
 benchmarking/benchmark_data
-run
-run_simula
-run_herman
+run*
+run_simula*
+run_herman*
 .vscode
+tune*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

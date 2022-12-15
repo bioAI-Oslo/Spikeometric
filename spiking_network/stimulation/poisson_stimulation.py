@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 from numpy.random import default_rng
-from spiking_network.stimulation.abstract_stimulation import Stimulation
+from spiking_network.stimulation.base_stimulation import BaseStimulation
 
-class PoissonStimulation(Stimulation):
+class PoissonStimulation(BaseStimulation):
     def __init__(self, targets, periods, temporal_scales, strengths, duration, n_neurons, seed=0, device='cpu'):
         super().__init__(targets, duration, n_neurons, device)
         self.periods = periods if isinstance(periods, list) else [periods]*len(self.targets)

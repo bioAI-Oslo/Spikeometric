@@ -1,38 +1,13 @@
 import numpy as np
 from spiking_network.datasets import HermanDataset
 from spiking_network.models import HermanModel
-from spiking_network.utils import simulate
+from spiking_network.utils import simulate, save
 
 from pathlib import Path
 import torch
 from torch_geometric.loader import DataLoader
-from scipy.sparse import coo_matrix
 
-def herman_save(x, model, w0_data, seeds, data_path, stimulation=None):
-    """Saves the spikes and the connectivity filter to a file"""
-    x = torch.cat(x, dim=0)
-    x = x.cpu()
-    xs = torch.split(x, w0_data[0].num_nodes, dim=0)
-    for i, (x, network) in enumerate(zip(xs, w0_data)):
-        sparse_x = coo_matrix(x)
-        sparse_W0 = coo_matrix((network.W0, network.edge_index), shape=(network.num_nodes, network.num_nodes))
-        np.savez_compressed(
-            data_path / Path(f"{i}.npz"),
-            X_sparse=sparse_x,
-            w_0=sparse_W0,
-            stimulation=stimulation.__dict__() if stimulation is not None else None,
-            parameters={k: v.item() for k, v in model.state_dict().items()},
-            seeds={
-                "model": seeds["model"],
-                "w0": seeds["w0"][i],
-                },
-        )
-
-
-def calculate_isi(spikes: np.ndarray, N, n_steps, dt=0.0001) -> float:
-    return N * n_steps * dt / spikes.sum()
-
-def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel, firing_rate=0.16, emptiness=0.9):
+def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel, emptiness=0.9):
     # Path to save results
     data_path = Path(data_path) / (folder_name if folder_name else Path(f"herman_{n_neurons}_neurons_{n_sims}_sims_{n_steps}_steps"))
     data_path.mkdir(parents=True, exist_ok=True)
@@ -65,4 +40,4 @@ def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel,
         #  print(f"ISI: {calculate_isi(spikes, n_neurons, n_steps)}")
         results.append(spikes)
 
-    herman_save(results, model, herman_dataset, seeds, data_path)
+    save(results, model, herman_dataset, seeds, data_path)

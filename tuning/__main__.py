@@ -7,7 +7,6 @@ def main():
     parser.add_argument("-t", "--n_steps",      type=int,   default=10_000,                 help="Number of steps per epoch")
     parser.add_argument("-s", "--dataset_size", type=int,   default=1,                      help="Number of datasets to generate")
     parser.add_argument("--model_path",         type=str,   default="data/saved_models",    help="The path where the model should be saved")
-    parser.add_argument("-f", "--firing_rate",  type=float, default=0.1,                    help="The target firing rate")
     parser.add_argument("-e", "--n_epochs",     type=int,   default=100,                    help="Number of epochs to train for")
     args = parser.parse_args()
 

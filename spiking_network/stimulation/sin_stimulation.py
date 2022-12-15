@@ -1,24 +1,36 @@
 import torch
-from spiking_network.stimulation.abstract_stimulation import Stimulation
+import torch.nn as nn
+from spiking_network.stimulation.base_stimulation import BaseStimulation
 
-class SinStimulation(Stimulation):
+class SinStimulation(BaseStimulation):
     def __init__(self, targets, amplitudes, frequencies, duration, n_neurons, device='cpu'):
         super().__init__(targets, duration, n_neurons, device)
-        amplitude = amplitudes if isinstance(amplitudes, list) else [amplitudes]*len(targets)
-        frequency = frequencies if isinstance(frequencies, list) else [frequencies]*len(targets)
+        n_targets = len(targets) if isinstance(targets, list) else 1
+        if isinstance(amplitudes, (int, float)):
+            amplitudes = [amplitudes] * n_targets
+        if isinstance(frequencies, (int, float)):
+            frequencies = [frequencies] * n_targets
 
-        self.amplitude = torch.tensor(amplitude, device=device)
-        self.frequency = torch.tensor(frequency, device=device)
+        self.amplitude = torch.tensor(amplitudes, device=device, dtype=torch.float)
+        self.frequency = torch.tensor(frequencies, device=device)
+        
+        self.params = nn.ParameterDict({
+            "amplitude": nn.Parameter(self.amplitude, requires_grad=True),
+            "frequency": nn.Parameter(self.frequency, requires_grad=True),
+            "offset": nn.Parameter(torch.zeros(n_targets, device=device), requires_grad=True),
+        })
+        
         self.duration = duration
         self.n_neurons = n_neurons
 
     def __call__(self, t):
         if t > self.duration:
             return torch.zeros(self.n_neurons, device=self.device)
-        stimuli = self.amplitude * torch.sin(2 * torch.pi * self.frequency * t)
+        stimuli = self.params["amplitude"] * torch.sin(2 * torch.pi * self.params['frequency'] * t + self.params['offset'])
         return self.distribute(stimuli)
 
-    def __dict__(self):
+    
+    def parameter_dict(self):
         return {
             "stimulation_type": "sin",
             "targets": self.targets,
@@ -27,3 +39,4 @@ class SinStimulation(Stimulation):
             "amplitudes": self.amplitude,
             "frequencies": self.frequency
         }
+    

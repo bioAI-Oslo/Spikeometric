@@ -1,40 +1,14 @@
 from spiking_network.models import SpikingModel
 from spiking_network.datasets import W0Dataset, GlorotParams, SparseW0Dataset
 from spiking_network.stimulation import RegularStimulation, PoissonStimulation, MixedStimulation
-from spiking_network.utils import simulate
+from spiking_network.utils import simulate, save
 
 import torch_geometric.transforms as T
 from pathlib import Path
-from tqdm import tqdm
 import torch
 from torch_geometric.loader import DataLoader
-from scipy.sparse import coo_matrix
-import numpy as np
 
-def save(x, model, w0_data, seeds, data_path, stimulation=None):
-    """Saves the spikes and the connectivity filter to a file"""
-    x = torch.cat(x, dim=0)
-    x = x.cpu()
-    xs = torch.split(x, w0_data[0].num_nodes, dim=0)
-    for i, (x, network) in enumerate(zip(xs, w0_data)):
-        sparse_x = coo_matrix(x)
-        sparse_W0 = coo_matrix((network.W0, network.edge_index), shape=(network.num_nodes, network.num_nodes))
-        np.savez_compressed(
-            data_path / Path(f"{i}.npz"),
-            X_sparse=sparse_x,
-            w_0=sparse_W0,
-            stimulation=stimulation.__dict__() if stimulation is not None else None,
-            parameters={k: v.item() for k, v in model.state_dict().items()},
-            seeds={
-                "model": seeds["model"],
-                "w0": seeds["w0"][i],
-                },
-        )
-
-def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
-    return N * n_steps * dt / spikes.sum()
-
-def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100, firing_rate=0.1):
+def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100)
     """Generates a dataset"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -60,11 +34,7 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_paral
     results = []
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
-        #  stim0 = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
-        #  stim1 = PoissonStimulation(targets=0, strengths=1, duration=n_steps, periods=5, temporal_scales=4, n_neurons=data.num_nodes, device=device)
-        #  mixed_stim = MixedStimulation([stim0, stim1])
         spikes = simulate(model, data, n_steps, stimulation=None)
-        #  print(f"ISI: {calculate_isi(spikes, data.num_nodes, n_steps)}")
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
 

@@ -1,7 +1,7 @@
-from spiking_network.stimulation.abstract_stimulation import Stimulation
+from spiking_network.stimulation.base_stimulation import BaseStimulation
 import torch
 
-class MixedStimulation(Stimulation):
+class MixedStimulation(BaseStimulation):
     def __init__(self, stimulations):
         self.targets = torch.cat([stim.targets for stim in stimulations])
         self.duration = max([stim.duration for stim in stimulations])
