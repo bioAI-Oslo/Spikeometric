@@ -1,6 +1,7 @@
 from simulation.simulate import run_simulation
 from simulation.simulate_herman import run_herman
 import argparse
+import torch
 
 import sys
 from IPython.core import ultratb
@@ -25,18 +26,21 @@ def main():
     parser.add_argument("--herman",                                                           help="Run hermans simulation", action="store_true")
     args = parser.parse_args()
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     print("Generating datasets...")
     print(f"Number of neurons:                            {args.n_neurons}")
     print(f"Number of simulations:                        {args.n_sims}")
     print(f"Number of steps:                              {args.n_steps}")
     print(f"Path to store data:                           {args.data_path}")
     print(f"Max number of simulation to run in parallel:  {args.max_parallel}")
-    print(f"Average firing rate for the neurons:          {args.firing_rate}")
+    print("Device:                                       ", device)
+
 
     if args.herman:
-        run_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
+        run_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
     else:
-        run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel, firing_rate=args.firing_rate)
+        run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
 
 if __name__ == "__main__":
     main()

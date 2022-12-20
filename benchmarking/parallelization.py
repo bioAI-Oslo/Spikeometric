@@ -1,36 +1,32 @@
-import sys
-sys.path.append('..')
-from network import SpikingNetwork, FilterParams
-import time
 import numpy as np
+from torch_geometric.loader import DataLoader
+from pathlib import Path
+from spiking_network.datasets import W0Dataset, GlorotParams
+from spiking_network.models import SpikingModel
+from spiking_network.utils import simulate
+from benchmarking.timing import time_model
 
-def time_network(network, n_steps, N, total_sims):
-    total_time = 0
-    for i in range(N):
-        s = time.perf_counter()
-        network.simulate(n_steps, save_spikes=False, equilibration_steps=0)
-        e = time.perf_counter()
-        total_time += e - s
-    return total_time / total_sims
+def parallelization(max_neurons, n_steps, N, data_path, device="cpu"):
+    data_path = Path(data_path)
+    data_path.mkdir(parents=True, exist_ok=True)
 
-def main():
-    n_steps = 100
     timings = []
     seed = 12345
-
-    filter_params = FilterParams()
-    p_sims = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-    n_neurons = [10*i for i in range(1, 11)]
+    filter_params = GlorotParams(0, 5)
+    p_sims = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    n_neurons = range(50, max_neurons+1, 50)
     total_sims = p_sims[-1]
     timings = np.zeros((len(p_sims), len(n_neurons)))
     for n in n_neurons:
-        for p in p_sims:
-            network = SpikingNetwork(n_neurons=n*p, filter_params=filter_params, n_clusters=p, n_cluster_connections = 0, seed=seed)
-            time = time_network(network, n_steps, N=total_sims // p, total_sims=total_sims)
-            timings[p_sims.index(p), n_neurons.index(n)] = time
-            print("p: {}, n: {}, time: {}".format(p, n, time))
+        for i, p in enumerate(p_sims):
+            w0_data = W0Dataset(n, total_sims, filter_params, seeds=[seed + i for i in range(total_sims)])
+            model = SpikingModel(seed=seed, device=device)
+            data_loader = DataLoader(w0_data, batch_size=p, shuffle=False)
+            time = 0
+            for data in data_loader:
+                data = data.to(device)
+                time += time_model(model, data, n_steps, N=N)
+            timings[i, n_neurons.index(n)] = time
+            print(f'{n} neurons, {p} sims: {time}')
 
-    np.savez("benchmark_data" + '/parallelization_compare_across_neurons.npz', timings=timings, p_sims=p_sims)
-
-if __name__ == '__main__':
-    main()
+    np.savez(data_path / 'parallelization_{max_neurons}_neurons_{n_steps}_.npz', timings=timings, p_sims=p_sims)

@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from torch_geometric.loader import DataLoader
 
-def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100)
+def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel=100):
     """Generates a dataset"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
