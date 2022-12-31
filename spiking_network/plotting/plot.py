@@ -89,3 +89,28 @@ def visualize_time_dependence(W):
         break
 
     plt.show()
+
+def visualize_stimulation(stimulation):
+    """
+    Plots the stimulation of the network.
+
+    Parameters:
+    ----------
+    times: torch.Tensor
+    stimulation: torch.Tensor
+    """
+    fig, axs = plt.subplots(figsize=(10, 5))
+    fig.set_figheight(5)
+    fig.set_figwidth(10)
+    axs.set_title(stimulation.parameter_dict()["stimulation_type"])
+    axs.set_ylabel("Stimulation strength")
+    axs.set_xlabel("Timestep")
+
+    times = torch.arange(stimulation.durations.max())
+    output = torch.zeros((stimulation.n_targets, stimulation.durations.max()))
+    with torch.no_grad():
+        for t in times:
+            output[:, t] = stimulation(t)[stimulation.targets]
+    
+    axs.plot(times, output.T)
+    plt.show()

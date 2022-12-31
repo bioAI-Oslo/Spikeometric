@@ -1,7 +1,7 @@
 from spiking_network.models import SpikingModel
-from spiking_network.datasets import W0Dataset, GlorotParams, SparseW0Dataset
-from spiking_network.stimulation import RegularStimulation, PoissonStimulation, MixedStimulation
-from spiking_network.utils import simulate, save
+from spiking_network.datasets import W0Dataset, GlorotParams
+from spiking_network.stimulation import RegularStimulation
+from spiking_network.utils import simulate, save_data
 
 import torch_geometric.transforms as T
 from pathlib import Path
@@ -38,4 +38,4 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_paral
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
 
-    save(results, model, w0_data, seeds, data_path)
+    save_data(results, model, w0_data, seeds, data_path)

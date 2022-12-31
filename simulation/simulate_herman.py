@@ -1,7 +1,7 @@
 import numpy as np
 from spiking_network.datasets import HermanDataset
 from spiking_network.models import HermanModel
-from spiking_network.utils import simulate, save
+from spiking_network.utils import simulate, save_data, calculate_firing_rate
 
 from pathlib import Path
 import torch
@@ -16,15 +16,10 @@ def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel,
     # Reproducibility
     rng = torch.Generator().manual_seed(0)
     seeds = {
-        "w0": torch.randint(0, 100000, (n_sims,), generator=rng).tolist(),
+        "w0": torch.randint(0, 100000, (1,), generator=rng).item(),
         "model": torch.randint(0, 100000, (1,), generator=rng).item(),
      }
 
-    #  model_path = Path("models/saved_models") / f"herman_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
-    #  model = HermanModel(
-    #      seed=seeds["model"],
-    #      device=device
-    #  ).load(model_path) if model_path.exists() else HermanModel(seed=seeds["model"], device=device)
     model = HermanModel(seed=seeds["model"], device=device)
 
     batch_size = min(n_sims, max_parallel)
@@ -34,10 +29,8 @@ def run_herman(n_neurons, n_sims, n_steps, data_path, folder_name, max_parallel,
     for batch_idx, data in enumerate(data_loader):
         data = data.to(device)
 
-        #  stim = RegularStimulation(targets=0, strengths=1, duration=n_steps, rates=0.2, temporal_scales=2, n_neurons=data.num_nodes, device=device)
-        #  spikes = model.simulate(data, n_steps, stimulation=stim)
         spikes = simulate(model, data, n_steps)
-        #  print(f"ISI: {calculate_isi(spikes, n_neurons, n_steps)}")
+        print("Firing rate", calculate_firing_rate(spikes))
         results.append(spikes)
 
-    save(results, model, herman_dataset, seeds, data_path)
+    save_data(results, model, herman_dataset, seeds, data_path)

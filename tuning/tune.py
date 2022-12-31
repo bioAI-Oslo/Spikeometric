@@ -1,6 +1,7 @@
-from spiking_network.models import SpikingModel, HermanModel
-from spiking_network.datasets import W0Dataset, HermanDataset, GlorotParams
-from spiking_network.utils import tune
+from spiking_network.models import SpikingModel
+from spiking_network.datasets import W0Dataset, GlorotParams
+from spiking_network.utils import tune, new_tune
+from spiking_network.stimulation import RegularStimulation
 
 from pathlib import Path
 import torch
@@ -26,16 +27,27 @@ def run_tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate
     max_parallel = 100
     data_loader = DataLoader(w0_data, batch_size=min(max_parallel, dataset_size), shuffle=False)
 
-    tuneable_params = ["alpha", "beta", "threshold"]
     model = SpikingModel(
-            tuneable_parameters=tuneable_params,
             seed=seeds["model"],
             device=device
         )
+    reg_stim = RegularStimulation(
+        targets=torch.randint(0, n_neurons, (10,)).tolist(),
+        strengths=torch.rand(10).tolist(),
+        intervals = 5,
+        temporal_scales=1,
+        durations=n_steps,
+        total_neurons = min(max_parallel, dataset_size)*n_neurons,
+        device=device
+    )
 
-    for batch_idx, data in enumerate(data_loader):
+    tunable_params = ["alpha", "beta", "threshold", "strengths", "decay"]
+
+    for data in data_loader:
         data = data.to(device)
-        tune(model, data, firing_rate, n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
+        model.add_stimulation(reg_stim)
+        new_tune(model, data, firing_rate, tunable_parameters=tunable_params)
+        #  tune(model, data, firing_rate, tunable_model_parameters=[], stimulation=reg_stim, tunable_stimulation_parameters=["strengths"], n_epochs=n_epochs, n_steps=n_steps, lr=0.1)
 
     # Save the model
     model.save(model_path / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")
