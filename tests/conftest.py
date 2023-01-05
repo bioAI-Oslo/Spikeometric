@@ -4,41 +4,45 @@ import pytest
 @pytest.fixture 
 def generated_dataset():
     from spiking_network.datasets import W0Dataset, GlorotParams
+    import shutil
     n_neurons = 20
     n_sims = 10
     params = GlorotParams(0, 5)
-    dataset = W0Dataset(n_neurons, n_sims, params, seed=0)
+    dataset = W0Dataset(n_neurons, n_sims, params, seed=0, root="tests/test_data/generated_glorot_w0")
+    shutil.rmtree("tests/test_data/generated_glorot_w0")
     return dataset
 
 @pytest.fixture
 def generated_normal_dataset():
     from spiking_network.datasets import W0Dataset, NormalParams
+    import shutil as shuntil
     n_neurons = 100
     n_sims = 10
     params = NormalParams(0, 1)
-    dataset = W0Dataset(n_neurons, n_sims, params, seed=0)
+    dataset = W0Dataset(n_neurons, n_sims, params, seed=0, root="tests/test_data/generated_normal_w0")
+    shuntil.rmtree("tests/test_data/generated_normal_w0")
     return dataset
 
-
 @pytest.fixture
-def loaded_dataset():
-    import torch
-    from torch.testing import make_tensor
-    from spiking_network.datasets import ConnectivityDataset
+def generated_mexican_hat_dataset():
+    from spiking_network.datasets import MexicanHatDataset
+    import shutil
     n_neurons = 20
     n_sims = 10
-    tensors = []
-    for _ in range(n_sims):
-        t = make_tensor((n_neurons, n_neurons), device='cpu', dtype=torch.float32)
-        t[t < 0.2] = 0
-        tensors.append(t)
-    dataset = ConnectivityDataset(tensors)
+    dataset = MexicanHatDataset(n_neurons, n_sims, seed=0, root="tests/test_data/generated_mexican_hat")
+    shutil.rmtree("tests/test_data/generated_mexican_hat")
     return dataset
 
 @pytest.fixture
 def saved_dataset():
     from spiking_network.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset.load("tests/test_data/example_dataset")
+    dataset = ConnectivityDataset(root="tests/test_data/example_dataset")
+    return dataset
+
+@pytest.fixture
+def sparse_dataset():
+    from spiking_network.datasets import W0Dataset, GlorotParams
+    dataset = W0Dataset(20, 10, distribution_params=GlorotParams(0, 5), seed=0, root="tests/test_data/sparse_glorot_w0", sparsity=0.5)
     return dataset
 
 @pytest.fixture
@@ -60,11 +64,11 @@ def example_data():
     return example_data
 
 @pytest.fixture
-def example_herman_data():
-    from spiking_network.datasets import HermanDataset
+def example_mexican_hat_data():
+    from spiking_network.datasets import MexicanHatDataset
     n_neurons = 100
     n_sims = 1
-    dataset = HermanDataset(n_neurons, n_sims, seed=0)
+    dataset = MexicanHatDataset(n_neurons, n_sims, seed=0, root="tests/test_data/mexican_hat_dataset")
     return dataset[0]
 
 @pytest.fixture
@@ -96,9 +100,9 @@ def spiking_model():
     return model
 
 @pytest.fixture
-def herman_model():
-    from spiking_network.models import HermanModel
-    model = HermanModel(seed=0)
+def mexican_model():
+    from spiking_network.models import MexicanModel
+    model = MexicanModel(seed=0)
     return model
 
 @pytest.fixture
@@ -157,13 +161,13 @@ def regular_stimulation():
     targets = [0, 4, 9]
     intervals = [5, 7, 9]
     strengths = 1
-    temporal_scales = 2
+    temporal_scale = 2
     durations = 100
     stimulation = RegularStimulation(
         targets=targets,
         intervals=intervals,
         strengths=strengths,
-        temporal_scales=temporal_scales,
+        temporal_scale=temporal_scale,
         durations=durations,
         total_neurons=20,
     )
@@ -181,6 +185,25 @@ def sin_stimulation():
         targets=targets,
         amplitudes=amplitudes,
         frequencies=frequencies,
+        durations=durations,
+        total_neurons=total_neurons,
+    )
+    return stimulation
+
+@pytest.fixture
+def poisson_stimulation():
+    from spiking_network.stimulation import PoissonStimulation
+    targets = [0, 4, 9]
+    intervals = 3
+    strengths = 1
+    durations = 100
+    temporal_scale = 1
+    total_neurons = 20
+    stimulation = PoissonStimulation(
+        targets=targets,
+        intervals=intervals,
+        strengths=strengths,
+        temporal_scale=temporal_scale,
         durations=durations,
         total_neurons=total_neurons,
     )

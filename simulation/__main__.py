@@ -1,5 +1,5 @@
 from simulation.simulate import run_simulation
-from simulation.simulate_herman import run_herman
+from simulation.simulate_herman import run_mexican
 import argparse
 import torch
 
@@ -38,7 +38,7 @@ def main():
 
 
     if args.herman:
-        run_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
+        run_mexican(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
     else:
         run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
 

@@ -1,4 +1,4 @@
 from spiking_network.datasets.w0_dataset import W0Dataset
 from spiking_network.datasets.distribution_params import GlorotParams, NormalParams
-from spiking_network.datasets.herman_dataset import HermanDataset
+from spiking_network.datasets.mexican_hat_dataset import MexicanHatDataset
 from spiking_network.datasets.connectivity_dataset import ConnectivityDataset

@@ -3,9 +3,8 @@ import torch.nn as nn
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 
 class SinStimulation(BaseStimulation):
-    def __init__(self, targets: int | list, amplitudes: float | list, frequencies: float | list, durations: int | list, total_neurons: int, device='cpu'):
+    def __init__(self, targets: int, amplitudes: float, frequencies: float, durations: int, total_neurons: int, device='cpu'):
         super().__init__(targets, durations, total_neurons, device)
-
         if isinstance(amplitudes, (int, float)):
             amplitudes = [amplitudes] * self.n_targets
         if isinstance(frequencies, (int, float)):
@@ -28,9 +27,6 @@ class SinStimulation(BaseStimulation):
                 "offsets": torch.zeros(self.n_targets, device=device, dtype=torch.float32)
             }
         )
-        
-    def __call__(self, t):
-        if self.durations.max() <= t or t < 0:
-            return torch.zeros(self.total_neurons, device=self.device)
-        stimuli = self._params["amplitudes"] * torch.sin(2 * torch.pi * self._params['frequencies'] * t + self._params['offsets'])
-        return self.distribute(stimuli)
+
+    def stimulate(self, t):
+        return self._params["amplitudes"] * torch.sin(2 * torch.pi * self._params['frequencies'] * t + self._params['offsets'])

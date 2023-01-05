@@ -1,8 +1,8 @@
 from spiking_network.models.base_model import BaseModel
 import torch
 class SpikingModel(BaseModel):
-    def __init__(self, parameters={}, seed=0, device="cpu"):
-        super().__init__(parameters, device=device)
+    def __init__(self, parameters={}, seed=0, device="cpu", stimulation=None):
+        super().__init__(parameters, device=device, stimulation=stimulation)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 
@@ -62,7 +62,8 @@ class SpikingModel(BaseModel):
         activation : torch.Tensor [n_neurons, 1]
             The activation of the neurons
         """
-        return self.propagate(edge_index, x=x, W=W, **kwargs).squeeze() + self.stimulate(t=t)
+        act = self.propagate(edge_index, x=x, W=W, **kwargs).squeeze() + self.stimulate(t=t) 
+        return act
 
     def probability_of_spike(self, activation: torch.Tensor) -> torch.Tensor:
         """

@@ -1,10 +1,9 @@
 from spiking_network.models.base_model import BaseModel
-from torch_geometric.nn import MessagePassing
 import torch
 
-class HermanModel(BaseModel):
+class MexicanModel(BaseModel):
     def __init__(self, parameters={}, seed=0, device="cpu"):
-        super(HermanModel, self).__init__(parameters, device)
+        super(MexicanModel, self).__init__(parameters, device)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 

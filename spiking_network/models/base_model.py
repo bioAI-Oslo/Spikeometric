@@ -9,10 +9,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 class BaseModel(MessagePassing, ABC):
-    def __init__(self, parameters, device="cpu"):
+    def __init__(self, parameters, device="cpu", stimulation=None):
         super(BaseModel, self).__init__() 
         self.device = device
-        self.stimulation = lambda t: 0
 
         # Parameters
         params = self._default_parameters
@@ -21,6 +20,11 @@ class BaseModel(MessagePassing, ABC):
 
         self._params = self._init_parameters(params, device)
         self.time_scale = self._params["time_scale"].item()
+        
+        if stimulation is not None:
+            self.add_stimulation(stimulation)
+        else:
+            self.stimulation = lambda t: 0
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, activation=None, t=-1) -> torch.Tensor:
         """Forward pass of the network"""
@@ -140,7 +144,7 @@ class BaseModel(MessagePassing, ABC):
             raise ValueError("Parameters {} not recognised".format([p for p in parameters if p not in self._default_parameters.keys()]))
     
     def _check_tunable_parameters(self, tunable_parameters):
-        if any([p in self._untunable_parameters for p in tunable_parameters]):
+        if any([p in self._untunable_parameters or p not in self._params.keys() for p in tunable_parameters]):
             raise ValueError("Parameters {} cannot be tuned".format(self._untunable_parameters))
     
     @property 

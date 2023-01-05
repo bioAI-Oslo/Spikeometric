@@ -1,145 +1,97 @@
 import torch
-import numpy as np
-from numpy.random import default_rng
+import torch.nn as nn
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 
 class PoissonStimulation(BaseStimulation):
-    def __init__(self, targets, periods, temporal_scales, strengths, duration, n_neurons, seed=0, device='cpu'):
-        super().__init__(targets, duration, n_neurons, device)
-        self.periods = periods if isinstance(periods, list) else [periods]*len(self.targets)
-        self.temporal_scales = temporal_scales if isinstance(temporal_scales, list) else [temporal_scales]*len(self.targets)
-        self.strengths = strengths if isinstance(strengths, list) else [strengths]*len(self.targets)
-        self.max_temporal_scale = max(self.temporal_scales)
+    def __init__(self, targets, strengths, intervals, durations, total_neurons, temporal_scale=2, decays=0.2, seed=0, device='cpu'):
+        super().__init__(targets, durations, total_neurons, device)
+        self.temporal_scale = temporal_scale
+        self.intervals = self._register_attribute(intervals, device)
+        self.strengths = self._register_attribute(strengths, device).float()
+        self.decays = self._register_attribute(decays, device).float()
 
-        self.stimulation_times = self._get_stimulation_times(self.periods, duration, seed).to(device)
-        self.stimulation_strengths = self._get_strengths(self.strengths, self.temporal_scales).to(device)
+        if temporal_scale < 0:
+            raise ValueError("All temporal scales must be positive.")
+        if any(self.intervals < 0):
+            raise ValueError("All intervals must be positive.")
+        if any(self.decays < 0):
+            raise ValueError("All decays must be positive.")
+        if not (len(self.intervals) == len(self.strengths) == len(self.decays) == self.n_targets):
+            raise ValueError("All parameters must have the same length as targets.")
 
-    def _get_stimulation_times(self, periods, duration, seed, low=1, high=10e3):
-        """Generate Poisson stimulus onset times"""
-        stim_times = []
-        for period in periods:
-            rng = default_rng(seed)
-            stim_times.append(
-                    torch.tensor(self.generate_poisson_stim_times(period, low, high, duration, rng=rng))
-                )
-            seed += 1
-        return torch.cat(stim_times, dim=0)
+        self._params = self._init_parameters(
+            {
+                "strengths": self.strengths,
+                "decays": self.decays,
+            }
+        )
+        self._rng = torch.Generator().manual_seed(seed)
+        self._stimulation_times = self._get_stimulation_times(self.intervals, self.durations)
+        self._stimulation_strengths = self._get_strengths(self._params)
 
-    def _get_strengths(self, strengths, temporal_scales):
-        """Construct strength tensor from temporal_scales."""
-        max_temp_scale = max(temporal_scales)
-        stimulation_strengths = torch.zeros((len(strengths), max_temp_scale))
-        for i, (strength, temp_scale) in enumerate(zip(strengths, temporal_scales)):
-            stimulation_strengths[i, :temp_scale] = strength
-        return stimulation_strengths
+    def _get_strengths(self, params: nn.ParameterDict) -> torch.Tensor:
+        """Construct strength tensor from temporal_scale."""
+        strengths = params["strengths"].unsqueeze(1).repeat(1, self.temporal_scale)
+        decay_rates = -params.decays.unsqueeze(1).repeat(1, self.temporal_scale)
+        time = torch.arange(self.temporal_scale, device=self.device).repeat(self.n_targets, 1).flip(1)
+        decay = torch.exp(decay_rates*time)
+        return strengths * decay
 
-    def __call__(self, t):
+    def _get_stimulation_times(self, intervals, durations) -> torch.Tensor:
+        """Generate regular stimulus onset times"""
+        stim_times = torch.zeros((self.n_targets, self.durations.max()+self.temporal_scale - 1))
+        stim_times[:, self.temporal_scale - 1:] = self._generate_stimulation_times(intervals, durations)
+        return stim_times
+
+    @property
+    def stimulation_strengths(self):
+        if self._params["strengths"].requires_grad:
+            return self._get_strengths(self._params)
+        return self._stimulation_strengths
+
+    def stimulate(self, t):
         """Return stimulus at time t."""
-        if t > self.duration:
-            return torch.zeros((self.n_neurons, 1), device=self.device)
-        temp_scale = self.max_temporal_scale if t > self.max_temporal_scale else t
-        stim_times = self.stimulation_times[:, t - temp_scale:t]
-        strengths = self.stimulation_strengths[:, :temp_scale]
-        stimuli = torch.sum(stim_times * strengths, axis=1)
-        return self.distribute(stimuli)
-
-    def clipped_poisson(self, mu, size, low, high, max_iter=100000, rng=None):
-        """Generate Poisson distribution clipped between low and high.
-
-        Parameters
-        ----------
-        mu : float
-            Desired mean `mu`.
-        size : int
-            Number of samples `size`.
-        low : float
-            Lower bound `low`.
-        high : flaot
-            Upper bound `high`.
-        max_iter : int
-            Maximum number of iterations (the default is 100000).
-        rng : generator
-            Random number generator if None default is numpy default_rng
-            (the default is None).
-
-        Returns
-        -------
-        array
-            Samples
-
-        Examples
-        --------
-        >>> samples = clipped_poisson(10, 100, 10, 100)
-
-        """
-        rng = default_rng() if rng is None else rng
-        truncated = rng.poisson(mu, size=size)
-        itr = 0
-        while ((truncated < low) | (truncated > high)).any():
-            mask, = np.where((truncated < low) | (truncated > high))
-            temp = rng.poisson(mu, size=size)
-            temp_mask, = np.where((temp >= low) & (temp <= high))
-            mask = mask[:len(temp_mask)]
-            truncated[mask] = temp[:len(mask)]
-            itr += 1
-            if itr > max_iter:
-                print('Did not reach the desired limits in "max_iter" iterations')
-                return None
-        return truncated
-
-
-    def generate_poisson_stim_times(self, period, low, high, size, rng=None):
+        shifted_t = t + self.temporal_scale 
+        stim_times = self._stimulation_times[:, t:shifted_t]
+        strengths = self.stimulation_strengths
+        return torch.sum(stim_times * strengths, axis=1)
+    
+    def _generate_stimulation_times(self, intervals, durations):
         """Generate poisson stimulus times.
 
         Parameters
         ----------
-        period : float
-            Mean period between stimulus onsets.
-        low : float
-            Lower cutoff.
-        high : float
-            Upper cutoff.
-        size : int
-            Number of time steps.
-        rng : generator
-            Random number generator if None default is numpy default_rng
-            (the default is None).
+        intervals : torch.Tensor
+            Mean interval between stimuli.
+        durations : torch.Tensor
+            Duration of each stimulus.
 
         Returns
         -------
-        array
-            Stimulus times.
-
-        Examples
-        --------
-        >>> rng = default_rng(1234)
-        >>> generate_poisson_stim_times(2, 2, 4, 10, rng=rng)
-        array([[0., 0., 0., 1., 0., 0., 0., 1., 0., 1.]])
+        tensor
+            Samples
         """
-        isi = []
-        while sum(isi) < size:
-            isi += self.clipped_poisson(period, 100, low, high, rng=rng).tolist()
-        cum = np.cumsum(isi)
-        cum = cum[cum < size].astype(int)
-        binned_stim_times = np.zeros(size)
-        binned_stim_times[cum] = 1
-        return np.expand_dims(binned_stim_times, 0)
+        max_duration = durations.max()
+        # Generates intervals between stimuli from a Poisson distribution.
+        # The least number of time steps between stimuli is 1, so generates 'max_duration' samples
+        # This is an upper bound on the number of stimuli that will need to be generated, and will be trimmed later.
+        mean_intervals = torch.ones((self.n_targets, max_duration), device=self.device) * intervals.unsqueeze(1).repeat(1, max_duration)
+        isi = torch.poisson(mean_intervals, generator=self._rng)
 
-    def __dict__(self):
-        return {
-            "stimulation_type": "poisson",
-            'targets': self.targets,
-            'periods': self.periods,
-            'temporal_scales': self.temporal_scales,
-            'strengths': self.strengths,
-            'duration': self.duration,
-            'n_neurons': self.n_neurons,
-        }
+        # Calculates the cumulative sum of the intervals to get the time of each stimulus.
+        cum = torch.cumsum(isi, dim=1).to(dtype=torch.long)
+        max_cum = cum.max() # The maximum time of the last stimulus.
 
-if __name__ == '__main__':
-    targets = [0, 5]
-    periods = [10, 4]
-    temporal_scales = [20, 3]
-    strengths = [1, 2]
-    duration = 100
-    stim = PoissonStimulation(targets, periods, temporal_scales, strengths, duration, seed=0)
+        # Creates a tensor of shape (2, n_stimuli) where the first row is the target index and the second row is the time of the stimulus.
+        indices = torch.arange(self.n_targets, device=self.device).unsqueeze(1).repeat(1, max_duration)
+        stim_times = torch.stack((indices, cum), dim=2).transpose(0, 2).flatten(1)
+
+        # Creates a tensor of shape (n_targets, max_duration) where the value at each index (i, t) is 1 if neueron i is stimulated at time t.
+        binned_stim_times = torch.zeros((len(durations), max_cum+1), device=self.device)
+        binned_stim_times[stim_times[0], stim_times[1]] = 1
+        binned_stim_times = binned_stim_times[:, :max_duration] # Trims the tensor to the correct size.
+
+        # Remove the stimulus times that are outside the duration of the stimulus.
+        duration_mask = durations.unsqueeze(1).repeat(1, max_duration) < torch.arange(max_duration, device=self.device).unsqueeze(0).repeat(self.n_targets, 1)
+        binned_stim_times[duration_mask] = 0
+        return binned_stim_times

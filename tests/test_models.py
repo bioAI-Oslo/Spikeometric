@@ -2,7 +2,7 @@ import pytest
 from torch.testing import assert_close
 
 @pytest.mark.parametrize(
-    "model", [pytest.lazy_fixture("spiking_model"), pytest.lazy_fixture("herman_model")]
+    "model", [pytest.lazy_fixture("spiking_model"), pytest.lazy_fixture("mexican_model")]
 )
 def test_initialization(model, generated_dataset):
     intial_state = model.initialize_state(generated_dataset[0].num_nodes)
@@ -33,11 +33,11 @@ def test_not_tunable(spiking_model):
         spiking_model.set_tunable_parameters(["abs_ref_scale"])
 
 def test_not_a_parameter():
-    from spiking_network.models import SpikingModel, HermanModel
+    from spiking_network.models import SpikingModel, MexicanModel
     with pytest.raises(ValueError):
         SpikingModel(seed=0, parameters={"not_a_parameter": 0})
     with pytest.raises(ValueError):
-        HermanModel(seed=0, parameters={"not_a_parameter": 0})
+        MexicanModel(seed=0, parameters={"not_a_parameter": 0})
 
 def test_parameter_dict(spiking_model):
     from torch import tensor

@@ -1,16 +1,4 @@
+from spiking_network.datasets import ConnectivityDataset, W0Dataset, GlorotParams
 
-from spiking_network.stimulation import RegularStimulation
-targets = [0, 4, 9]
-intervals = [5, 7, 9]
-strengths = 1
-temporal_scales = 2
-durations = 100
-stimulation = RegularStimulation(
-    targets=targets,
-    intervals=intervals,
-    strengths=strengths,
-    temporal_scales=temporal_scales,
-    durations=durations,
-    total_neurons=20,
-)
-print(stimulation.parameter_dict)
+w0data = W0Dataset(20, 10000, GlorotParams(0, 5), seed=0, root="tests/test_data/big_dataset")
+from IPython import embed; embed()

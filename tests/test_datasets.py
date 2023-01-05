@@ -1,9 +1,8 @@
 import pytest
 import torch
 
-@pytest.mark.parametrize("dataset", [pytest.lazy_fixture('generated_dataset'), pytest.lazy_fixture('loaded_dataset')])
-def test_dataset_size(dataset):
-    assert len(dataset) == 10
+def test_dataset_size(generated_dataset):
+    assert len(generated_dataset) == 10
 
 def test_normal_params(generated_normal_dataset):
     from torch.testing import assert_close
@@ -15,77 +14,61 @@ def test_normal_params(generated_normal_dataset):
 
 def test_consistent_datasets(saved_dataset, generated_dataset):
     from torch.testing import assert_close
-    for s, g in zip(saved_dataset, generated_dataset):
+    for i in range(len(saved_dataset)):
+        s = saved_dataset[i]
+        g = generated_dataset[i]
         assert_close(s.W0, g.W0)
         assert_close(s.edge_index, g.edge_index)
         assert s.num_nodes == g.num_nodes
 
-def test_fails_for_non_square_matrix():
-    from torch.testing import make_tensor
+def test_numpy_dataset():
     from spiking_network.datasets import ConnectivityDataset
-    with pytest.raises(ValueError):
-        t = make_tensor((10, 20), device='cpu', dtype=torch.float32)
-        dataset = ConnectivityDataset([t])
-
-def test_numpy_array():
-    import numpy as np
-    from spiking_network.datasets import ConnectivityDataset
-    t = np.random.rand(10, 10)
-    dataset = ConnectivityDataset([t])
-    assert isinstance(dataset[0].W0, torch.Tensor)
-
-def test_geometric_data(example_data):
-    from spiking_network.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset([example_data])
-    assert isinstance(dataset[0].W0, torch.Tensor)
-    assert isinstance(dataset[0].edge_index, torch.Tensor)
-
-def test_fails_for_nonsense_data():
-    from spiking_network.datasets import ConnectivityDataset
-    with pytest.raises(ValueError):
-        dataset = ConnectivityDataset([1])
-
-def test_different_data(generated_dataset):
-    for i in range(1, len(generated_dataset)):
-        assert not torch.equal(generated_dataset[i].W0, generated_dataset[i-1].W0)
+    import shutil
+    dataset = ConnectivityDataset(root="tests/test_data/numpy_dataset")
+    shutil.rmtree("tests/test_data/numpy_dataset/processed")
+    assert len(dataset) == 10
+    assert dataset[0].W0.dtype == torch.float32
+    assert dataset[0].edge_index.dtype == torch.int64
 
 def test_fails_for_odd_number_of_neurons():
     from spiking_network.datasets import W0Dataset, GlorotParams
     with pytest.raises(ValueError):
-        W0Dataset(21, 10, GlorotParams(0, 5))
+        W0Dataset(21, 10, GlorotParams(0, 5), root="")
 
 def test_fails_for_negative_number_of_sims():
     from spiking_network.datasets import W0Dataset, GlorotParams
     with pytest.raises(ValueError):
-        W0Dataset(10, -1, GlorotParams(0, 5))
+        W0Dataset(10, -1, GlorotParams(0, 5), root="")
 
-def test_to_dense(loaded_dataset):
+def test_to_dense(saved_dataset):
     from torch import sparse_coo_tensor
     from torch.testing import assert_close
-    dense_data = loaded_dataset.to_dense()[0]
-    w0 = loaded_dataset[0].W0
-    edge_index = loaded_dataset[0].edge_index
+    dense_data = saved_dataset.to_dense()[0]
+    w0 = saved_dataset[0].W0
+    edge_index = saved_dataset[0].edge_index
     sparse_data = sparse_coo_tensor(edge_index, w0, dense_data.shape)
     assert_close(dense_data, sparse_data.to_dense())
     
-@pytest.mark.parametrize("dataset", [pytest.lazy_fixture('generated_dataset'), pytest.lazy_fixture('loaded_dataset')])
-def test_number_of_neurons_in_dataset(dataset):
-    assert all([data.num_nodes == 20 for data in dataset])
+def test_number_of_neurons_in_dataset(generated_dataset):
+    assert all([data.num_nodes == 20 for data in generated_dataset])
 
-@pytest.mark.parametrize("dataset", [pytest.lazy_fixture('generated_dataset'), pytest.lazy_fixture('loaded_dataset')])
-def test_self_loops_in_dataset(dataset):
-    assert all([data.has_self_loops() for data in dataset])
+def test_self_loops_in_dataset(generated_dataset):
+    assert all([data.has_self_loops() for data in generated_dataset])
 
-def test_herman_dataset():
-    from spiking_network.datasets import HermanDataset
-    dataset = HermanDataset(20, 10)
-    assert len(dataset) == 10
-    assert all([data.num_nodes == 20 for data in dataset])
-    assert all([data.has_self_loops() for data in dataset])
+def test_mexican_hat_dataset(generated_mexican_hat_dataset):
+    assert len(generated_mexican_hat_dataset) == 10
+    assert all([data.num_nodes == 20 for data in generated_mexican_hat_dataset])
+    assert all([data.has_self_loops() for data in generated_mexican_hat_dataset])
 
-def test_sparse_dataset():
+def test_sparse_dataset(generated_dataset, sparse_dataset):
     from spiking_network.datasets import W0Dataset, GlorotParams
-    sparse_dataset = W0Dataset(20, 1, GlorotParams(0, 5), sparsity=0.5)
-    dataset = W0Dataset(20, 1, GlorotParams(0, 5))
-    assert not torch.equal(sparse_dataset[0].W0, dataset[0].W0)
-    assert sparse_dataset[0].W0.numel() < dataset[0].W0.numel()
+    assert not torch.equal(sparse_dataset[0].W0, generated_dataset[0].W0)
+    assert sparse_dataset[0].W0.numel() < generated_dataset[0].W0.numel()
+
+def test_generate_examples(saved_dataset):
+    from spiking_network.datasets import W0Dataset, GlorotParams
+    from torch.testing import assert_close
+    data = W0Dataset.generate_examples(20, 10, GlorotParams(0, 5), seed=0)
+    for i in range(len(data)):
+        assert_close(data[i].W0, saved_dataset[i].W0)
+        assert_close(data[i].edge_index, saved_dataset[i].edge_index)

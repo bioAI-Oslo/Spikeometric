@@ -45,8 +45,8 @@ def test_time_to_simulate_100_steps(time_to_simulate_100_steps, spiking_model, e
     t = time_model(model=spiking_model, data=example_data, n_steps=100, N=10)
     assert t <= time_to_simulate_100_steps + 0.01
 
-def test_herman_simulation(herman_model, example_herman_data):
+def test_mexican_simulation(mexican_model, example_mexican_hat_data):
     from spiking_network.utils import calculate_firing_rate
     from torch import tensor
-    X = simulate(herman_model, example_herman_data, n_steps=1000, verbose=False)
+    X = simulate(mexican_model, example_mexican_hat_data, n_steps=1000, verbose=False)
     assert_close(calculate_firing_rate(X), tensor(0.006), atol=0.001, rtol=0.1)

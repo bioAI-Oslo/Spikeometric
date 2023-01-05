@@ -15,7 +15,7 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_paral
     # Reproducibility
     rng = torch.Generator().manual_seed(0)
     seeds = {
-            "w0": torch.randint(0, 100000, (n_sims,), generator=rng).tolist(),
+            "w0": torch.randint(0, 100000, (1,), generator=rng).item(),
             "model": torch.randint(0, 100000, (1,), generator=rng).item(),
          }
 
@@ -25,16 +25,16 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, max_paral
 
     # Prepare dataset
     w0_params = GlorotParams(0, 5)
-    w0_data = W0Dataset(n_neurons, n_sims, w0_params, seeds=seeds["w0"])
+    data_root = f"data/w0/{n_neurons}_{n_sims}_{w0_params.name}_{w0_params.mean}_{w0_params.std}_{seeds['w0']}"
+    w0_data = W0Dataset(n_neurons, n_sims, w0_params, seed=seeds["w0"], root=data_root)
     data_loader = DataLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False)
 
-    #  model_path = Path("data/saved_models") / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt"
     model = SpikingModel(seed=seeds["model"], device=device)
 
     results = []
-    for batch_idx, data in enumerate(data_loader):
+    for data in data_loader:
         data = data.to(device)
-        spikes = simulate(model, data, n_steps, stimulation=None)
+        spikes = simulate(model, data, n_steps)
         print(f"Firing rate: {spikes.sum() / (n_steps * data.num_nodes):.5f}")
         results.append(spikes)
 

@@ -53,7 +53,7 @@ def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
 def calculate_firing_rate(spikes) -> float:
     return spikes.float().mean()
 
-def simulate(model, data, n_steps, stimulation=None, verbose=True) -> torch.Tensor:
+def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     """
     Simulates the network for n_steps time steps given the connectivity.
     It is also possible to stimulate the network by passing a stimulation function.
@@ -83,10 +83,6 @@ def simulate(model, data, n_steps, stimulation=None, verbose=True) -> torch.Tens
     W0 = data.W0
     W = model.connectivity_filter(W0, edge_index)
 
-    # Add the stimulation
-    if stimulation:
-        model.add_stimulation(stimulation)
-    
     # If verbose is True, a progress bar is shown
     if verbose:
         pbar = tqdm(range(model.time_scale, n_steps + model.time_scale), colour="#3E5641")

@@ -14,6 +14,16 @@ def time_model(model, data, n_steps, N=10):
         total_time += e - s
     return total_time / N
 
+def time_stimulation(stimulation, n_steps, N=10):
+    total_time = 0
+    for i in range(N):
+        s = time.perf_counter()
+        for j in range(n_steps):
+            stimulation(j)
+        e = time.perf_counter()
+        total_time += e - s
+    return total_time / N
+
 def timing(max_neurons, n_steps, N, data_path, device="cpu"):
     dist_params = GlorotParams(0, 5)
     model = SpikingModel(seed=0, device=device)
