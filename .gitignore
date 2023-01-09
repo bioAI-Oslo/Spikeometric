@@ -8,6 +8,7 @@ run_simula*
 run_herman*
 .vscode
 tune*
+generate*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

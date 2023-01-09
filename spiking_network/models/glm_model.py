@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-class SpikingModel(BaseModel):
+class GLMModel(BaseModel):
     def __init__(self, params={}, tuneable_parameters=["threshold"], seed=0, device="cpu"):
         super().__init__(device=device)
         self._seed = seed
@@ -44,10 +44,10 @@ class SpikingModel(BaseModel):
         x_initial = torch.zeros(n_neurons, time_scale, device=self.device)
         x_initial[:, time_scale-1] = torch.randint(0, 2, (n_neurons,), generator=self._rng, device=self.device)
         return x_initial
-
+    
     def message(self, x_j: torch.Tensor, W: torch.Tensor) -> torch.Tensor:
         """
-        Compute the message from x_j to x_i
+        Compute the activation passed from from x_j to x_i.
 
         Parameters
         ----------

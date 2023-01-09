@@ -24,6 +24,7 @@ def main():
     parser.add_argument("-e", "--n_epochs",     type=int,   default=100,                      help="Number of epochs to train for")
     parser.add_argument("-fn", "--folder_name", type=str,   default="",                       help="The name for the folder for the saved data")
     parser.add_argument("--herman",                                                           help="Run hermans simulation", action="store_true")
+    parser.add_argument("--seed",               type=int,   default=14071789,                 help="The seed to use for the simulation")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,7 +41,7 @@ def main():
     if args.herman:
         run_herman(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
     else:
-        run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.max_parallel)
+        run_simulation(args.n_neurons, args.n_sims, args.n_steps, args.data_path, args.folder_name, args.seed, args.max_parallel)
 
 if __name__ == "__main__":
     main()

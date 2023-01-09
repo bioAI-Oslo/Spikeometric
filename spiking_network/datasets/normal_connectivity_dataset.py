@@ -1,26 +1,8 @@
 import torch
 from spiking_network.datasets.connectivity_dataset import ConnectivityDataset
-from dataclasses import dataclass
+from spiking_network.datasets.distribution_params import DistributionParams
 
-@dataclass
-class DistributionParams:
-    """Class for storing distribution parameters."""
-    def _to_dict(self):
-        return self.__dict__
-
-@dataclass
-class NormalParams(DistributionParams):
-    mean: float = 0.0
-    std: float = 5.0
-    name: str = "normal"
-
-@dataclass
-class GlorotParams(DistributionParams):
-    mean: float = 0.0
-    std: float = 5.0
-    name: str = "glorot"
-
-class W0Dataset(ConnectivityDataset):
+class NormalConnectivityDataset(ConnectivityDataset):
     def __init__(self, n_neurons, n_datasets, distribution_params, seeds=None, transform=None):
         super().__init__(transform=transform)
         self.distribution_params = distribution_params
@@ -40,11 +22,6 @@ class W0Dataset(ConnectivityDataset):
         W0 = W0.fill_diagonal_(1)
         return W0
 
-    def _dales_law(self, W0: torch.Tensor) -> torch.Tensor:
-        """Applies Dale's law to the connectivity matrix W0"""
-        W0 = torch.concat((W0 * (W0 > 0), W0 * (W0 < 0)), 0)
-        return W0
-
     def _generate_normal_w0(self, n_neurons: int, mean: float, std: float, rng: torch.Generator) -> torch.Tensor:
         """Generates a normal n_neurons/2*n_neurons/2 matrux from a normal distribution"""
         half_n_neurons = n_neurons // 2
@@ -56,5 +33,3 @@ class W0Dataset(ConnectivityDataset):
         normal_W0 = self._generate_normal_w0(n_neurons, mean, std, rng)
         glorot_W0 = normal_W0 / torch.sqrt(torch.tensor(n_neurons, dtype=torch.float32))
         return glorot_W0
-
-

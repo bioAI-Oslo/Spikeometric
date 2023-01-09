@@ -1,5 +1,6 @@
 from torch_geometric.data import InMemoryDataset
 from torch_geometric.data import Data
+import torch
 
 class ConnectivityDataset(InMemoryDataset):
     def __init__(self, transform=None):
@@ -38,3 +39,8 @@ class ConnectivityDataset(InMemoryDataset):
 
     def __getitem__(self, idx):
         return self.data[idx]
+    
+    def _dales_law(self, W0: torch.Tensor) -> torch.Tensor:
+        """Applies Dale's law to the connectivity matrix W0"""
+        W0 = torch.concat((W0 * (W0 > 0), W0 * (W0 < 0)), 0)
+        return W0

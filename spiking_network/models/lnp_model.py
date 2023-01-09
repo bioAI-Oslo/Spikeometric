@@ -4,9 +4,9 @@ import torch
 from torch import nn
 from tqdm import tqdm
 
-class HermanModel(BaseModel):
+class LNPModel(BaseModel):
     def __init__(self, params={}, tuneable_parameters=[], seed=0, device="cpu"):
-        super(HermanModel, self).__init__(device)
+        super().__init__(device)
         self._seed = seed
         self._rng = torch.Generator(device=device).manual_seed(seed)
 
@@ -88,3 +88,10 @@ class HermanModel(BaseModel):
 
     def _spike_probability(self, activation):
         return activation
+    
+    def _init_state(self, n_neurons, time_scale):
+        """Initializes the state of the network"""
+        return torch.zeros((n_neurons, time_scale), device=self.device)
+    
+    def connectivity_filter(self, W0, edge_index):
+        return W0.unsqueeze(1)
