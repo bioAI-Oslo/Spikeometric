@@ -10,6 +10,7 @@ run_herman*
 tune*
 generate_test_data.py
 generate_example_simulation.py
+di.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

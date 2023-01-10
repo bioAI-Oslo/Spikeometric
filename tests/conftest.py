@@ -2,157 +2,115 @@ import pytest
 
 # Dataset fixtures
 @pytest.fixture 
-def generated_dataset():
-    from spiking_network.datasets import W0Dataset, GlorotParams
+def generated_glorot_dataset():
+    from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
     import shutil
     n_neurons = 20
     n_sims = 10
     params = GlorotParams(0, 5)
-    dataset = W0Dataset(n_neurons, n_sims, params, seed=0, root="tests/test_data/generated_glorot_w0")
-    shutil.rmtree("tests/test_data/generated_glorot_w0")
+    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, seed=14071789, root="tests/test_data/generated_glorot_dataset")
+    shutil.rmtree("tests/test_data/generated_glorot_dataset")
     return dataset
 
 @pytest.fixture
 def generated_normal_dataset():
-    from spiking_network.datasets import W0Dataset, NormalParams
+    from spiking_network.datasets import NormalConnectivityDataset, NormalParams
     import shutil as shuntil
     n_neurons = 100
     n_sims = 10
     params = NormalParams(0, 1)
-    dataset = W0Dataset(n_neurons, n_sims, params, seed=0, root="tests/test_data/generated_normal_w0")
-    shuntil.rmtree("tests/test_data/generated_normal_w0")
+    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, seed=14071789, root="tests/test_data/generated_normal_dataset")
+    shuntil.rmtree("tests/test_data/generated_normal_dataset")
     return dataset
 
 @pytest.fixture
-def generated_mexican_hat_dataset():
-    from spiking_network.datasets import MexicanHatDataset
+def generated_uniform_dataset():
+    from spiking_network.datasets import UniformConnectivityDataset
     import shutil
     n_neurons = 20
     n_sims = 10
-    dataset = MexicanHatDataset(n_neurons, n_sims, seed=0, root="tests/test_data/generated_mexican_hat")
-    shutil.rmtree("tests/test_data/generated_mexican_hat")
+    dataset = UniformConnectivityDataset(n_neurons, n_sims, seed=14071789, root="tests/test_data/generated_uniform_dataset", sparsity=0.5)
+    shutil.rmtree("tests/test_data/generated_uniform_dataset")
     return dataset
 
 @pytest.fixture
-def saved_dataset():
-    from spiking_network.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset(root="tests/test_data/example_dataset")
+def saved_glorot_dataset():
+    from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
+    dataset = NormalConnectivityDataset(20, 10, distribution_params=GlorotParams(0, 5), seed=14071789, root="tests/test_data/example_glorot_dataset")
     return dataset
 
 @pytest.fixture
-def sparse_dataset():
-    from spiking_network.datasets import W0Dataset, GlorotParams
-    dataset = W0Dataset(20, 10, distribution_params=GlorotParams(0, 5), seed=0, root="tests/test_data/sparse_glorot_w0", sparsity=0.5)
+def sparse_glorot_dataset():
+    from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
+    dataset = NormalConnectivityDataset(20, 10, distribution_params=GlorotParams(0, 5), seed=14071789, root="tests/test_data/example_sparse_glorot_dataset", sparsity=0.5)
     return dataset
 
 @pytest.fixture
-def data_loader(generated_dataset):
+def data_loader(saved_glorot_dataset):
     from torch.utils.data import DataLoader
-    data_loader = DataLoader(generated_dataset, batch_size=10)
+    data_loader = DataLoader(saved_glorot_dataset, batch_size=10)
     return data_loader
 
 @pytest.fixture
-def example_data():
-    import numpy as np
-    import torch
-    from torch_geometric.data import Data
-    data = np.load("tests/test_data/example_data.npz")
-    W0 = torch.from_numpy(data["example_W0"])
-    edge_index = torch.from_numpy(data["example_edge_index"])
-    num_nodes = data["num_nodes"].item()
-    example_data = Data(W0=W0, edge_index=edge_index, num_nodes=num_nodes)
-    return example_data
+def example_data(saved_glorot_dataset):
+    return saved_glorot_dataset[0]
 
 @pytest.fixture
-def example_mexican_hat_data():
-    from spiking_network.datasets import MexicanHatDataset
+def example_uniform_data():
+    from spiking_network.datasets import UniformConnectivityDataset
     n_neurons = 100
     n_sims = 1
-    dataset = MexicanHatDataset(n_neurons, n_sims, seed=0, root="tests/test_data/mexican_hat_dataset")
+    dataset = UniformConnectivityDataset(n_neurons, n_sims, seed=14071789, root="tests/test_data/example_uniform_dataset")
     return dataset[0]
 
 @pytest.fixture
-def example_W0():
-    import numpy as np
-    import torch
-    w0 = torch.from_numpy(np.load("tests/test_data/example_data.npz")["example_W0"])
-    return w0
-
-@pytest.fixture
-def example_edge_index():
-    import numpy as np
-    import torch
-    edge_index = torch.from_numpy(np.load("tests/test_data/example_data.npz")["example_edge_index"])
-    return edge_index
-
-@pytest.fixture
 def example_connectivity_filter():
-    import numpy as np
     import torch
-    connectivity_filter = torch.from_numpy(np.load("tests/test_data/example_connectivity_filter.npz")["connectivity_filter"])
+    connectivity_filter = torch.load("tests/test_data/example_connectivity_filter.pt")
     return connectivity_filter
 
 # Model and simulation fixtures
 @pytest.fixture
-def spiking_model():
-    from spiking_network.models import SpikingModel
-    model = SpikingModel(seed=0)
+def glm_model():
+    from spiking_network.models import GLMModel
+    model = GLMModel(seed=14071789)
     return model
 
 @pytest.fixture
-def mexican_model():
-    from spiking_network.models import MexicanModel
-    model = MexicanModel(seed=0)
+def lnp_model():
+    from spiking_network.models import LNPModel
+    model = LNPModel(seed=14071789)
     return model
 
 @pytest.fixture
 def initial_state():
     import torch
-    import numpy as np
-    initial_state = torch.from_numpy(np.load("tests/test_data/initial_state.npz")["initial_state"])
+    initial_state = torch.load("tests/test_data/initial_state.pt")
     return initial_state
 
 @pytest.fixture
 def expected_activation_after_one_step():
     import torch
-    import numpy as np
-    expected_output = torch.from_numpy(np.load("tests/test_data/expected_activation_after_one_step.npz")["expected_activation_after_one_step"])
-    return expected_output
+    expected_activation = torch.load("tests/test_data/expected_activation_after_one_step.pt")
+    return expected_activation
 
 @pytest.fixture
 def expected_probability_after_one_step():
     import torch
-    import numpy as np
-    expected_probability = torch.from_numpy(np.load("tests/test_data/expected_probability_after_one_step.npz")["expected_probability_after_one_step"])
+    expected_probability = torch.load("tests/test_data/expected_probability_after_one_step.pt")
     return expected_probability
 
 @pytest.fixture
 def expected_state_after_one_step():
     import torch
-    import numpy as np
-    expected_state = torch.from_numpy(np.load("tests/test_data/expected_state_after_one_step.npz")["expected_state_after_one_step"])
+    expected_state = torch.load("tests/test_data/expected_state_after_one_step.pt")
     return expected_state
 
 @pytest.fixture
 def expected_output_after_ten_steps():
     import torch
-    import numpy as np
-    expected_output = torch.from_numpy(np.load("tests/test_data/expected_output_after_ten_steps.npz")["expected_output_after_ten_steps"])
+    expected_output = torch.load("tests/test_data/expected_output_after_ten_steps.pt")
     return expected_output
-
-@pytest.fixture
-def expected_firing_rate():
-    import torch
-    import numpy as np
-    expected_firing_rate = torch.from_numpy(np.load("tests/test_data/expected_firing_rate.npz")["expected_firing_rate"])
-    return expected_firing_rate
-
-@pytest.fixture
-def time_to_simulate_100_steps():
-    import torch
-    import numpy as np
-    time_to_simulate_100_steps = torch.from_numpy(np.load("tests/test_data/time_to_simulate_100_steps.npz")["time_to_simulate_100_steps"]).item()
-    return time_to_simulate_100_steps
 
 # Stimulation fixtures
 @pytest.fixture

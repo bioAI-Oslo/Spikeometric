@@ -3,10 +3,9 @@ from torch_geometric.nn import MessagePassing
 import numpy as np
 from torch_scatter import scatter_add
 from numpy.random import default_rng
-from abc import ABC, abstractmethod
 import torch.nn as nn
 
-class BaseStimulation(ABC, MessagePassing):
+class BaseStimulation(MessagePassing):
     def __init__(self, targets, durations, total_neurons, device):
         super(BaseStimulation, self).__init__()
         if isinstance(targets, int):
@@ -60,6 +59,10 @@ class BaseStimulation(ABC, MessagePassing):
                 for key, value in params.items()
             }
         )
+
+    def stimulate(self, t):
+        """Returns the stimulation at time t"""
+        raise NotImplementedError
 
     def forward(self, t):
         if self.durations.max() <= t or t < 0:

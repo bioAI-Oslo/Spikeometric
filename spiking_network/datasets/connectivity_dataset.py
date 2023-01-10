@@ -41,7 +41,7 @@ class ConnectivityDataset(InMemoryDataset):
         path = Path(self.root) / "raw"
         w0_list = []
         for file in sorted(os.listdir(path)):
-            if file.endswith(".npz") or file.endswith(".npy"):
+            if file.endswith(".npy"):
                 w0_square = torch.from_numpy(np.load(path / file))
             elif file.endswith(".pt"):
                 w0_square = torch.load(path / file)

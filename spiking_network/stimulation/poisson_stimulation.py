@@ -3,7 +3,7 @@ import torch.nn as nn
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 
 class PoissonStimulation(BaseStimulation):
-    def __init__(self, targets, strengths, intervals, durations, total_neurons, temporal_scale=2, decays=0.2, seed=0, device='cpu'):
+    def __init__(self, targets, strengths, intervals, durations, total_neurons, temporal_scale=2, decays=0.2, seed=14071789, device='cpu'):
         super().__init__(targets, durations, total_neurons, device)
         self.temporal_scale = temporal_scale
         self.intervals = self._register_attribute(intervals, device)

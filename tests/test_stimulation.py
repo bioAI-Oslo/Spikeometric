@@ -238,32 +238,32 @@ def test_poisson_stimulates_at_correct_times(poisson_stimulation):
         fire_targets = poisson_stimulation.targets[fire_indices]
         assert_close(stim.nonzero(as_tuple=False).squeeze(), fire_targets)
 
-def test_tuning_with_stimulation(spiking_model, example_data, regular_stimulation):
+def test_tuning_with_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import tune
     tunable_parameters = ["threshold", "alpha", "beta"]
     firing_rate = 0.1
-    spiking_model.add_stimulation(regular_stimulation)
-    tune(spiking_model, example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
+    glm_model.add_stimulation(regular_stimulation)
+    tune(glm_model, example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     assert True
 
-def test_tune_stimulation(spiking_model, example_data, regular_stimulation):
+def test_tune_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import tune
     tunable_parameters = ["strengths", "decays"]
     firing_rate = 0.1
-    spiking_model.add_stimulation(regular_stimulation)
-    tune(spiking_model, example_data, firing_rate, tunable_parameters=tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
+    glm_model.add_stimulation(regular_stimulation)
+    tune(glm_model, example_data, firing_rate, tunable_parameters=tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     assert True
 
-def test_tune_model_and_stimulation(spiking_model, example_data, regular_stimulation):
+def test_tune_model_and_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import tune
     tunable_model_parameters = ["threshold", "alpha", "beta", "strengths", "decays"]
     firing_rate = 0.1
-    spiking_model.add_stimulation(regular_stimulation)
-    tune(spiking_model, example_data, firing_rate, tunable_model_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
+    glm_model.add_stimulation(regular_stimulation)
+    tune(glm_model, example_data, firing_rate, tunable_model_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     assert True
 
-def test_simulate_with_stimulation(spiking_model, example_data, regular_stimulation):
+def test_simulate_with_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import simulate
-    spiking_model.add_stimulation(regular_stimulation)
-    simulate(spiking_model, example_data, n_steps=10, verbose=False)
+    glm_model.add_stimulation(regular_stimulation)
+    simulate(glm_model, example_data, n_steps=10, verbose=False)
     assert True

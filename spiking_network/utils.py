@@ -98,7 +98,7 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     model.eval()
     with torch.no_grad():
         for t in pbar:
-            x[:, t] = model(x[:, t-model.time_scale:t], edge_index, W=W, t=t, activation=activation)
+            x[:, t] = model(x[:, t-model.time_scale:t], edge_index, W=W, t=t, current_activation=activation)
 
     # Return the state of the network at each time step
     return x[:, model.time_scale:]
@@ -180,7 +180,7 @@ def tune(model,
                 edge_index,
                 W=W,
                 t=t,
-                activation=activation[:, t-time_scale:t]
+                current_activation=activation[:, t-time_scale:t]
             )
             probs = model.probability_of_spike(activation[:, t])
             x[:, t] = model.spike(probs)

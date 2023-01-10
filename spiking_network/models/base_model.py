@@ -1,14 +1,9 @@
 from torch_geometric.nn import MessagePassing
-from torch_sparse import SparseTensor
 import torch
 import torch.nn as nn 
-import numpy as np
-from torch_scatter import scatter_add
-from tqdm import tqdm
-from abc import ABC, abstractmethod
 from pathlib import Path
 
-class BaseModel(MessagePassing, ABC):
+class BaseModel(MessagePassing):
     def __init__(self, parameters, device="cpu", stimulation=None):
         super(BaseModel, self).__init__() 
         self.device = device
@@ -26,7 +21,27 @@ class BaseModel(MessagePassing, ABC):
         else:
             self.stimulation = lambda t: 0
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, activation=None, t=-1) -> torch.Tensor:
+    def spike(self, probabilites):
+        """Calculates the spikes of the network at time t from the probabilites"""
+        raise NotImplementedError
+    
+    def message(self, x_j: torch.Tensor, W: torch.Tensor):
+        """Calculates the activation of the neurons"""
+        raise NotImplementedError
+    
+    def initialize_state(self, n_neurons):
+        """Initializes the state of the network"""
+        raise NotImplementedError
+    
+    def activation(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, current_activation=None, t=-1) -> torch.Tensor:
+        """Calculates the activation of the network"""
+        return self.propagate(edge_index, x=x, W=W, current_activation=current_activation).squeeze() + self.stimulate(t)
+    
+    def probability_of_spike(self, activation):
+        """Calculates the probability of a neuron to spike"""
+        return activation
+
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, current_activation=None, t=-1) -> torch.Tensor:
         """Forward pass of the network"""
         r"""Calculates the new state of the network
 
@@ -48,8 +63,7 @@ class BaseModel(MessagePassing, ABC):
         spikes: torch.Tensor
             The new state of the network from time t+1 - time_scale to time t+1 [n_neurons]
         """
-        activation = self.propagate(edge_index, x=x, W=W, activation=activation).squeeze()
-        activation += self.stimulate(t)
+        activation = self.activation(edge_index=edge_index, x=x, W=W, current_activation=current_activation)
         probabilites = self.probability_of_spike(activation)
         return self.spike(probabilites)
 
@@ -67,24 +81,6 @@ class BaseModel(MessagePassing, ABC):
         """Stimulates the network"""
         return self.stimulation(t)
 
-    @abstractmethod
-    def message(self, x_j: torch.Tensor, W: torch.Tensor):
-        """Calculates the activation of the neurons
-
-        Parameters:
-        ----------
-        x_j: torch.Tensor
-            The state of the source neurons from time t - time_scale to time t [n_edges, time_scale]
-        W: torch.Tensor
-            The edge weights of the connectivity filter [n_edges, time_scale]
-
-        Returns:
-        -------
-        activation: torch.Tensor
-            The activation of the neurons at time t[n_edges]
-        """
-        pass
-
     def save(self, path):
         """Saves the model"""
         torch.save(self.state_dict(), path)
@@ -98,20 +94,6 @@ class BaseModel(MessagePassing, ABC):
         model = cls()
         model.load_state_dict(torch.load(path))
         return model
-    
-    def initialize_state(self, n_neurons):
-        """Initializes the state of the network"""
-        return torch.zeros((n_neurons, self.time_scale), device=self.device)
-
-    @abstractmethod
-    def probability_of_spike(self, activation):
-        """Calculates the probability of a neuron to spike"""
-        pass
-
-    @abstractmethod
-    def spike(self, probabilites):
-        """Calculates the spikes of the network at time t from the probabilites"""
-        pass
 
     def _init_parameters(self, params, device):
         """Initializes the parameters of the model"""
@@ -154,6 +136,3 @@ class BaseModel(MessagePassing, ABC):
         for key, value in self._params.items():
             d[key] = value.data
         return d
-
-    def connectivity_filter(self, W0, edge_index):
-        return W0.unsqueeze(1)
