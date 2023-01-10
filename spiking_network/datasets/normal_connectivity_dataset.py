@@ -14,17 +14,18 @@ class NormalConnectivityDataset(ConnectivityDataset):
         if n_examples < 1:
             raise ValueError("n_examples must be positive")
 
-        self.distribution_params = distribution_params
-
-        self._rng = torch.Generator()
-        if seed is not None:
-            self._rng.manual_seed(seed)
-        
         path = Path(root) / "raw"
-        path.mkdir(parents=True, exist_ok=True)
-        for i in range(n_examples):
-            W0 = self._generate(n_neurons, distribution_params, sparsity, self._rng)
-            torch.save(W0, path / f"{i}.pt")
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+            self.distribution_params = distribution_params
+
+            self._rng = torch.Generator()
+            if seed is not None:
+                self._rng.manual_seed(seed)
+            
+            for i in range(n_examples):
+                W0 = self._generate(n_neurons, distribution_params, sparsity, self._rng)
+                torch.save(W0, path / f"{i}.pt")
 
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])

@@ -35,14 +35,14 @@ def generated_uniform_dataset():
 
 @pytest.fixture
 def saved_glorot_dataset():
-    from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
-    dataset = NormalConnectivityDataset(20, 10, distribution_params=GlorotParams(0, 5), seed=14071789, root="tests/test_data/example_glorot_dataset")
+    from spiking_network.datasets import ConnectivityDataset
+    dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset")
     return dataset
 
 @pytest.fixture
 def sparse_glorot_dataset():
-    from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
-    dataset = NormalConnectivityDataset(20, 10, distribution_params=GlorotParams(0, 5), seed=14071789, root="tests/test_data/example_sparse_glorot_dataset", sparsity=0.5)
+    from spiking_network.datasets import ConnectivityDataset
+    dataset = ConnectivityDataset(root="tests/test_data/example_sparse_glorot_dataset")
     return dataset
 
 @pytest.fixture

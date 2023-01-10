@@ -9,10 +9,11 @@ class UniformConnectivityDataset(ConnectivityDataset):
         self.sparsity = sparsity
 
         path = Path(root) / "raw"
-        path.mkdir(parents=True, exist_ok=True)
-        for i in range(n_examples):
-            W0 = self._generate(n_neurons, seed)
-            torch.save(W0, path / f"example_{i}.pt")
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+            for i in range(n_examples):
+                W0 = self._generate(n_neurons, seed)
+                torch.save(W0, path / f"example_{i}.pt")
 
         super().__init__(root, transform, pre_transform)
         self.data, self.slices = torch.load(self.processed_paths[0])
