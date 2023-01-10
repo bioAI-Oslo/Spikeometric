@@ -4,7 +4,7 @@ from spiking_network.datasets.connectivity_dataset import ConnectivityDataset
 from pathlib import Path
 
 class UniformConnectivityDataset(ConnectivityDataset):
-    MEXICAN_HAT_LOWEST = -0.002289225919299652
+    UNIFORM_LOWEST = -0.002289225919299652
     def __init__(self, n_neurons, n_examples, root, sparsity=0.9, seed=0, transform=None, pre_transform=None):
         self.sparsity = sparsity
 
@@ -20,7 +20,7 @@ class UniformConnectivityDataset(ConnectivityDataset):
 
     def _generate(self, n_neurons, seed):
         rng = np.random.default_rng(seed)
-        mat = rng.uniform(self.MEXICAN_HAT_LOWEST, 0, size=(n_neurons, n_neurons))
+        mat = rng.uniform(self.UNIFORM_LOWEST, 0, size=(n_neurons, n_neurons))
         mat[rng.random((n_neurons, n_neurons)) < self.sparsity] = 0
         w0 = torch.tensor(mat, dtype=torch.float32)
         return w0
