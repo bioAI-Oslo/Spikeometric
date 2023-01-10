@@ -10,6 +10,7 @@ def main():
     parser.add_argument("--model_path",         type=str,   default="data/saved_models",    help="The path where the model should be saved")
     parser.add_argument("-e", "--n_epochs",     type=int,   default=100,                    help="Number of epochs to train for")
     parser.add_argument("-f", "--firing_rate",  type=float, default=0.1,                    help="Target firing rate")
+    parser.add_argument("--seed",               type=int,   default=14071789,                      help="Random seed")
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -22,7 +23,7 @@ def main():
     print(f"Target firing rate:                           {args.firing_rate}")
     print(f"Device:                                       {device}")
 
-    run_tune(args.n_neurons, args.dataset_size, args.n_steps, args.n_epochs, args.model_path, args.firing_rate)
+    run_tune(args.n_neurons, args.dataset_size, args.n_steps, args.n_epochs, args.model_path, args.firing_rate, args.seed)
 
 if __name__ == "__main__":
     main()
