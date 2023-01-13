@@ -238,6 +238,16 @@ def test_poisson_stimulates_at_correct_times(poisson_stimulation):
         fire_targets = poisson_stimulation.targets[fire_indices]
         assert_close(stim.nonzero(as_tuple=False).squeeze(), fire_targets)
 
+def test_manual_stimulation(example_data, glm_model, initial_state):
+    import torch
+    connectivity_filter = glm_model.connectivity_filter(example_data.W0, example_data.edge_index)
+    activation_without_stimulation = glm_model.activation(initial_state, example_data.edge_index, connectivity_filter, t=0)
+
+    func = lambda t: torch.tensor([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    glm_model.add_stimulation(func)
+    activation_with_stimulation = glm_model.activation(initial_state, example_data.edge_index, connectivity_filter, t=0)
+    assert any(activation_with_stimulation != activation_without_stimulation)
+
 def test_tuning_with_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import tune
     tunable_parameters = ["threshold", "alpha", "beta"]

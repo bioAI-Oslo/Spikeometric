@@ -183,7 +183,7 @@ def tune(model,
                 current_activation=activation[:, t-time_scale:t]
             )
             probs = model.probability_of_spike(activation[:, t])
-            x[:, t] = model.spike(probs)
+            x[:, t] = model.update_state(probs)
 
         # Compute the loss
         avg_probability_of_spike = model.probability_of_spike(activation[:, time_scale:]).mean()

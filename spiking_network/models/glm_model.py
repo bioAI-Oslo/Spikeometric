@@ -60,7 +60,7 @@ class GLMModel(BaseModel):
         """
         return torch.sigmoid(activation - self._params["threshold"])
 
-    def spike(self, probability: torch.Tensor) -> torch.Tensor:
+    def update_state(self, probability: torch.Tensor) -> torch.Tensor:
         """
         Update the state of the neurons
 

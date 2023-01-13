@@ -2,6 +2,7 @@ from torch_geometric.nn import MessagePassing
 import torch
 import torch.nn as nn 
 from pathlib import Path
+from spiking_network.stimulation import BaseStimulation
 
 class BaseModel(MessagePassing):
     def __init__(self, parameters, device="cpu", stimulation=None):
@@ -21,7 +22,7 @@ class BaseModel(MessagePassing):
         else:
             self.stimulation = lambda t: 0
 
-    def spike(self, probabilites):
+    def update_state(self, probabilites):
         """Calculates the spikes of the network at time t from the probabilites"""
         raise NotImplementedError
     
@@ -65,7 +66,7 @@ class BaseModel(MessagePassing):
         """
         activation = self.activation(edge_index=edge_index, x=x, W=W, current_activation=current_activation)
         probabilites = self.probability_of_spike(activation)
-        return self.spike(probabilites)
+        return self.update_state(probabilites)
 
     def add_stimulation(self, stimulation):
         """Adds stimulation to the network"""
@@ -75,7 +76,8 @@ class BaseModel(MessagePassing):
                 self._add_parameters_from_stimulation(stimulation_i)
         else:
             self.stimulation = stimulation
-            self._add_parameters_from_stimulation(stimulation)
+            if isinstance(stimulation, BaseStimulation):
+                self._add_parameters_from_stimulation(stimulation)
 
     def stimulate(self, t):
         """Stimulates the network"""

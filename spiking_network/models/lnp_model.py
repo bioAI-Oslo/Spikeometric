@@ -29,7 +29,7 @@ class LNPModel(BaseModel):
         current_activation += x - (current_activation / self._params["tau"]) * self._params["dt"]
         return super().propagate(edge_index, x=current_activation, W=W)
 
-    def spike(self, activation):
+    def update_state(self, activation):
         """
         Update the state of the neurons.
         The network will spike if the activation is above the threshold.
