@@ -1,15 +1,16 @@
 from torch_geometric.data import InMemoryDataset
 from torch_geometric.data import Data
-from torch_geometric.utils  import add_remaining_self_loops, to_dense_adj
+from torch_geometric.utils import add_remaining_self_loops, to_dense_adj
 from pathlib import Path
 import numpy as np
 import os
 import torch
 from typing import Union, List, Tuple
 
+
 class ConnectivityDataset(InMemoryDataset):
     r"""
-    A dataset of connectivity matrices for networks of neurons. 
+    A dataset of connectivity matrices for networks of neurons.
 
     Args:
         root (str): Root directory where the dataset should be saved.
@@ -25,7 +26,7 @@ class ConnectivityDataset(InMemoryDataset):
             :obj:`torch_geometric.data.Data` object and returns a boolean
             value, indicating whether the data object should be included in the
             final dataset. (default: :obj:`None`)
-    
+
     Example:
         >>> from spiking_network.datasets import ConnectivityDataset
         >>> dataset = ConnectivityDataset("root/datasets/example_dataset")
@@ -47,22 +48,29 @@ class ConnectivityDataset(InMemoryDataset):
                 w0_square = torch.load(path / file)
             num_neurons = w0_square.shape[0]
             non_zero_edges = w0_square.nonzero().t()
-            edge_index, _ = add_remaining_self_loops(non_zero_edges, num_nodes=num_neurons)
+            edge_index, _ = add_remaining_self_loops(
+                non_zero_edges,
+                num_nodes=num_neurons
+            )
             w0 = w0_square[edge_index[0], edge_index[1]]
             data = Data(edge_index=edge_index, num_nodes=num_neurons, W0=w0)
             w0_list.append(data)
-        
+
         data, slices = self.collate(w0_list)
         torch.save((data, slices), self.processed_paths[0])
 
     @property
     def processed_file_names(self) -> Union[str, List[str], Tuple]:
         return "data.pt"
-    
+
     def to_dense(self):
         dense = []
         for data in self:
             dense.append(
-                to_dense_adj(data.edge_index, edge_attr=data.W0, max_num_nodes=data.num_nodes)[0]
+                to_dense_adj(
+                    data.edge_index,
+                    edge_attr=data.W0,
+                    max_num_nodes=data.num_nodes
+                )[0]
             )
         return dense
