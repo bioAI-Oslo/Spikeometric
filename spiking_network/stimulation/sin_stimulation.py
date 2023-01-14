@@ -3,30 +3,28 @@ import torch.nn as nn
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 
 class SinStimulation(BaseStimulation):
-    def __init__(self, targets: int, amplitudes: float, frequencies: float, durations: int, total_neurons: int, device='cpu'):
-        super().__init__(targets, durations, total_neurons, device)
-        if isinstance(amplitudes, (int, float)):
-            amplitudes = [amplitudes] * self.n_targets
-        if isinstance(frequencies, (int, float)):
-            frequencies = [frequencies] * self.n_targets
+    def __init__(self, amplitude: float, frequency: float, duration: int, device='cpu'):
+        super().__init__(device)
+        self.amplitude = torch.tensor(amplitude, device=device, dtype=torch.float32)
+        self.frequency = torch.tensor(frequency, device=device, dtype=torch.float32)
+        self.duration = duration
 
-        self.amplitudes = torch.tensor(amplitudes, device=device, dtype=torch.float32)
-        self.frequencies = torch.tensor(frequencies, device=device, dtype=torch.float32)
-
-        if any(self.amplitudes < 0):
+        if self.amplitude < 0:
             raise ValueError("All amplitudes must be positive.")
-        if any(self.frequencies < 0):
+        if self.frequency < 0:
             raise ValueError("All frequencies must be positive.")
-        if any(self.frequencies > 1):
+        if self.frequency > 1:
             raise ValueError("Period of sin stimulation must be more than one time step.")
+        if self.duration < 0:
+            raise ValueError("All durations must be positive.")
 
-        self._params = self._init_parameters(
+        self._tunable_params = self._init_parameters(
             {
-                "amplitudes": self.amplitudes,
-                "frequencies": self.frequencies,
-                "offsets": torch.zeros(self.n_targets, device=device, dtype=torch.float32)
+                "amplitude": self.amplitude,
+                "frequency": self.frequency,
+                "offset": torch.tensor(0, device=device, dtype=torch.float32),
             }
         )
 
     def stimulate(self, t):
-        return self._params["amplitudes"] * torch.sin(2 * torch.pi * self._params['frequencies'] * t + self._params['offsets'])
+        return self._tunable_params["amplitude"] * torch.sin(2 * torch.pi * self._tunable_params['frequency'] * t + self._tunable_params['offset'])

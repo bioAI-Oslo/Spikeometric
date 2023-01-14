@@ -4,8 +4,37 @@ from tqdm import tqdm
 from spiking_network.models import BaseModel
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 import numpy as np
+from torch_geometric.loader import DataLoader
 from scipy.sparse import coo_matrix
 from pathlib import Path
+
+class StimulationLoader(DataLoader):
+    def __init__(self, data, batch_size, shuffle, stimulation_targets):
+        super().__init__(data, batch_size, shuffle)
+        self.stimulation_targets = stimulation_targets
+
+    def __iter__(self):
+        for i, batch in enumerate(super().__iter__()):
+            batch = self.add_stimulation_targets(batch, self.stimulation_targets, i)
+            yield batch
+
+    def add_stimulation_targets(self, batch, stimulation_targets, i):
+        """Adds stimulation targets to the data"""
+        if not any([isinstance(stimulation_targets, list) for stimulation_targets in stimulation_targets]):
+            stimulation_targets = stimulation_targets[self.batch_size * i : self.batch_size * (i + 1)]
+            batch_adjusted_stimulation_target = torch.cat([stimulation_targets[i] + i*(batch.num_nodes // batch.num_graphs) for i in range(batch.num_graphs)]) 
+            batch.stimulation_targets = batch_adjusted_stimulation_target
+            return batch
+
+        batch_adjusted_stimulation_targets = []
+        for stimulation_target in stimulation_targets:
+            stimulation_targets = stimulation_target[self.batch_size * i : self.batch_size * (i + 1)]
+            batch_adjusted_stimulation_target = torch.cat([stimulation_target[i] + i*(batch.num_nodes // batch.num_graphs) for i in range(batch.num_graphs)])
+            batch_adjusted_stimulation_targets.append(
+                batch_adjusted_stimulation_target
+            )
+        batch.stimulation_targets = batch_adjusted_stimulation_targets
+        return batch
 
 def load_data(file):
     """
@@ -82,6 +111,7 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     edge_index = data.edge_index
     W0 = data.W0
     W = model.connectivity_filter(W0, edge_index)
+    stimulation_targets = data.stimulation_targets if hasattr(data, "stimulation_targets") else None
 
     # If verbose is True, a progress bar is shown
     if verbose:
@@ -98,7 +128,7 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     model.eval()
     with torch.no_grad():
         for t in pbar:
-            x[:, t] = model(x[:, t-model.time_scale:t], edge_index, W=W, t=t, current_activation=activation)
+            x[:, t] = model(x[:, t-model.time_scale:t], edge_index, W=W, t=t, current_activation=activation, stimulation_targets=stimulation_targets)
 
     # Return the state of the network at each time step
     return x[:, model.time_scale:]
@@ -148,15 +178,21 @@ def tune(model,
     # Check parameters
     if not tunable_parameters:
         raise ValueError("No parameters to tune")
-    else:
-        model._check_tunable_parameters(tunable_parameters)
-        model.set_tunable_parameters(tunable_parameters)
+    if tunable_parameters == "all":
+        tunable_parameters = model._params.keys()
+    if tunable_parameters == "stimulation_parameters":
+        tunable_parameters = [param for param in model.tunable_parameters.keys() if param.startswith("stimulation")]
+    if tunable_parameters == "model_parameters":
+        tunable_parameters = [param for param in model.tunable_parameters.keys() if not param.startswith("stimulation")]
+        
+    model.set_tunable_parameters(tunable_parameters)
     
     # Get the parameters of the network
     edge_index = data.edge_index
     W0 = data.W0
     n_neurons = data.num_nodes
     time_scale = model.time_scale
+    stimulation_targets = data.stimulation_targets if hasattr(data, "stimulation_targets") else None
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
     firing_rate = torch.tensor(firing_rate, device=model.device)
@@ -180,7 +216,8 @@ def tune(model,
                 edge_index,
                 W=W,
                 t=t,
-                current_activation=activation[:, t-time_scale:t]
+                current_activation=activation[:, t-time_scale:t],
+                stimulation_targets=stimulation_targets
             )
             probs = model.probability_of_spike(activation[:, t])
             x[:, t] = model.update_state(probs)

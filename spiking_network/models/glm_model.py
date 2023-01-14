@@ -1,11 +1,13 @@
 from spiking_network.models.base_model import BaseModel
 import torch
 class GLMModel(BaseModel):
-    def __init__(self, parameters={}, seed=0, device="cpu", stimulation=None):
-        super().__init__(parameters, device=device, stimulation=stimulation)
-        self._seed = seed
-        self._rng = torch.Generator(device=device).manual_seed(seed)
-
+    def __init__(self, parameters={}, seed=None, device="cpu", stimulation=None):
+        super().__init__(parameters=parameters, stimulation=stimulation, device=device)
+        if seed is None:
+            self._rng = torch.Generator(device=device)
+        else:
+            self._rng = torch.Generator(device=device).manual_seed(seed)
+    
     def initialize_state(self, n_neurons:int) -> torch.Tensor:
         """
         Initialize the state of the neurons
@@ -58,7 +60,7 @@ class GLMModel(BaseModel):
         probabilities : torch.Tensor [n_neurons, 1]
             The probability that a neuron spikes
         """
-        return torch.sigmoid(activation - self._params["threshold"])
+        return torch.sigmoid(activation - self._tunable_params["threshold"])
 
     def update_state(self, probability: torch.Tensor) -> torch.Tensor:
         """
@@ -93,9 +95,9 @@ class GLMModel(BaseModel):
             The connectivity filter
         """
         i, j = edge_index
-        t = torch.arange(self._params["time_scale"], device=W0.device)
+        t = torch.arange(self.time_scale, device=W0.device)
         t = t.repeat(W0.shape[0], 1) # Time steps
-        is_self_edge = (i==j).unsqueeze(1).repeat(1, self._params["time_scale"]) # Is the edge a self-edge?
+        is_self_edge = (i==j).unsqueeze(1).repeat(1, self.time_scale) # Is the edge a self-edge?
 
         # Compute the connectivity matrix
         self_edges = self._self_edges(t)
@@ -134,10 +136,10 @@ class GLMModel(BaseModel):
         self_edges : torch.Tensor [n_edges, time_scale]
             The time dependent weights for the self-edges
         """
-        abs_ref = self._params["abs_ref_strength"] * (t < self._params["abs_ref_scale"])
+        abs_ref = self._tunable_params["abs_ref_strength"] * (t < self.abs_ref_scale)
         rel_ref = (
-                self._params["rel_ref_strength"] * torch.exp(-torch.abs(self._params["beta"]) * (t - self._params["abs_ref_scale"]))
-                * (self._params["abs_ref_scale"] <= t) * (t <= self._params["abs_ref_scale"] + self._params["rel_ref_scale"])
+                self._tunable_params["rel_ref_strength"] * torch.exp(-torch.abs(self._tunable_params["beta"]) * (t - self.abs_ref_scale))
+                * (self.abs_ref_scale <= t) * (t <= self.abs_ref_scale + self.rel_ref_scale)
             )
         return abs_ref + rel_ref
 
@@ -162,8 +164,8 @@ class GLMModel(BaseModel):
         """
 
         return (
-                torch.einsum("i, ij -> ij", W0, torch.exp(-torch.abs(self._params["alpha"]) * t)
-                * (t < self._params["influence_scale"]))
+                torch.einsum("i, ij -> ij", W0, torch.exp(-torch.abs(self._tunable_params["alpha"]) * t)
+                * (t < self.influence_scale))
             )
     
     @property
@@ -171,9 +173,9 @@ class GLMModel(BaseModel):
         return {
             "alpha": 0.2,
             "beta": 0.5,
-            "threshold": 5.0,
-            "abs_ref_strength": -100,
-            "rel_ref_strength": -30,
+            "threshold": 5.,
+            "abs_ref_strength": -100.,
+            "rel_ref_strength": -30.,
             "abs_ref_scale": 3,
             "rel_ref_scale": 7,
             "influence_scale": 5,
@@ -181,5 +183,5 @@ class GLMModel(BaseModel):
         }
 
     @property
-    def _untunable_parameters(self):
-        return ["abs_ref_scale", "rel_ref_scale", "time_scale", "influence_scale"]
+    def _tunable_parameter_keys(self):
+        return ["alpha", "beta", "threshold", "abs_ref_strength", "rel_ref_strength"]

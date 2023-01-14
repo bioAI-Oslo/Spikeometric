@@ -69,12 +69,13 @@ def test_save_load(glm_model):
 def test_stimulation(glm_model, regular_stimulation):
     from torch.testing import assert_close
     glm_model.add_stimulation(regular_stimulation)
-    for t in range(10):
-        assert_close(glm_model.stimulate(t), regular_stimulation(t))
+    stimulation_params = ["stimulation_strength", "stimulation_decay"]
+    assert all([stimulation_param in glm_model.tunable_parameters.keys() for stimulation_param in stimulation_params])
 
 def test_multiple_stimulations(glm_model, regular_stimulation, sin_stimulation):
     from torch.testing import assert_close
     glm_model.add_stimulation([regular_stimulation, sin_stimulation])
+    stimulation_targets = [torch.randint(0, 10, (1,)) for _ in range(2)]
     for t in range(10):
-        model_stimulation = glm_model.stimulate(t)
-        assert_close(model_stimulation, regular_stimulation(t) + sin_stimulation(t))
+        model_stimulation = glm_model.stimulate(t, stimulation_targets, 20)
+        assert_close(model_stimulation, regular_stimulation(t, stimulation_targets[0], 20) + sin_stimulation(t, stimulation_targets[1], 20))

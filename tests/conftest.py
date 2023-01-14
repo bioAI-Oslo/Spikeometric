@@ -116,53 +116,42 @@ def expected_output_after_ten_steps():
 @pytest.fixture
 def regular_stimulation():
     from spiking_network.stimulation import RegularStimulation
-    targets = [0, 4, 9]
-    intervals = [5, 7, 9]
-    strengths = 1
+    interval = 5
+    strength = 1
     temporal_scale = 2
-    durations = 100
+    duration = 100
     stimulation = RegularStimulation(
-        targets=targets,
-        intervals=intervals,
-        strengths=strengths,
+        interval=interval,
+        strength=strength,
         temporal_scale=temporal_scale,
-        durations=durations,
-        total_neurons=20,
+        duration=duration,
     )
     return stimulation
 
 @pytest.fixture
 def sin_stimulation():
     from spiking_network.stimulation import SinStimulation
-    targets = [0, 4, 9]
-    amplitudes = 2
-    frequencies = 0.1
-    durations = 100
-    total_neurons = 20
+    amplitude = 2
+    frequency = 0.1
+    duration = 100
     stimulation = SinStimulation(
-        targets=targets,
-        amplitudes=amplitudes,
-        frequencies=frequencies,
-        durations=durations,
-        total_neurons=total_neurons,
+        amplitude=amplitude,
+        frequency=frequency,
+        duration=duration,
     )
     return stimulation
 
 @pytest.fixture
 def poisson_stimulation():
     from spiking_network.stimulation import PoissonStimulation
-    targets = [0, 4, 9]
-    intervals = 3
-    strengths = 1
-    durations = 100
+    interval = 3
+    strength = 1
+    duration = 100
     temporal_scale = 1
-    total_neurons = 20
     stimulation = PoissonStimulation(
-        targets=targets,
-        intervals=intervals,
-        strengths=strengths,
+        interval=interval,
+        strength=strength,
+        duration=duration,
         temporal_scale=temporal_scale,
-        durations=durations,
-        total_neurons=total_neurons,
     )
     return stimulation
