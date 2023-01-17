@@ -66,15 +66,21 @@ def test_save_load(glm_model):
         loaded_model = glm_model.load(f.name)
     assert glm_model.parameter_dict == loaded_model.parameter_dict
 
+def test_failed_load():
+    from spiking_network.models import GLMModel
+    with pytest.raises(FileNotFoundError):
+        GLMModel.load("not_a_model")
+
 def test_stimulation(glm_model, regular_stimulation):
     from torch.testing import assert_close
     glm_model.add_stimulation(regular_stimulation)
     stimulation_params = ["stimulation_strength", "stimulation_decay"]
     assert all([stimulation_param in glm_model.tunable_parameters.keys() for stimulation_param in stimulation_params])
 
-def test_multiple_stimulations(glm_model, regular_stimulation, sin_stimulation):
+def test_multiple_stimulations(regular_stimulation, sin_stimulation):
     from torch.testing import assert_close
-    glm_model.add_stimulation([regular_stimulation, sin_stimulation])
+    from spiking_network.models import GLMModel
+    glm_model = GLMModel(stimulation=[regular_stimulation, sin_stimulation])
     stimulation_targets = [torch.randint(0, 10, (1,)) for _ in range(2)]
     for t in range(10):
         model_stimulation = glm_model.stimulate(t, stimulation_targets, 20)

@@ -74,3 +74,35 @@ def test_generate_examples(saved_glorot_dataset):
     for i in range(len(data)):
         assert_close(data[i].W0, saved_glorot_dataset[i].W0)
         assert_close(data[i].edge_index, saved_glorot_dataset[i].edge_index)
+
+def test_stimulation_loader_handles_one_stimulation(saved_glorot_dataset):
+    from spiking_network.utils import StimulationLoader
+    stimulation_targets = torch.randint(0, 20, (10, 10))
+    loader = StimulationLoader(saved_glorot_dataset, stimulation_targets, batch_size=2)
+    for data in loader:
+        assert data.stimulation_targets.shape == (20,)
+
+def test_stimulation_loader_handles_multiple_stimulations(saved_glorot_dataset):
+    from spiking_network.utils import StimulationLoader
+    stimulation_targets = torch.randint(0, 20, (10, 2, 10))
+    loader = StimulationLoader(saved_glorot_dataset, stimulation_targets, batch_size=2)
+    for data in loader:
+        assert data.stimulation_targets.shape == (2, 20) 
+
+def test_stimulation_loader_one_graph(example_data):
+    from spiking_network.utils import StimulationLoader
+    stimulation_targets = torch.randint(0, 20, (10,))
+    loader = StimulationLoader([example_data], stimulation_targets, batch_size=2)
+    for data in loader:
+        assert data.stimulation_targets.shape == (10,)
+    
+    stimulation_targets = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    loader = StimulationLoader([example_data], stimulation_targets, batch_size=2)
+    for data in loader:
+        assert data.stimulation_targets.shape == (10,)
+
+def test_mismatch_between_stimulations_and_data(saved_glorot_dataset):
+    from spiking_network.utils import StimulationLoader
+    stimulation_targets = torch.randint(0, 20, (20, 10))
+    with pytest.raises(ValueError):
+        loader = StimulationLoader(saved_glorot_dataset, stimulation_targets, batch_size=2)

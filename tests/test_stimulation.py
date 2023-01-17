@@ -43,6 +43,36 @@ def test_regular_no_negative_intervals():
             duration=duration,
         )
 
+def test_regular_no_negative_decay():
+    from spiking_network.stimulation import RegularStimulation
+    interval = 5
+    strength = 1
+    temporal_scale = 2
+    duration = 100
+    decay = -0.5
+    with pytest.raises(ValueError):
+        RegularStimulation(
+            interval=interval,
+            strength=strength,
+            temporal_scale=temporal_scale,
+            duration=duration,
+            decay=decay,
+        )
+
+def test_regular_no_negative_interval():
+    from spiking_network.stimulation import RegularStimulation
+    interval = -5
+    strength = 1
+    temporal_scale = 2
+    duration = 100
+    with pytest.raises(ValueError):
+        RegularStimulation(
+            interval=interval,
+            strength=strength,
+            temporal_scale=temporal_scale,
+            duration=duration,
+        )
+
 def test_sin_targets(sin_stimulation):
     targets = torch.tensor([0, 4, 9])
     stim = sin_stimulation(1, targets=targets, n_neurons=20)
@@ -135,6 +165,22 @@ def test_poisson_non_negative_temporal_scale():
             temporal_scale=temporal_scale,
         )
 
+def test_poisson_non_negative_decay():
+    from spiking_network.stimulation import PoissonStimulation
+    interval = 10
+    strength = 2
+    duration = 100
+    temporal_scale = 2
+    decay = -0.2
+    with pytest.raises(ValueError):
+        PoissonStimulation(
+            interval=interval,
+            strength=strength,
+            duration=duration,
+            temporal_scale=temporal_scale,
+            decay=decay,
+        )
+
 def test_poisson_stimulates_at_correct_times(poisson_stimulation):
     targets = torch.tensor([0, 4, 9])
     n_neurons = 20
@@ -162,11 +208,12 @@ def test_tuning_with_stimulation(glm_model, example_data, regular_stimulation):
     tune(glm_model, example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     assert True
 
-def test_tune_stimulation(glm_model, example_data, regular_stimulation):
+@pytest.mark.parametrize("stimulation", [pytest.lazy_fixture("regular_stimulation"), pytest.lazy_fixture("poisson_stimulation")])
+def test_tune_stimulation(glm_model, example_data, stimulation):
     from spiking_network.utils import tune
     tunable_parameters = ["stimulation_strength", "stimulation_decay"]
     firing_rate = 0.1
-    glm_model.add_stimulation(regular_stimulation)
+    glm_model.add_stimulation(stimulation)
     example_data.stimulation_targets = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     tune(glm_model, example_data, firing_rate, tunable_parameters=tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     assert True

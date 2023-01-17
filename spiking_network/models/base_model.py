@@ -77,7 +77,14 @@ class BaseModel(MessagePassing):
         spikes: torch.Tensor
             The new state of the network from time t+1 - time_scale to time t+1 [n_neurons]
         """
-        activation = self.activation(edge_index=edge_index, x=x, W=W, current_activation=current_activation, t=t, stimulation_targets=stimulation_targets)
+        activation = self.activation(
+            edge_index=edge_index,
+            x=x,
+            W=W,
+            current_activation=current_activation,
+            t=t,
+            stimulation_targets=stimulation_targets
+        )
         probabilites = self.probability_of_spike(activation)
         return self.update_state(probabilites)
 
@@ -95,10 +102,7 @@ class BaseModel(MessagePassing):
     
     def _add_parameters_from_stimulation(self, stimulation, prefix="stimulation"):
         """Adds the parameters to the model"""
-        if prefix:
-            params = {f"{prefix}_{key}": value for key, value in stimulation._tunable_params.items()}
-        else:
-            params = stimulation._params
+        params = {f"{prefix}_{key}": value for key, value in stimulation._tunable_params.items()}
         self._tunable_params.update(params)
 
     def stimulate(self, t, targets, n_neurons):

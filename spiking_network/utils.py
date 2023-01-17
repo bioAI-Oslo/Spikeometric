@@ -9,31 +9,29 @@ from scipy.sparse import coo_matrix
 from pathlib import Path
 
 class StimulationLoader(DataLoader):
-    def __init__(self, data, batch_size, shuffle, stimulation_targets):
+    def __init__(self, data, stimulation_targets, batch_size=1, shuffle=False):
         super().__init__(data, batch_size, shuffle)
+        if all([isinstance(stimulation_target, int) for stimulation_target in stimulation_targets]):
+            stimulation_targets = [torch.tensor(stimulation_targets)]
+        if isinstance(stimulation_targets, torch.Tensor) and stimulation_targets.dim() == 1:
+            stimulation_targets = [stimulation_targets]
+
+        if not len(stimulation_targets) == len(data):
+            raise ValueError(f"Must have stimulation targets for each graph in the dataset ({len(data)})")
+        
+        self.n_neurons_list = [data[i].num_nodes for i in range(len(data))]
         self.stimulation_targets = stimulation_targets
 
     def __iter__(self):
         for i, batch in enumerate(super().__iter__()):
-            batch = self.add_stimulation_targets(batch, self.stimulation_targets, i)
+            batch = self._add_stimulation_targets(batch, self.stimulation_targets, i)
             yield batch
 
-    def add_stimulation_targets(self, batch, stimulation_targets, i):
+    def _add_stimulation_targets(self, batch, stimulation_targets, batch_idx):
         """Adds stimulation targets to the data"""
-        if not any([isinstance(stimulation_targets, list) for stimulation_targets in stimulation_targets]):
-            stimulation_targets = stimulation_targets[self.batch_size * i : self.batch_size * (i + 1)]
-            batch_adjusted_stimulation_target = torch.cat([stimulation_targets[i] + i*(batch.num_nodes // batch.num_graphs) for i in range(batch.num_graphs)]) 
-            batch.stimulation_targets = batch_adjusted_stimulation_target
-            return batch
-
-        batch_adjusted_stimulation_targets = []
-        for stimulation_target in stimulation_targets:
-            stimulation_targets = stimulation_target[self.batch_size * i : self.batch_size * (i + 1)]
-            batch_adjusted_stimulation_target = torch.cat([stimulation_target[i] + i*(batch.num_nodes // batch.num_graphs) for i in range(batch.num_graphs)])
-            batch_adjusted_stimulation_targets.append(
-                batch_adjusted_stimulation_target
-            )
-        batch.stimulation_targets = batch_adjusted_stimulation_targets
+        batch_stimulation_targets = stimulation_targets[self.batch_size * batch_idx : self.batch_size * (batch_idx + 1)]
+        batch_adjusted_stimulation_target = torch.cat([batch_stimulation_targets[i] + i*self.n_neurons_list[i] for i in range(batch.num_graphs)], dim=-1)
+        batch.stimulation_targets = batch_adjusted_stimulation_target
         return batch
 
 def load_data(file):
@@ -73,10 +71,25 @@ def save_data(x, model, w0_data, seeds, data_path, stimulation=None):
             X_sparse=sparse_x,
             w_0=sparse_W0,
             parameters=model.parameter_dict,
+            stimulation=stimulation.parameter_dict if stimulation else None,
             seeds=seeds
         )
 
 def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
+    """
+    Calculates the interspike interval of the network.
+
+    Parameters:
+    ----------
+    spikes: torch.Tensor
+        The spikes of the network
+    N: int
+        The number of neurons in the network
+    n_steps: int
+        The number of time steps the network was simulated for
+    dt: float
+        The time step size
+    """
     return N * n_steps * dt / spikes.sum()
 
 def calculate_firing_rate(spikes) -> float:
