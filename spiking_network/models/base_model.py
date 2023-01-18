@@ -5,21 +5,15 @@ from pathlib import Path
 from spiking_network.stimulation import BaseStimulation
 
 class BaseModel(MessagePassing):
-    def __init__(self, parameters, stimulation, device="cpu"):
-        super(BaseModel, self).__init__() 
-        self.device = device
-
-        params = self._default_parameters.copy()
-        self._check_parameters(parameters)
-        params.update(parameters)
-        for key, value in params.items():
-            setattr(self, key, value)
-
-        self._tunable_params = self._init_parameters(
-            {k: v for k, v in self.__dict__.items() if k in self._tunable_parameter_keys},
-            device
-        )
-        
+    """
+    Base class for all models. Extends the MessagePassing class from torch_geometric by adding stimulation support and
+    a forward method that calculates the activation of the network and then updates the state of the network using
+    the update_state method that must be implemented by the child class. There are also methods for saving and loading
+    the model.
+    """
+    def __init__(self, stimulation):
+        """Sets the parameters of the model and adds the stimulation if it is not None"""
+        super(BaseModel, self).__init__(aggr='add') 
         if stimulation is not None:
             self.add_stimulation(stimulation)
         else:
@@ -35,11 +29,11 @@ class BaseModel(MessagePassing):
         model.load_state_dict(torch.load(path))
         return model
 
-    def update_state(self, probabilites):
+    def update_state(self, activations: torch.Tensor) -> torch.Tensor:
         """Calculates the spikes of the network at time t from the probabilites"""
         raise NotImplementedError
     
-    def message(self, x_j: torch.Tensor, W: torch.Tensor):
+    def message(self, x_j: torch.Tensor, W: torch.Tensor) -> torch.Tensor:
         """Calculates the activation of the neurons"""
         raise NotImplementedError
     
@@ -56,8 +50,9 @@ class BaseModel(MessagePassing):
         return activation
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor, W: torch.Tensor, current_activation=None, t=-1, stimulation_targets=None) -> torch.Tensor:
-        """Forward pass of the network"""
-        r"""Calculates the new state of the network
+        r"""
+        Calculates the new state of the network at time t+1 from the state at time t by first calculating the activation of the network
+        and then calculating the new state of the network using the activation.
 
         Parameters:
         ----------
@@ -67,10 +62,13 @@ class BaseModel(MessagePassing):
             The connectivity of the network [2, n_edges]
         W: torch.Tensor
             The edge weights of the connectivity filter [n_edges, time_scale]
+        current_activation: torch.Tensor
+            The activation of the network from time t - time_scale to time t [n_neurons, time_scale]
         t: int
             The current time step
-        activation: torch.Tensor
-            The activation of the network from time t - time_scale to time t [n_neurons, time_scale]
+        stimulation_targets: torch.Tensor
+            The indices of the neurons to be stimulated [n_stimulations, n_stimulated_neurons]
+        
 
         Returns:
         -------
@@ -85,40 +83,21 @@ class BaseModel(MessagePassing):
             t=t,
             stimulation_targets=stimulation_targets
         )
-        probabilites = self.probability_of_spike(activation)
-        return self.update_state(probabilites)
+        return self.update_state(activation)
 
     def add_stimulation(self, stimulation):
         """Adds stimulation to the network"""
         if isinstance(stimulation, list):
-            self.stimulation = lambda t, targets, n_neurons: sum([stimulation[i](t, targets[i], n_neurons) for i in range(len(stimulation))])
-            for i, stimulation_i in enumerate(stimulation):
-                if isinstance(stimulation_i, BaseStimulation):
-                    self._add_parameters_from_stimulation(stimulation_i, prefix=f"stimulation_{i}")
+            self.stimulations = torch.nn.ModuleDict({f"{stim.__class__.__name__}_{i}": stim for i, stim in enumerate(stimulation)})
+            self.stimulation = lambda t, targets, n_neurons: sum([self.stimulations[key](t, targets[i], n_neurons) for i, key in enumerate(self.stimulations.keys())])
         else:
             self.stimulation = stimulation
-            if isinstance(stimulation, BaseStimulation):
-                self._add_parameters_from_stimulation(stimulation)
     
-    def _add_parameters_from_stimulation(self, stimulation, prefix="stimulation"):
-        """Adds the parameters to the model"""
-        params = {f"{prefix}_{key}": value for key, value in stimulation._tunable_params.items()}
-        self._tunable_params.update(params)
-
     def stimulate(self, t, targets, n_neurons):
         """Stimulates the network"""
         if targets is None:
             return self.stimulation(t)
         return self.stimulation(t, targets, n_neurons)
-
-    def _init_parameters(self, params, device):
-        """Initializes the parameters of the model"""
-        return nn.ParameterDict(
-                {
-                key: nn.Parameter(torch.tensor(value, device=device), requires_grad=False)
-                for key, value in params.items()
-            }
-        )
     
     @property
     def _default_parameters(self):
@@ -128,41 +107,18 @@ class BaseModel(MessagePassing):
         }
 
     @property
-    def _tunable_parameter_keys(self):
-        """Returns the tunable parameters of the model"""
-        return []
-
-    @property
-    def tunable_parameters(self):
-        """Returns the tunable parameters of the model"""
-        return {key: value.data.item() for key, value in self._tunable_params.items()}
-    
-    @property
-    def _parameter_keys(self) -> list:
+    def _valid_parameters(self) -> list:
         """Returns the parameters of the model"""
         return self._default_parameters.keys()
-    
-    @property
-    def parameter_dict(self):
-        """Returns the parameters of the model"""
-        tunable_parameters = {key: value.data.item() for key, value in self._tunable_params.items()}
-        untunable_parameters = {k: v for k, v in self.__dict__.items() if k in self._parameter_keys and k not in tunable_parameters.keys()}
-        return {**tunable_parameters, **untunable_parameters}
-    
-    def set_tunable_parameters(self, params_to_tune):
-        """Sets the parameters of the model to tune"""
-        self._check_tunable_parameters(params_to_tune)
-        for param in params_to_tune:
-            self._tunable_params[param].requires_grad = True
-    
-    def _check_parameters(self, parameters):
-        if any([p not in self._parameter_keys for p in parameters]):
-            raise ValueError("Parameters {} not recognised".format([p for p in parameters if p not in self._parameter_keys]))
-    
-    def _check_tunable_parameters(self, tunable_parameters):
-        if any([p not in self._tunable_params.keys() for p in tunable_parameters]):
-            raise ValueError("Parameters {} cannot be tuned".format(tunable_parameters))
-    
+
+    def tune(self, parameters):
+        """Sets requires_grad to True for the parameters to tune"""
+        for param in parameters:
+            parameter_dict = dict(self.named_parameters())
+            if param not in parameter_dict.keys():
+                raise ValueError(f"Parameter {param} not found in the model")
+            parameter_dict[param].requires_grad = True
+
     def save(self, path):
         """Saves the model"""
         torch.save(self.state_dict(), path)

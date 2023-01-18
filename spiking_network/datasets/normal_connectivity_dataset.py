@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import add_remaining_self_loops
 
 class NormalConnectivityDataset(ConnectivityDataset):
-    def __init__(self, n_neurons: int, n_examples: int, distribution_params: DistributionParams, root, sparsity=0, seed=None, transform=None, pre_transform=None):
+    def __init__(self, n_neurons: int, n_examples: int, distribution_params: DistributionParams, root, sparsity=0, rng=None, transform=None, pre_transform=None):
         if n_neurons % 2 != 0 or n_neurons < 2:
             raise ValueError("n_neurons must be positive and even to have as many excitatory as inhibitory neurons")
         self.n_neurons = n_neurons
@@ -18,10 +18,7 @@ class NormalConnectivityDataset(ConnectivityDataset):
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
             self.distribution_params = distribution_params
-
-            self._rng = torch.Generator()
-            if seed is not None:
-                self._rng.manual_seed(seed)
+            self._rng = rng if rng is not None else torch.Generator()
             
             for i in range(n_examples):
                 W0 = self._generate(n_neurons, distribution_params, sparsity, self._rng)

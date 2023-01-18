@@ -2,12 +2,17 @@ from spiking_network.models.base_model import BaseModel
 import torch
 
 class LNPModel(BaseModel):
-    def __init__(self, parameters={}, seed=None, device="cpu", stimulation=None):
-        super().__init__(parameters, stimulation, device)
-        if seed is None:
-            self._rng = torch.Generator(device=device)
-        else:
-            self._rng = torch.Generator(device=device).manual_seed(seed)
+    def __init__(self, parameters={}, rng=None, stimulation=None):
+        super().__init__(stimulation)
+        params = self._default_parameters
+        params.update(parameters)
+
+        for key, value in params.items():
+            if key not in self._valid_parameters:
+                raise ValueError(f"Invalid parameter {key}")
+            self.register_buffer(key, torch.tensor(value))
+
+        self._rng = rng if rng is not None else torch.Generator()
     
     def message(self, x_j, W):
         """
@@ -57,8 +62,8 @@ class LNPModel(BaseModel):
     def connectivity_filter(self, W0, edge_index):
         return W0.unsqueeze(1)
 
-    def initialize_state(self, n_neurons):
-        return torch.zeros(n_neurons, self.time_scale, device=self.device)
+    def initialize_state(self, n_neurons, device):
+        return torch.zeros(n_neurons, self.time_scale, device=device, dtype=torch.uint8)
 
     @property
     def _default_parameters(self):
@@ -72,4 +77,8 @@ class LNPModel(BaseModel):
             "threshold": 1.378e-3,
             "time_scale": 1,
         }
+
+    @property
+    def _valid_parameters(self) -> list:
+        return list(self._default_parameters.keys())
 

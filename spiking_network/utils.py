@@ -57,7 +57,7 @@ def load_data(file):
 
     return torch.from_numpy(X), torch.from_numpy(W0)
 
-def save_data(x, model, w0_data, seeds, data_path, stimulation=None):
+def save_data(x, model, w0_data, seed, data_path, stimulation=None):
     """Saves the spikes and the connectivity filter to a file"""
     if not isinstance(x, torch.Tensor):
         x = torch.cat(x, dim=0)
@@ -70,9 +70,9 @@ def save_data(x, model, w0_data, seeds, data_path, stimulation=None):
             data_path / Path(f"{i}.npz"),
             X_sparse=sparse_x,
             w_0=sparse_W0,
-            parameters=model.parameter_dict,
+            parameters=dict(model.state_dict()),
             stimulation=stimulation.parameter_dict if stimulation else None,
-            seeds=seeds
+            seed=seed
         )
 
 def calculate_isi(spikes, N, n_steps, dt=0.001) -> float:
@@ -125,6 +125,7 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     W0 = data.W0
     W = model.connectivity_filter(W0, edge_index)
     stimulation_targets = data.stimulation_targets if hasattr(data, "stimulation_targets") else None
+    device = edge_index.device
 
     # If verbose is True, a progress bar is shown
     if verbose:
@@ -133,9 +134,9 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
         pbar = range(model.time_scale, n_steps + model.time_scale)
     
     # Initialize the state of the network
-    x = torch.zeros(n_neurons, n_steps + model.time_scale, device=model.device, dtype=torch.uint8)
-    activation = torch.zeros((n_neurons,), device=model.device)
-    x[:, :model.time_scale] = model.initialize_state(n_neurons) 
+    x = torch.zeros(n_neurons, n_steps + model.time_scale, device=device, dtype=torch.uint8)
+    activation = torch.zeros((n_neurons,), device=device)
+    x[:, :model.time_scale] = model.initialize_state(n_neurons, device) 
 
     # Simulate the network
     model.eval()
@@ -149,9 +150,9 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
 def tune(model,
         data,
         firing_rate,
-        tunable_parameters,
-        lr = 0.01,
-        n_steps=1000,
+        tunable_parameters="all",
+        lr = 0.1,
+        n_steps=100,
         n_epochs=100,
         verbose=True
     ):
@@ -187,18 +188,23 @@ def tune(model,
         pbar = tqdm(range(n_epochs), colour="#3E5641")
     else:
         pbar = range(n_epochs)
+    
+    # Get the device to use
+    device = data.edge_index.device
 
     # Check parameters
     if not tunable_parameters:
         raise ValueError("No parameters to tune")
-    if tunable_parameters == "all":
-        tunable_parameters = model._params.keys()
-    if tunable_parameters == "stimulation_parameters":
-        tunable_parameters = [param for param in model.tunable_parameters.keys() if param.startswith("stimulation")]
-    if tunable_parameters == "model_parameters":
-        tunable_parameters = [param for param in model.tunable_parameters.keys() if not param.startswith("stimulation")]
+    elif tunable_parameters == "all":
+        tunable_parameters = [param for param, val in model.named_parameters()]
+    elif tunable_parameters == "stimulation_parameters":
+        tunable_parameters = [param for param, val in model.named_parameters() if param.startswith("stimulation")]
+    elif tunable_parameters == "model_parameters":
+        tunable_parameters = [param for param, val in model.named_parameters() if not param.startswith("stimulation")]
+    elif any([param not in [param for param, val in model.named_parameters()] for param in tunable_parameters]):
+        raise ValueError("Invalid parameter name. Valid parameter names are: {}".format([param for param, val in model.named_parameters()]))
         
-    model.set_tunable_parameters(tunable_parameters)
+    model.tune(tunable_parameters)
     
     # Get the parameters of the network
     edge_index = data.edge_index
@@ -208,16 +214,15 @@ def tune(model,
     stimulation_targets = data.stimulation_targets if hasattr(data, "stimulation_targets") else None
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
-    firing_rate = torch.tensor(firing_rate, device=model.device)
+    firing_rate = torch.tensor(firing_rate, device=device)
     model.train()
-
     for epoch in pbar:
         optimizer.zero_grad()
 
         # Initialize the state of the network
-        x = torch.zeros(n_neurons, n_steps + time_scale, device=model.device)
-        activation = torch.zeros((n_neurons, n_steps + time_scale), device=model.device)
-        x[:, :time_scale] = model.initialize_state(n_neurons)
+        x = torch.zeros(n_neurons, n_steps + time_scale, device=device)
+        activation = torch.zeros((n_neurons, n_steps + time_scale), device=device)
+        x[:, :time_scale] = model.initialize_state(n_neurons, device=device)
 
         # Compute the connectivity matrix using the current parameters
         W = model.connectivity_filter(W0, edge_index)
@@ -232,17 +237,16 @@ def tune(model,
                 current_activation=activation[:, t-time_scale:t],
                 stimulation_targets=stimulation_targets
             )
-            probs = model.probability_of_spike(activation[:, t])
-            x[:, t] = model.update_state(probs)
+            x[:, t] = model.update_state(activation[:, t])
 
         # Compute the loss
-        avg_probability_of_spike = model.probability_of_spike(activation[:, time_scale:]).mean()
+        avg_probability_of_spike = model._probability_of_spike(activation[:, time_scale:]).mean()
         loss = loss_fn(avg_probability_of_spike, firing_rate)
         if verbose:
             pbar.set_description(f"Tuning... fr={avg_probability_of_spike.item():.5f}")
 
         # Backpropagate
-        loss.backward()
+        loss.backward(retain_graph=True)
         optimizer.step()
 
     return model

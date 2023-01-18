@@ -6,9 +6,8 @@ from numpy.random import default_rng
 import torch.nn as nn
 
 class BaseStimulation(MessagePassing):
-    def __init__(self, device):
+    def __init__(self):
         super(BaseStimulation, self).__init__()
-        self.device = device
 
     def propagate(self, stimuli, targets, n_neurons):
         return scatter_add(stimuli, targets, dim=0, dim_size=n_neurons)
@@ -35,6 +34,6 @@ class BaseStimulation(MessagePassing):
 
     def forward(self, t, targets, n_neurons):
         if self.duration <= t or t < 0:
-            return torch.zeros((n_neurons,), device=self.device)
-        stimuli = self.stimulate(t) * torch.ones((targets.shape[0],), device=self.device)
+            return torch.zeros((n_neurons,))
+        stimuli = self.stimulate(t) * torch.ones((targets.shape[0],))
         return self.propagate(stimuli=stimuli, targets=targets, n_neurons=n_neurons)

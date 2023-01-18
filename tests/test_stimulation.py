@@ -79,11 +79,6 @@ def test_sin_targets(sin_stimulation):
     indices = stim.nonzero().squeeze()
     assert_close(indices, targets)
 
-def test_parameter_dict(regular_stimulation):
-    expected = {'decay': 0.5, 'strength': 1., 'temporal_scale': 2., 'interval': 5, 'duration': 100}
-    for key, value in regular_stimulation.parameter_dict.items():
-        assert value == expected[key]
-
 def test_sin_negative_amplitudes():
     from spiking_network.stimulation import SinStimulation
     frequency = 0.01
@@ -211,7 +206,7 @@ def test_tuning_with_stimulation(glm_model, example_data, regular_stimulation):
 @pytest.mark.parametrize("stimulation", [pytest.lazy_fixture("regular_stimulation"), pytest.lazy_fixture("poisson_stimulation")])
 def test_tune_stimulation(glm_model, example_data, stimulation):
     from spiking_network.utils import tune
-    tunable_parameters = ["stimulation_strength", "stimulation_decay"]
+    tunable_parameters = ["stimulation.strength", "stimulation.decay"]
     firing_rate = 0.1
     glm_model.add_stimulation(stimulation)
     example_data.stimulation_targets = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -220,7 +215,7 @@ def test_tune_stimulation(glm_model, example_data, stimulation):
 
 def test_tune_model_and_stimulation(glm_model, example_data, regular_stimulation):
     from spiking_network.utils import tune
-    tunable_model_parameters = ["threshold", "alpha", "beta", "stimulation_strength", "stimulation_decay"]
+    tunable_model_parameters = ["threshold", "alpha", "beta", "stimulation.strength", "stimulation.decay"]
     firing_rate = 0.1
     glm_model.add_stimulation(regular_stimulation)
     example_data.stimulation_targets = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])

@@ -29,7 +29,7 @@ def test_save_load_output(expected_output_after_ten_steps, glm_model, example_da
 
     # Save data
     path = Path("tests/test_data")
-    save_data(expected_output_after_ten_steps, glm_model, [example_data], seeds={"w0": 14071789, "model": 14071789}, data_path=path)
+    save_data(expected_output_after_ten_steps, glm_model, [example_data], seed=14071789, data_path=path)
 
     # Load data
     expected_X, expected_W0 = load_data(path / "0.npz")

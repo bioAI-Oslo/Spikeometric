@@ -1,4 +1,5 @@
 import pytest
+import torch
 
 # Dataset fixtures
 @pytest.fixture 
@@ -8,7 +9,8 @@ def generated_glorot_dataset():
     n_neurons = 20
     n_sims = 10
     params = GlorotParams(0, 5)
-    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, seed=14071789, root="tests/test_data/generated_glorot_dataset")
+    rng = torch.Generator().manual_seed(14071789)
+    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, rng=rng, root="tests/test_data/generated_glorot_dataset")
     shutil.rmtree("tests/test_data/generated_glorot_dataset")
     return dataset
 
@@ -19,7 +21,8 @@ def generated_normal_dataset():
     n_neurons = 100
     n_sims = 10
     params = NormalParams(0, 1)
-    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, seed=14071789, root="tests/test_data/generated_normal_dataset")
+    rng = torch.Generator().manual_seed(14071789)
+    dataset = NormalConnectivityDataset(n_neurons, n_sims, params, rng=rng, root="tests/test_data/generated_normal_dataset")
     shuntil.rmtree("tests/test_data/generated_normal_dataset")
     return dataset
 
@@ -29,7 +32,8 @@ def generated_uniform_dataset():
     import shutil
     n_neurons = 20
     n_sims = 10
-    dataset = UniformConnectivityDataset(n_neurons, n_sims, seed=14071789, root="tests/test_data/generated_uniform_dataset", sparsity=0.5)
+    rng = torch.Generator().manual_seed(14071789)
+    dataset = UniformConnectivityDataset(n_neurons, n_sims, rng=rng, root="tests/test_data/generated_uniform_dataset", sparsity=0.5)
     shutil.rmtree("tests/test_data/generated_uniform_dataset")
     return dataset
 
@@ -60,12 +64,12 @@ def example_uniform_data():
     from spiking_network.datasets import UniformConnectivityDataset
     n_neurons = 100
     n_sims = 1
-    dataset = UniformConnectivityDataset(n_neurons, n_sims, seed=14071789, root="tests/test_data/example_uniform_dataset")
+    rng = torch.Generator().manual_seed(14071789)
+    dataset = UniformConnectivityDataset(n_neurons, n_sims, rng=rng, root="tests/test_data/example_uniform_dataset")
     return dataset[0]
 
 @pytest.fixture
 def example_connectivity_filter():
-    import torch
     connectivity_filter = torch.load("tests/test_data/example_connectivity_filter.pt")
     return connectivity_filter
 
@@ -73,13 +77,15 @@ def example_connectivity_filter():
 @pytest.fixture
 def glm_model():
     from spiking_network.models import GLMModel
-    model = GLMModel(seed=14071789)
+    rng = torch.Generator().manual_seed(14071789)
+    model = GLMModel(rng=rng)
     return model
 
 @pytest.fixture
 def lnp_model():
     from spiking_network.models import LNPModel
-    model = LNPModel(seed=14071789)
+    rng = torch.Generator().manual_seed(14071789)
+    model = LNPModel(rng=rng)
     return model
 
 @pytest.fixture
@@ -117,7 +123,7 @@ def expected_output_after_ten_steps():
 def regular_stimulation():
     from spiking_network.stimulation import RegularStimulation
     interval = 5
-    strength = 1
+    strength = 1.
     temporal_scale = 2
     duration = 100
     stimulation = RegularStimulation(
@@ -131,7 +137,7 @@ def regular_stimulation():
 @pytest.fixture
 def sin_stimulation():
     from spiking_network.stimulation import SinStimulation
-    amplitude = 2
+    amplitude = 2.
     frequency = 0.1
     duration = 100
     stimulation = SinStimulation(
@@ -145,7 +151,7 @@ def sin_stimulation():
 def poisson_stimulation():
     from spiking_network.stimulation import PoissonStimulation
     interval = 3
-    strength = 1
+    strength = 1.
     duration = 100
     temporal_scale = 1
     stimulation = PoissonStimulation(

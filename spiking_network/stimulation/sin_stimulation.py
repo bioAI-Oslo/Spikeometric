@@ -3,28 +3,23 @@ import torch.nn as nn
 from spiking_network.stimulation.base_stimulation import BaseStimulation
 
 class SinStimulation(BaseStimulation):
-    def __init__(self, amplitude: float, frequency: float, duration: int, device='cpu'):
-        super().__init__(device)
-        self.amplitude = torch.tensor(amplitude, device=device, dtype=torch.float32)
-        self.frequency = torch.tensor(frequency, device=device, dtype=torch.float32)
-        self.duration = duration
-
-        if self.amplitude < 0:
+    def __init__(self, amplitude: float, frequency: float, duration: int):
+        super().__init__()
+        if amplitude < 0:
             raise ValueError("All amplitudes must be positive.")
-        if self.frequency < 0:
+        if frequency < 0:
             raise ValueError("All frequencies must be positive.")
-        if self.frequency > 1:
+        if frequency > 1:
             raise ValueError("Period of sin stimulation must be more than one time step.")
-        if self.duration < 0:
+        if duration < 0:
             raise ValueError("All durations must be positive.")
+        
+        self.register_parameter("amplitude", nn.Parameter(torch.tensor(amplitude)))
+        self.register_parameter("frequency", nn.Parameter(torch.tensor(frequency)))
+        self.register_parameter("offset", nn.Parameter(torch.tensor(0.)))
+        self.register_buffer("duration", torch.tensor(duration))
+        self.requires_grad_(False)
 
-        self._tunable_params = self._init_parameters(
-            {
-                "amplitude": self.amplitude,
-                "frequency": self.frequency,
-                "offset": torch.tensor(0, device=device, dtype=torch.float32),
-            }
-        )
 
     def stimulate(self, t):
-        return self._tunable_params["amplitude"] * torch.sin(2 * torch.pi * self._tunable_params['frequency'] * t + self._tunable_params['offset'])
+        return self.amplitude * torch.sin(2 * torch.pi * self.frequency * t + self.offset)

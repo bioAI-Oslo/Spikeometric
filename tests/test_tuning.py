@@ -6,16 +6,16 @@ def test_parameters_require_grad(glm_model, example_data):
     firing_rate = 0.1
     tune(glm_model, example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     for parameter in tunable_parameters:
-        assert glm_model._tunable_params[parameter].requires_grad
+        assert dict(glm_model.named_parameters())[parameter].requires_grad
 
 def test_tuning_changes_parameters(glm_model, example_data):
     from torch import allclose
     tunable_parameters = ["threshold", "alpha", "beta"]
     firing_rate = 0.1
-    initial_parameters = {parameter: glm_model._tunable_params[parameter].clone() for parameter in tunable_parameters}
+    initial_parameters = {parameter: dict(glm_model.named_parameters())[parameter].clone() for parameter in tunable_parameters}
     tune(glm_model, example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
     for parameter in tunable_parameters:
-        assert not allclose(glm_model._tunable_params[parameter], initial_parameters[parameter])
+        assert not allclose(dict(glm_model.named_parameters())[parameter], initial_parameters[parameter])
 
 def test_tuning_improves_firing_rate(glm_model, example_data):
     from spiking_network.utils import calculate_firing_rate, simulate
