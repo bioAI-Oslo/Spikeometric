@@ -62,8 +62,8 @@ class LNPModel(BaseModel):
     def connectivity_filter(self, W0, edge_index):
         return W0.unsqueeze(1)
 
-    def initialize_state(self, n_neurons, device):
-        return torch.zeros(n_neurons, self.time_scale, device=device, dtype=torch.uint8)
+    def initialize_state(self, n_neurons):
+        return torch.zeros(n_neurons, self.time_scale, device=self.time_scale.device, dtype=torch.uint8)
 
     @property
     def _default_parameters(self):

@@ -135,8 +135,8 @@ def simulate(model, data, n_steps, verbose=True) -> torch.Tensor:
     
     # Initialize the state of the network
     x = torch.zeros(n_neurons, n_steps + model.time_scale, device=device, dtype=torch.uint8)
-    activation = torch.zeros((n_neurons,), device=device)
-    x[:, :model.time_scale] = model.initialize_state(n_neurons, device) 
+    activation = torch.zeros(n_neurons, device=device)
+    x[:, :model.time_scale] = model.initialize_state(n_neurons)
 
     # Simulate the network
     model.eval()
@@ -222,7 +222,7 @@ def tune(model,
         # Initialize the state of the network
         x = torch.zeros(n_neurons, n_steps + time_scale, device=device)
         activation = torch.zeros((n_neurons, n_steps + time_scale), device=device)
-        x[:, :time_scale] = model.initialize_state(n_neurons, device=device)
+        x[:, :time_scale] = model.initialize_state(n_neurons)
 
         # Compute the connectivity matrix using the current parameters
         W = model.connectivity_filter(W0, edge_index)

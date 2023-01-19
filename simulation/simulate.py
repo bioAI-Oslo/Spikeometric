@@ -14,7 +14,7 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, seed, max
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Reproducibility
-    rng = torch.Generator(device=device).manual_seed(seed)
+    rng = torch.Generator().manual_seed(seed)
     # Set path for saving data
     data_path = Path(data_path) / (folder_name if folder_name else Path(f"{n_neurons}_neurons_{n_sims}_datasets_{n_steps}_steps"))
     data_path.mkdir(parents=True, exist_ok=True)
@@ -23,7 +23,7 @@ def run_simulation(n_neurons, n_sims, n_steps, data_path, folder_name, seed, max
     w0_params = GlorotParams(0, 5)
     data_root = f"data/w0/{n_neurons}_{n_sims}_{w0_params.name}_{w0_params.mean}_{w0_params.std}_{seed}"
     w0_data = NormalConnectivityDataset(n_neurons, n_sims, w0_params, rng=rng, root=data_root)
-    stimulation_targets = [torch.randint(0, n_neurons, (10,), generator=rng, device=device) for _ in range(n_sims)]
+    stimulation_targets = [torch.randint(0, n_neurons, (10,), generator=rng) for _ in range(n_sims)]
     
     data_loader = StimulationLoader(w0_data, batch_size=min(n_sims, max_parallel), shuffle=False, stimulation_targets=stimulation_targets)
     stimulation = RegularStimulation(strength=1., interval=3, temporal_scale=1, duration=n_steps, decay=0.1)

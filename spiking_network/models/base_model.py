@@ -122,3 +122,11 @@ class BaseModel(MessagePassing):
     def save(self, path):
         """Saves the model"""
         torch.save(self.state_dict(), path)
+
+    def to(self, device):
+        """Moves the model to the device"""
+        self = super().to(device)
+        if hasattr(self, "_rng"):
+            seed = self._rng.seed()
+            self._rng = torch.Generator(device=device).manual_seed(seed)
+        return self

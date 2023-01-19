@@ -49,7 +49,7 @@ class GLMModel(BaseModel):
         self.requires_grad_(False)
 
     
-    def initialize_state(self, n_neurons:int, device="cpu") -> torch.Tensor:
+    def initialize_state(self, n_neurons:int) -> torch.Tensor:
         """
         Initialize the state of the neurons
 
@@ -65,8 +65,8 @@ class GLMModel(BaseModel):
         state : torch.Tensor [n_neurons, time_scale]
             The initial state of the network
         """
-        x_initial = torch.zeros(n_neurons, self.time_scale)
-        x_initial[:, self.time_scale-1] = torch.randint(0, 2, (n_neurons,), generator=self._rng)
+        x_initial = torch.zeros(n_neurons, self.time_scale, device=self.time_scale.device)
+        x_initial[:, self.time_scale-1] = torch.randint(0, 2, (n_neurons,), generator=self._rng, device=self.time_scale.device)
         return x_initial
     
     @property
@@ -194,7 +194,7 @@ class GLMModel(BaseModel):
         i, j = edge_index # Source and target neurons
 
         # Time steps
-        t = torch.arange(self.time_scale)
+        t = torch.arange(self.time_scale, device=self.time_scale.device)
         t = t.repeat(W0.shape[0], 1) # [n_edges, time_scale]
 
         # Boolean tensor indicating whether the edge is a self-edge

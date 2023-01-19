@@ -6,7 +6,7 @@ import torch
     "model", [pytest.lazy_fixture("glm_model"), pytest.lazy_fixture("lnp_model")]
 )
 def test_initialization(model, saved_glorot_dataset):
-    intial_state = model.initialize_state(saved_glorot_dataset[0].num_nodes, device="cpu")
+    intial_state = model.initialize_state(saved_glorot_dataset[0].num_nodes)
     assert intial_state.shape == (saved_glorot_dataset[0].num_nodes, model.time_scale)
 
 def test_consistent_initialization(glm_model, initial_state):
