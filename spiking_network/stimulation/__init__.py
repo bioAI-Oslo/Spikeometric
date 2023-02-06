@@ -1,4 +1,3 @@
 from spiking_network.stimulation.regular_stimulation import RegularStimulation
 from spiking_network.stimulation.poisson_stimulation import PoissonStimulation
 from spiking_network.stimulation.sin_stimulation import SinStimulation
-from spiking_network.stimulation.base_stimulation import BaseStimulation

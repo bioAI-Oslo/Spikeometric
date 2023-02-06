@@ -17,6 +17,10 @@ ipython = "^8.8.0"
 pytest = "^6.2.5"
 pytest-cov = "^3.0.0"
 pytest-lazy-fixture = "^0.6.3"
+sphinx-rtd-theme = "^1.1.1"
+networkx = "^3.0"
+jupyter = "^1.0.0"
+
 
 
 [build-system]

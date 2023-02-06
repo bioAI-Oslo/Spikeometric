@@ -1,5 +1,4 @@
 from benchmarking.timing import timing
-from benchmarking.compare_to_old import compare_to_old
 from benchmarking.parallelization import parallelization
 import argparse
 import torch
@@ -28,10 +27,7 @@ def main():
     print(f"Path to store data:                           {args.data_path}")
     print(f"Device:                                       {device}")
 
-    if args.compared:
-        print("Comparing models ...")
-        compare_to_old(args.n_neurons, args.n_steps, args.n_samples, args.data_path, device)
-    elif args.parallel:
+    if args.parallel:
         print("Timing model in parallel ...")
         parallelization(args.n_neurons, args.n_steps, args.n_samples, args.data_path, device)
     else:

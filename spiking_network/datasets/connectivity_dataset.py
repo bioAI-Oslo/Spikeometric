@@ -1,76 +1,88 @@
-from torch_geometric.data import InMemoryDataset
-from torch_geometric.data import Data
-from torch_geometric.utils import add_remaining_self_loops, to_dense_adj
+import os
 from pathlib import Path
 import numpy as np
-import os
 import torch
-from typing import Union, List, Tuple
+from torch_geometric.data import Data
+from torch_geometric.utils import add_remaining_self_loops
 
-
-class ConnectivityDataset(InMemoryDataset):
+class ConnectivityDataset:
     r"""
     A dataset of connectivity matrices for networks of neurons.
+    
+    The connectivity matrices are loaded from a directory of .npy or .pt files.
+    Each file should contain a square connectivity matrix for a network of neurons.
+    The connectivity matrices are converted to torch_geometric `Data` objects 
+    with `edge_index`, `W0`, `num_nodes` and `stimulus_mask` attributes.
 
-    Args:
-        root (str): Root directory where the dataset should be saved.
-        transform (callable, optional): A function/transform that takes in a
-            :obj:`torch_geometric.data.Data` object and returns a transformed
-            version. The data object will be transformed before every access.
-            (default: :obj:`None`)
-        pre_transform (callable, optional): A function/transform that takes in
-            a :obj:`torch_geometric.data.Data` object and returns a
-            transformed version. The data object will be transformed before
-            being saved to disk. (default: :obj:`None`)
-        pre_filter (callable, optional): A function that takes in a
-            :obj:`torch_geometric.data.Data` object and returns a boolean
-            value, indicating whether the data object should be included in the
-            final dataset. (default: :obj:`None`)
+    By using torch_geometric's `DataLoader`, the connectivity matrices can be batched together into a single
+    graph, with each of the n_networks examples as an isolated subgraph.
 
     Example:
         >>> from spiking_network.datasets import ConnectivityDataset
-        >>> dataset = ConnectivityDataset("root/datasets/example_dataset")
+        >>> from torch_geometric.loader import DataLoader
+        >>> dataset = ConnectivityDataset("datasets/example_dataset")
+        >>> len(dataset)
+        10
         >>> data = dataset[0]
         >>> data
-        Data(edge_index=[2, 100], num_nodes=10, W0=[100])
+        Data(edge_index=[2, 5042], W0=[5042], num_nodes=100, stimulus_mask=[100])
+        >>> loader = DataLoader(dataset, batch_size=2)
+        >>> for batch in loader:
+        ...     print(batch)
+        >>> for batch in loader:
+        ...     print(batch)
+        ...
+        DataBatch(edge_index=[2, 25242], W0=[25242], num_nodes=500, stimulus_mask=[500], batch=[500], ptr=[6])
+        DataBatch(edge_index=[2, 25250], W0=[25250], num_nodes=500, stimulus_mask=[500], batch=[500], ptr=[6])
+    
+    Parameters
+    ----------
+    root (string):
+        Root directory where the dataset should be saved.
+    add_self_loops (bool, optional):
+        Whether to add self-loops to the connectivity matrices. (default: :obj:`True`)
+    stimulus_mask (list, optional):
+        A list of lists of indices of neurons that should be marked as stimulation stimulus_mask. (default: :obj:`[]`)
     """
-    def __init__(self, root=None, transform=None, pre_transform=None, pre_filter=None):
-        super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+    def __init__(self, root, add_self_loops=True, stimulus_mask=None):
+        self.root = root
+        self.add_self_loops = add_self_loops
+        self.stimulus_mask = stimulus_mask
+        self.data = self.process()
 
     def process(self):
-        path = Path(self.root) / "raw"
+        """Processes the connectivity matrices in the root directory and returns a list of torch_geometric Data objects."""
+        path = Path(self.root)
         w0_list = []
-        for file in sorted(os.listdir(path)):
+        for i, file in enumerate(sorted(os.listdir(path))):
+            # Check if file is a .npy or .pt file and load it
             if file.endswith(".npy"):
                 w0_square = torch.from_numpy(np.load(path / file))
             elif file.endswith(".pt"):
                 w0_square = torch.load(path / file)
+            
+            # Convert the connectivity matrix to a sparse adjacency matrix
             num_neurons = w0_square.shape[0]
-            non_zero_edges = w0_square.nonzero().t()
-            edge_index, _ = add_remaining_self_loops(
-                non_zero_edges,
-                num_nodes=num_neurons
-            )
+            edge_index = w0_square.nonzero().t()
+            if self.add_self_loops:
+                edge_index, _ = add_remaining_self_loops( edge_index, num_nodes=num_neurons)
             w0 = w0_square[edge_index[0], edge_index[1]]
-            data = Data(edge_index=edge_index, num_nodes=num_neurons, W0=w0)
+
+            # Create a boolean mask of the target neurons
+            stimulus_mask = torch.zeros(num_neurons, dtype=torch.bool)
+            if self.stimulus_mask:
+                stimulus_mask[self.stimulus_mask[i]] = True
+            
+            # Create a torch_geometric Data object and add it to the list
+            data = Data(edge_index=edge_index, num_nodes=num_neurons, W0=w0, stimulus_mask=stimulus_mask)
             w0_list.append(data)
+        
+        return w0_list
 
-        data, slices = self.collate(w0_list)
-        torch.save((data, slices), self.processed_paths[0])
+    def __getitem__(self, idx):
+        """Returns the Data object at index idx."""
+        return self.data[idx]
 
-    @property
-    def processed_file_names(self) -> Union[str, List[str], Tuple]:
-        return "data.pt"
-
-    def to_dense(self):
-        dense = []
-        for data in self:
-            dense.append(
-                to_dense_adj(
-                    data.edge_index,
-                    edge_attr=data.W0,
-                    max_num_nodes=data.num_nodes
-                )[0]
-            )
-        return dense
+    def __len__(self):
+        """Returns the number of Data objects in the dataset."""
+        return len(self.data)

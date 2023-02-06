@@ -1,16 +1,17 @@
 name: cpu-snn-glm-simulator
 
 channels:
-    - pytorch
-    - pyg
-    - defaults
-    - conda-forge
+  - pytorch
+  - pyg
+  - defaults
+  - conda-forge
 
 dependencies:
-        - pip
-        - python
-        - pytorch=1.13
-        - cpuonly
-        - pyg
-        - pip:
-          - -r requirements.txt
+  - pip
+  - python
+  - pytorch=1.13
+  - cpuonly
+  - pyg
+  - ipykernel
+  - pip:
+      - -r requirements.txt

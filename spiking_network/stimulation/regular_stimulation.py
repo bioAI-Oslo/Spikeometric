@@ -1,51 +1,55 @@
 import torch
 import torch.nn as nn
-from spiking_network.stimulation.base_stimulation import BaseStimulation
 
-class RegularStimulation(BaseStimulation):
-    def __init__(self, interval: int, strength: float, duration: int, temporal_scale=1, decay = 0.5, device="cpu"):
+class RegularStimulation(nn.Module):
+    r"""
+    Regular stimulation of neurons.
+
+    The first stimulation event starts at time :math:`t_0` and the following events are spaced by intervals :math:`\Delta t`.
+    The stimulation events last for a duration :math:`\tau` and have a strength :math:`s`.
+
+    Parameters
+    ----------
+    strength : float
+        Strength :math:`s` of the stimulation.
+    start : float
+        Start time :math:`t_0` of the first stimulation event. (ms)
+    interval : float
+        Interval :math:`\Delta t` between that beginning of each stimulation events. (ms)
+    n_events : int
+        Number of stimulation events.
+    tau : float
+        Duration :math:`\tau` of each stimulation event. (ms)
+    """
+    def __init__(self, strength: float, interval: float, n_events: int, tau: float, start: float=0.):
         super(RegularStimulation, self).__init__()
-        if duration < 0:
-            raise ValueError("All durations must be positive.")
-        if temporal_scale < 0:
+        if tau < 0:
             raise ValueError("Temporal scale must be positive.")
         if interval < 0:
             raise ValueError("Interval of stimulation must be positive.")
-        if decay < 0:
-            raise ValueError("Decay must be positive.")
 
-        self.register_buffer("temporal_scale", torch.tensor(temporal_scale))
-        self.register_buffer("interval", torch.tensor(interval))
-        self.register_buffer("duration", torch.tensor(duration))
-        self.register_parameter("strength", nn.Parameter(torch.tensor(strength)))
-        self.register_parameter("decay", nn.Parameter(torch.tensor(decay)))
+        self.register_buffer("start", torch.tensor(start, dtype=torch.float))
+        self.register_buffer("interval", torch.tensor(interval, dtype=torch.float))
+        self.register_buffer("n_events", torch.tensor(n_events, dtype=torch.int))
+        self.register_buffer("tau", torch.tensor(tau, dtype=torch.float))
+
+        self.register_parameter("strength", nn.Parameter(torch.tensor(strength, dtype=torch.float)))
+
         self.requires_grad_(False)
 
-        self._stimulation_times = self._get_stimulation_times(self.interval, self.duration, self.temporal_scale)
-        self._stimulation_strengths = self._get_strengths(self.strength, self.duration, self.temporal_scale)
-    
-    def _get_strengths(self, strength, decay, temporal_scale) -> torch.Tensor:
-        """Construct strength tensor from temporal_scale."""
-        strengths = strength * torch.ones(temporal_scale)
-        decay_rates = -decay * torch.ones(temporal_scale)
-        time = torch.arange(temporal_scale).flip(0)
-        decay = torch.exp(decay_rates*time)
-        return strengths * decay
+    def __call__(self, t):
+        r"""
+        Computes the stimulation at time :math:`t`. The stimulation is constant at :math:`s` during
+        the intervals :math:`[t_i, t_i + n\tau]` and zero otherwise.
 
-    def _get_stimulation_times(self, interval, duration, temporal_scale) -> torch.Tensor:
-        """Generate regular stimulus onset times"""
-        stim_times = torch.zeros(duration + temporal_scale-1)
-        stim_times[torch.arange(temporal_scale - 1, duration+temporal_scale-1, interval)] = 1
-        return stim_times
+        Parameters
+        ----------
+        t : torch.Tensor
+            Time :math:`t` at which to compute the stimulation (ms).
 
-    def stimulate(self, t):
-        """Return stimulus at time t."""
-        shifted_t = t + self.temporal_scale 
-        stim_times = self._stimulation_times[t:shifted_t]
-        return torch.sum(stim_times * self.stimulation_strengths)
-
-    @property
-    def stimulation_strengths(self):
-        if self.strength.requires_grad:
-            return self._get_strengths(self.strength, self.decay, self.temporal_scale)
-        return self._stimulation_strengths
+        Returns
+        -------
+        torch.Tensor
+            Stimulation at time :math:`t`.
+        """
+        return self.strength*(t % self.interval < self.tau)*(t >= self.start)*(t < self.start + self.n_events*self.interval)

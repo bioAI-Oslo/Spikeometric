@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import seaborn as sns
-import networkx as nx
 from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
 
@@ -43,7 +42,7 @@ def visualize_spikes(X):
 
     plt.show()
 
-def visualize_weights(W0):
+def visualize_weights(data):
     """
     Plots a heatmap of the weights of the network.
     
@@ -51,15 +50,16 @@ def visualize_weights(W0):
     ----------
     W0: torch.Tensor
     """
-    W0 = W0.clone()
-    W0[torch.eye(W0.shape[0], dtype=torch.bool)] = 0
+    dense_W0 = torch.sparse_coo_tensor(data.edge_index, data.W0, (data.num_nodes, data.num_nodes)).to_dense()
+    dense_W0[torch.eye(data.num_nodes, dtype=torch.bool)] = 0
     fig, axs = plt.subplots(figsize=(10, 10))
     fig.tight_layout(pad=3.0)
     fig.set_figheight(10)
     fig.set_figwidth(10)
     axs.set_title(r"$W_0$")
     axs.tick_params(axis="both", which="both", labelbottom=False, labelleft=False, bottom=False, left=False)
-    sns.heatmap(W0, ax=axs, square=True, vmin=W0.max() * -1, vmax=W0.max())
+    limit = max(dense_W0.max(), abs(dense_W0.min()))
+    sns.heatmap(dense_W0, ax=axs, square=True, vmin=-limit, vmax=limit)
 
     plt.show()
 

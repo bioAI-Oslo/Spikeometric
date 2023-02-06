@@ -1,7 +1,8 @@
 from spiking_network.models import GLMModel
-from spiking_network.datasets import NormalConnectivityDataset, GlorotParams
+from spiking_network.datasets import NormalConnectivityDataset
 from spiking_network.utils import tune
 from spiking_network.stimulation import RegularStimulation, SinStimulation, PoissonStimulation
+from config_params import glm_params
 
 from pathlib import Path
 import torch
@@ -14,31 +15,26 @@ def run_tune(n_neurons, dataset_size, n_steps, n_epochs, model_path, firing_rate
 
     # Reproducibility
     rng = torch.Generator().manual_seed(seed)
-    seeds = {
-            "w0": torch.randint(0, 100000, (1,), generator=rng).item(),
-            "model": torch.randint(0, 100000, (1,), generator=rng).item(),
-         }
 
     # Parameters for the simulation
-    w0_params = GlorotParams(0, 5)
-    data_path = f"data/w0/{n_neurons}_{dataset_size}_{w0_params.name}_{w0_params.mean}_{w0_params.std}_{seeds['w0']}"
-    w0_data = NormalConnectivityDataset(n_neurons, dataset_size, w0_params, seed=seeds["w0"], root=data_path)
+    mu = 0
+    sigma = 5
+    data_path = f"data/w0/{n_neurons}_{dataset_size}_glorot_{mu}_{sigma}_{seed}"
+    w0_data = NormalConnectivityDataset(n_neurons, dataset_size, mu=mu, sigma=sigma, glorot=True, rng=rng, root=data_path)
 
     # Put the data in a dataloader
     max_parallel = 100
     data_loader = DataLoader(w0_data, batch_size=min(max_parallel, dataset_size), shuffle=False)
     
-    model = GLMModel(
-            seed=seeds["model"],
-            device=device,
-    )
+    model = GLMModel(glm_params, rng=rng)
     
     tunable_params = ["alpha", "beta", "threshold"]
 
     for data in data_loader:
         data = data.to(device)
-        tune(model, data, firing_rate, tunable_parameters=tunable_params, n_steps=n_steps, n_epochs=n_epochs, lr=0.1)
+        model.to(device)
+        model.tune(data, firing_rate, tunable_parameters=tunable_params, n_epochs=n_epochs, n_steps=100, lr=0.1)
 
     # Save the model
-    model.save(model_path / f"{w0_params.name}_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")
+    model.save(model_path / f"glorot_{n_neurons}_neurons_{firing_rate}_firing_rate.pt")
 
