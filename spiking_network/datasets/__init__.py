@@ -1,0 +1,4 @@
+from spiking_network.datasets.normal_connectivity_dataset import NormalConnectivityDataset
+from spiking_network.datasets.uniform_connectivity_dataset import UniformConnectivityDataset
+from spiking_network.datasets.connectivity_dataset import ConnectivityDataset
+from spiking_network.datasets.distribution_params import DistributionParams, GlorotParams, NormalParams
