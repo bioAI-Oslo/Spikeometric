@@ -1,16 +1,5 @@
-data/simulation_data
-data/saved_models
 data/
-benchmarking/benchmark_data
-benchmark*
-run*
-run_simula*
-run_herman*
-.vscode
-tune*
-generate_test_data.py
-generate_example_simulation.py
-t.py
+.vscode/
 config*
 paper.md
 
