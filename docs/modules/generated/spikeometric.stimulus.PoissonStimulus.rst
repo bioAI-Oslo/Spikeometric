@@ -1,7 +1,7 @@
 ﻿PoissonStimulus
-==================
+===============
 
-.. currentmodule:: spikeometricimulus
+.. currentmodule:: spikeometric.stimulus
 
 .. autoclass:: PoissonStimulus
    :show-inheritance:

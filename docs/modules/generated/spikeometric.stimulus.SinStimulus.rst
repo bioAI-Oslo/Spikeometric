@@ -1,5 +1,5 @@
 ﻿SinStimulus
-==============
+===========
 
 .. currentmodule:: spikeometric.stimulus
 

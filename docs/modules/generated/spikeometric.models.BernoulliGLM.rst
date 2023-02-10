@@ -1,7 +1,7 @@
 ﻿BernoulliGLM
 ============
 
-.. currentmodule:: spikeometricdels
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: BernoulliGLM
    :show-inheritance:

@@ -1,7 +1,7 @@
 ﻿RegularStimulus
-==================
+===============
 
-.. currentmodule:: spikeometricimulus
+.. currentmodule:: spikeometric.stimulus
 
 .. autoclass:: RegularStimulus
    :show-inheritance:
