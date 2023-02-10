@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "spikeometric"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4.0"
+python = ">=3.8, <=3.11"
 numpy = "^1.21.4"
 matplotlib = "^3.5.0"
 tqdm = "^4.62.3"
