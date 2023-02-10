@@ -1,0 +1,4 @@
+from spikeometric.datasets.normal_connectivity_generator import NormalGenerator
+from spikeometric.datasets.uniform_connectivity_generator import UniformGenerator
+from spikeometric.datasets.connectivity_dataset import ConnectivityDataset
+from spikeometric.datasets.mexican_hat_connectivity_generator import MexicanHatGenerator

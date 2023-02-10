@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "spikeometric"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "snn_glm_simulator"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.21.4"
+matplotlib = "^3.5.0"
+tqdm = "^4.62.3"
+scipy = "^1.7.3"
+seaborn = "^0.11.2"
+ipython = "^8.8.0"
+pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
+pytest-lazy-fixture = "^0.6.3"
+sphinx-rtd-theme = "^1.1.1"
+networkx = "^3.0"
+jupyter = "^1.0.0"
+sphinx-autodoc-typehints = "^1.22"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
