@@ -1,7 +1,7 @@
 ﻿NormalGenerator
 ===============
 
-.. currentmodule:: spiking_network.datasets
+.. currentmodule:: spikeometric.datasets
 
 .. autoclass:: NormalGenerator
    :show-inheritance:

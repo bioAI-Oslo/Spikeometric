@@ -1,7 +1,7 @@
 ﻿UniformGenerator
 ================
 
-.. currentmodule:: spiking_network.datasets
+.. currentmodule:: spikeometric.datasets
 
 .. autoclass:: UniformGenerator
    :show-inheritance:

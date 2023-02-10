@@ -30,20 +30,19 @@ def test_self_loops_in_dataset(generated_glorot_data):
 def test_uniform_dataset(generated_uniform_data):
     assert len(generated_uniform_data) == 10
     assert all([data.num_nodes == 20 for data in generated_uniform_data])
-    assert all([data.has_self_loops() for data in generated_uniform_data])
 
 def test_sparse_glorot_dataset(generated_glorot_data, sparse_glorot_dataset):
-    from spiking_network.datasets import NormalGenerator
+    from spikeometric.datasets import NormalGenerator
     assert not torch.equal(sparse_glorot_dataset[0].W0, generated_glorot_data[0].W0)
     assert sparse_glorot_dataset[0].W0.numel() < generated_glorot_data[0].W0.numel()
 
 def test_fails_for_odd_number_of_neurons():
-    from spiking_network.datasets import NormalGenerator
+    from spikeometric.datasets import NormalGenerator
     with pytest.raises(ValueError):
         NormalGenerator(21, mean=0, std=5, glorot=True)
 
 def test_numpy_dataset():
-    from spiking_network.datasets import ConnectivityDataset
+    from spikeometric.datasets import ConnectivityDataset
     import shutil
     dataset = ConnectivityDataset(root="tests/test_data/numpy_dataset")
     

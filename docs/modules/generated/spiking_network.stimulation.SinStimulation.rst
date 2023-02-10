@@ -1,9 +1,9 @@
-﻿SinStimulation
+﻿SinStimulus
 ==============
 
-.. currentmodule:: spiking_network.stimulation
+.. currentmodule:: spikeometric.stimulus
 
-.. autoclass:: SinStimulation
+.. autoclass:: SinStimulus
    :show-inheritance:
    :members:
    :undoc-members:

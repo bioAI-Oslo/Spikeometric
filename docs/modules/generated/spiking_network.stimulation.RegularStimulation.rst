@@ -1,9 +1,9 @@
-﻿RegularStimulation
+﻿RegularStimulus
 ==================
 
-.. currentmodule:: spiking_network.stimulation
+.. currentmodule:: spikeometricimulus
 
-.. autoclass:: RegularStimulation
+.. autoclass:: RegularStimulus
    :show-inheritance:
    :members:
    :undoc-members:

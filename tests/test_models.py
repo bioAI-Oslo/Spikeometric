@@ -28,7 +28,7 @@ def test_not_tunable(bernoulli_glm):
 
 def test_save_load(bernoulli_glm):
     from tempfile import NamedTemporaryFile
-    from spiking_network.models import BernoulliGLM
+    from spikeometric.models import BernoulliGLM
     with NamedTemporaryFile() as f:
         bernoulli_glm.save(f.name)
         loaded_model = BernoulliGLM(1, 1, 1, 1, 1, 1, 1, 1, 1)
@@ -36,7 +36,7 @@ def test_save_load(bernoulli_glm):
     for param, loaded_param in zip(bernoulli_glm.parameters(), loaded_model.parameters()):
         assert_close(param, loaded_param)
 
-def test_stimulation(bernoulli_glm, regular_stimulation):
+def test_stimulus(bernoulli_glm, regular_stimulus):
     from torch.testing import assert_close
-    bernoulli_glm.add_stimulation(regular_stimulation)
-    assert "stimulation.strength" in bernoulli_glm.tunable_parameters
+    bernoulli_glm.add_stimulus(regular_stimulus)
+    assert "stimulus.strength" in bernoulli_glm.tunable_parameters

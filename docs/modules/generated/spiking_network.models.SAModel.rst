@@ -1,7 +1,7 @@
 ﻿SAModel
 =======
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: SAModel
    :show-inheritance:

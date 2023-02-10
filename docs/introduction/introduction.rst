@@ -1,11 +1,11 @@
-####################
-Introduction
-####################
+#######################
+Introduction by example
+#######################
 
 In this section we will introduce the basic concepts of the package.
 We'll start by briefly explaining how Generalized Linear Models (GLM) and 
 Linear-Nonlinear-Poisson (LNP) models are used to simulate neural data. 
-We will then introduce the main functions of the package one by one, and show by example how they are
+We will then introduce the main functions of the package through an example where they are
 put together to simulate neural data.
 
 GLM and LNP: Stochastic models of neural networks
@@ -19,138 +19,65 @@ for when studying the network as a whole, and has the extra benefit that the par
 using maximal likelihood estimation. The GLM and LNP models are closely related. In fact, the GLM is a special case of the LNP model where the non-linearity
 is invertible (cit).
 
-Now that we have introduced the GLM and LNP models, we will explain how they are implemented in the package.
+Introductory example
+====================
 
-Models
-======
-The GLM and LNP models are implemented as classes that inherit from the :class:`MessagePassing` class from the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ library.
-We represent the network as a graph, where each node corresponds to a neuron and each edge corresponds to a synapse.
-The nodes are connected according to a weight matrix :math:`\mathbf{W_0}`, where the element :math:`W_{ij}` is the weight of the synapse between neuron :math:`i` and neuron :math:`j`.
-The state of the network at time step :math:`t` is represented by a vector :math:`\mathbf{X}_t` where each element corresponds to the spike count of a neuron at time step :math:`t`.
+.. currentmodule:: spikeometric.models
 
-While there are many different types of GLM and LNP models, they all share a common structure. 
-For each neuron :math:`i`, the state at time step :math:`t+1` is computed in three steps:
+.. note::
+    This example is available as a Jupyter notebook in the ``examples`` directory of the package.
 
-#. The input stage
-    The first step is to compute the synaptic input :math:`g_i(t+1)` to neuron :math:`i` at time step :math:`t+1`.
-    Input can come from several sources.
-    
-    * If a neuron :math:`j` that is connected to :math:`i` has recently fired, :math:`i` will receive some input as a function of the synaptic weight :math:`W_{ji}` between the two neurons and how long it has been since :math:`j` fired.
+A very common usecase for GLM and LNP models is as stimulus-response models where we stimulate the network with some external input 
+and analyze the results.
 
-    * If :math:`i` itself has recently fired, it will be in a refractory period and will receive some self-inhibiting input.
+A typical workflow for stimulus-response experiments is as follows:
+    #. Generate or load a set of connectivity matrices.
+    #. Define a model and a stimulus.
+    #. Run the model on the connectivity dataset
+    #. Analyze the results.
 
-    * There might also be some background input that is independent of the network state.
+In this example we will generate some random connectivity matrices and use the :class:`BernoulliGLM` model with :class:`RegularStimulus`
+to simulate 100 seconds of network activity. We will then analyze the results by comparing the
+interspike intervals (ISI) of the stimulated and unstimulated neurons. Finally, we will make some plots to
+show how the network's activity changes over the stimulus period.
 
-    * Finally, :math:`i` may receive an external input, for example from an optogenetic stimulus.
+Generating and loading connectivity datasets
+--------------------------------------------
+.. currentmodule:: spikeometric.datasets
 
-#. The non-linear stage
-    The second step is to compute the response of the neuron to the synaptic input by 
-    applying a non-linear function to it.
-    In the GLM, the non-linearity is the inverse link function, for example the inverse logit function (sigmoid) for the 
-    Bernoulli model. In the LNP, the non-linearity might for example be the rectified linear unit (ReLU) function. 
-    The output of this step is often interpreted as the expected spike count of the neuron.
+We will start by showing how to generate and load connectivity datasets. Often, we will already have a set of connectivity
+matrices that we want to use in our experiments, in which case we can use the :class:`ConnectivityDataset` class to load them directly.
+However, in this example we will generate some random connectivity matrices using the :class:`NormalGenerator` class, to show how it works.
 
-#. The spike emission stage
-    The final step is to draw a spike count from a probability distribution that depends on the output of the non-linear stage.
-    The probability distribution is often a Poisson distribution, but it can also be a Bernoulli distribution for the GLM.
+We will generate 10 random networks with 50 neurons each. There will be an equal number of excitatory and inhibitory neurons, with 
+a total of :math:`50^2/2` synaptic weights drawn from a normal distribution with mean 0 and standard deviation :math:`5 / \sqrt{50}` (glorot initialization). 
 
-These three steps form the core of the GLM and LNP models, and each class must implement them in the
-:func:`input`, :func:`non_linearity` and :func:`emit_spikes` functions, respectively.
-
-Connectivity datasets and stimulation
-=====================================
-In addition to the models, there are two other key components of the package: the connectivity datasets and the
-stimulation models. 
-
-Connectivity datasets
-----------------------
-The connectivity datasets are collections of graphs that represent the connectivity of a set of networks.
-
-There are two ways to work with the connectivity datasets. The first is to use the :class:`ConnectivityDataset` class,
-which is a wrapper around a PyTorch Geometric dataset. This class allows us to easily load weight matrices from a
-directory that contains a set of torch or numpy files, and to convert them to a PyTorch Geometric dataset. This is 
-useful if we have some predesigned connectivity matrices that we want to use in our experiments.
-
-The second way to work with the connectivity datasets is to use one of the :class:`ConnectivityDatasetGenerator` classes
-that are provided in the package. These classes can be used to generate random connectivity matrices from a couple common
-distributions, save them to disk and load them into a PyTorch Geometric dataset. It is also possible to generate them
-on the fly, without saving them, by using the :func:`generate_examples` method. This is useful if we want to generate
-some example connectivity matrices to use in our experiments.
-
-Stimulation
-------------
-The stimlation classes are used to define the external input to the network. They inherit from the :class:`Module` class 
-from torch, which opens the door to tuning the parameters of the stimulation parameters as well. A couple of stimulation models are provided in the package, but it is easy to implement
-new ones by inheriting from the :class:`Stimulation` class. For an example of how to do this, see :doc:`Create stimulus <../tutorials/create_stimulus>`.
-
-Connectivity loader
--------------------
-The :class:`ConnectivityLoader` class is used to load the connectivity matrices from a dataset in batches
-and, together with the targets for the stimulation, if they are provided. It groups the connectivity matrices in
-each batch into one large graph, allowing us to simulate the networks in parallel.
-It is used in the same way as the :class:`DataLoader` class from PyTorch Geometric, in fact it is a wrapper around it.
-
-Example usage
-=============
-The following example shows how to use the package to generate a connectivity dataset and simulate the networks with
-a regular stimulus.
-
-We first want to generate a connectivity dataset with 10 networks, each with 100 neurons, and save it to disk.
-The networks should have a synaptic weights that are drawn from a normal distribution with mean 0 and standard
-deviation :math:`5 / \sqrt{100}` (glorot initialization). We will save the dataset to the ``data/w0/100_neurons_10_0_mean_5_std_glorot_14071789`` directory for later
-use. 
+The networks are saved to the ``data/w0/50_neurons_10_0_mean_5_std_glorot`` directory as individual `.pt` files. Note that the
+:class:`ConnectivityDataset` class can also load `.npy` files, so if you prefer to save your connectivity matrices with :mod:`numpy`, you can do that instead.
 
 .. code-block:: python
 
-    from spiking_network.datasets import NormalConnectivityGenerator
-
-    generator = NormalConnectivityGenerator(
-        n_nodes=100,
-        n_networks=10,
+    generator = NormalGenerator(
+        n_nodes=50,
         mean=0,
-        std=5
+        std=5,
         glorot=True
-        rng = torch.Generator().manual_seed(14071789)
     )
-    generator.save("data/w0/100_neurons_10_0_mean_5_std_glorot_14071789")
+    generator.save(10, "data/w0/100_neurons_10_networks_0_mean_5_std_glorot")
 
-The dataset is now saved to disk, and we can load it into a PyTorch Geometric dataset using the :class:`ConnectivityDataset` class.
-
-.. code-block:: python
-
-    from spiking_network.datasets import ConnectivityDataset
-
-    dataset = ConnectivityDataset("data/w0/100_neurons_10_0_mean_5_std_glorot_14071789")
-
-To understand what the networks look like, we can draw the graphs and plot the weight matrices.
+The dataset is now saved, and we can load it using the :class:`ConnectivityDataset` class.
 
 .. code-block:: python
 
-    import seaborn as sns
-    import networkx as nx
-    from torch_geometric.utils import to_networkx, to_dense_adj
+    dataset = ConnectivityDataset("data/w0/50_neurons_10_networks_0_mean_5_std_glorot_14071789")
 
-    fig, axs = plt.subplots(2, 1, figsize=(15, 6))
+To understand what the networks look like, we can draw the graphs and plot the weight matrices using :mod:`networkx` and :mod:`seaborn`.
 
-    example_data = dataset[0]
-    G = to_networkx(example_network, remove_self_loops=True)
-    color_map = ["#f1948a" for _ in range(n_neurons//2)] + ["#3498db" for _ in range(n_neurons//2, n_neurons)] # Red for excitatory, blue for inhibitory
+.. image:: ../_static/introduction_graph.png
 
-    # Visualize the network
-    nx.draw(G, node_size=100, node_color=color_map, width=0.1, arrowsize=1, with_labels=True, font_size=6, ax=axs[0])
-
-    # Visualize the weight matrix
-    dense_W0 = to_dense_adj(example_data.edge_index, edge_attr=example_data.W0, max_num_nodes=example_data.num_nodes)[0]
-    sns.heatmap(square_W0, square=True, vmin=-5, vmax=5)
-    plt.title(r"$W_0$")
-    plt.xlabel("Neuron")
-    plt.ylabel("Neuron")
-    plt.show()
-
-
-.. image:: ../_static/example_graph.png
-
-.. image:: ../_static/example_weights.png
+Initializing the model
+----------------------
+.. currentmodule:: spikeometric.models
 
 The next step is to define the model that we want to use. We will use the Bernoulli GLM model, which is implemented
 in the :class:`BernoulliGLM` class, using the same parameters as in the original paper 
@@ -158,101 +85,85 @@ in the :class:`BernoulliGLM` class, using the same parameters as in the original
 
 .. code-block:: python
 
-    from torch_geometric.nn import BernoulliGLM
-
     model = BernoulliGLM(
-        alpha=0.2,
-        beta=0.5,
-        abs_ref_scale=3,
-        abs_ref_strength=-100,
-        rel_ref_scale=7,
-        rel_ref_strength=-30,
-        S=5
-        T=10,
-        theta=5.,
-        dt=1,
+        alpha= 0.2,               # Decay rate of the coupling strength between neurons (1/ms)
+        beta= 0.5,                # Decay rate of the self-inhibition during the relative refractory period (1/ms)
+        abs_ref_scale=3,          # Absolute refractory period (ms)
+        rel_ref_scale=7,          # Relative refractory period (ms)
+        abs_ref_strength=-100,    # Strength of the self-inhibition during the absolute refractory period
+        rel_ref_strength=-30,     # Initial strength of the self-inhibition during the relative refractory period
+        coupling_window=5,        # Length of coupling window (ms)
+        theta=5,                  # Threshold for firing
+        dt=1,                     # Length of time step (ms)
     )
 
-Now, we also want to add a stimulation. For this example we use the :class:`RegularStimulation` class, which will stimulate
-the network once every second, for 100 ms each time. The strength of the
-stimulation is set to 5.0, which given the threshold parameter :math:`\theta = 5` of the GLM model, will result in a ~50% chance of firing for a neuron at rest.
-For each network, we will stimulate 4 random neurons.
+
+Adding a stimulus
+-----------------
+.. currentmodule:: spikeometric.stimulus
+
+Now, we also want to add a stimulus. For that we need two things:
+
+    #. A callable object that takes one argument (the time step) and returns the stimulus at that time 
+    #. For each network in the dataset, a boolean mask that defines which neurons are targeted by the stimulus.
+
+We'll use the :class:`RegularStimulus` class to stimulate the network once every second, for 100 ms each time.
+The strength of the stimulus is set to 5.0, which given the threshold parameter :code:`theta = 5` of the GLM model, 
+will result in a ~50% chance of firing for a neuron at rest. 
+
+For each network, we will stimulate 4 random excitatory neurons. 
 
 .. code-block:: python
 
-    from torch_geometric.nn import PoissonStimulation
-
-    targets = [torch.randint(0, 100, (4,)) for _ in range(10)]
-    stimulation = PoissonStimulation(
+    stimulus = RegularStimulus(
         strength=5.0,
         interval=1000,
-        duration=100,
+        duration=100_000,
         dt=1,
     )
-    model.add_stimulation(stimulation)
+    model.add_stimulus(stimulus)
 
-Finally we can use the :class:`ConnectivityLoader` class to load the connectivity matrices from the dataset in batches, 5 at a time,
-and simulate the networks in parallel as one large graph.
+    stimulus_masks = [torch.isin(torch.arange(n_neurons), torch.randperm(n_neurons//2)[:4]) for _ in range(10)]
+    dataset.add_stimulus_masks(stimulus_masks)
+
+Running the model
+-----------------
+.. currentmodule:: spikeometric.models.bernoulli_glm
+
+We are now ready to run the model on the connectivity dataset.
+We will use a :class:`torch_geometric.loader.DataLoader` to load the connectivity matrices in batches of 5.
+The data loader combines the connectivity data from each bach into a larger graph with each individual network as an isolated subgraph.
+The :meth:`simulate` method of the model then simulates the network activity for the specified number of time steps.
 
 .. code-block:: python
-
-    from torch_geometric.nn import ConnectivityLoader
-
-    loader = ConnectivityLoader(
+    
+    loader = DataLoader(
         dataset,
         batch_size=5,
         shuffle=False,
-        targets=targets
     )
 
-    results = []
+    results = torch.zeros((500, 100_000)) # 50x10 neurons and 100_000 time steps
     for i, batch in enumerate(loader):
-        results.append(
-            model.simulate(batch, n_steps=100_000, stimlation=stimulation
-        )
-    X = torch.cat(results, dim=0)
+        results[i*batch.num_nodes:(i+1)*batch.num_nodes] = model.simulate(batch, n_steps=100_000)
 
-The results are now stored in the ``X`` tensor, and can be used for further analysis.
-For example, we can plot the firing rates of the neurons in the first network.
+The spike trains are now stored in the ``results`` tensor with shape ``(500, 100_000)``. Each row corresponds to a neuron, 
+and each column to a time step, with a value of 1 indicating a spike and 0 indicating no spike.
 
-.. code-block:: python
+Let's now compare the stimulated and unstimulated neurons by plotting their isi distributions
 
-    X = X[:n_neurons].float()
+.. image:: ../_static/isi_distribution.png
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(5, 3))
+We see that the stimulated neurons have a lower ISI. This is as expected, as the stimulus increases the firing rate, which is inversely
+proportional to the ISI.
 
-    fig.set_figheight(10)
-    fig.set_figwidth(12)
-    axes[0].set_title("Firing rate per neuron")
-    axes[0].set_ylabel("Firings")
-    axes[0].set_xlabel("Neuron")
-    axes[0].bar(range(1, n_neurons + 1), torch.mean(X, axis=1))
+Plotting the results
+--------------------
+To round off the example, we will plot the collective ISI histogram, a Peri-Stimulus Time Histogram (PSTH) and a raster plot of the spike trains for the first network.
 
-    time_slice = 10000 # For a nicer plot, we only look at the first 10 seconds
-    X_sliced = X[:, :time_slice]
-    len_of_bin = 100 # We bin the time steps to get a smoother plot
-    n_bins = time_slice // len_of_bin
-    axes[1].set_title("Firings per timestep")
-    axes[1].set_ylabel("Firings")
-    axes[1].set_xlabel(f"Time in seconds ({len_of_bin} ms per bin)")
+.. image:: ../_static/introduction_summary_plot.png
 
-    firings_per_bin = X_sliced.mean(axis=0).view(n_bins, -1).mean(axis=1).repeat_interleave(len_of_bin)
-    axes[1].plot(
-    torch.arange(1, time_slice + 1) / (1000/model.dt),
-    firings_per_bin,
-    )
-
-    plt.show()
-
-.. image:: ../_static/example_firings.png
-
-We can clearly see the the effect of the stimulation as the firing rate of the network as a whole is much higher in the period where the stimulation is active.
-
-That is all there is to it! The package is designed to be as easy to use as possible, and we hope that it will be
+That is it for the introductory example! The package is designed to be as easy to use as possible, and we hope that it will be
 useful for researchers in the field of computational neuroscience. For more examples of how to use the package, see
-the `Tutorials` section, or take a look at the `notebooks in the examples directory of the repository <https://github.com/bioAI-Oslo/snn-glm-simulator>`_ 
-(this example is taken from the ``examples/bernoulli_glm_example.ipynb`` notebook).
-
-References
-==========
-Integrate and fire
+the `Tutorials` section, or take a look at the `notebooks in the examples directory of the repository <https://github.com/bioAI-Oslo/spikeometric>`_ 
+(this example is taken from the ``examples/simulate_with_stimulus.ipynb`` notebook).

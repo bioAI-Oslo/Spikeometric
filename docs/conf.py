@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
 
-project = 'snn-glm-simulator'
+project = 'spikeometric'
 copyright = '2023, Jakob Sønstebø'
 author = 'Jakob Sønstebø'
 release = '0.0.1'
@@ -24,7 +24,8 @@ extensions = [
         'sphinx.ext.mathjax',
         'sphinx.ext.viewcode',
         'sphinx_rtd_theme',
-        'sphinx.ext.autodoc'
+        'sphinx.ext.autodoc',
+        'sphinx_autodoc_typehints'
     ]
 
 autosummary_generate = True

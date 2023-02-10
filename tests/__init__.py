@@ -1,1 +1,1 @@
-import spiking_network
+import spikeometric

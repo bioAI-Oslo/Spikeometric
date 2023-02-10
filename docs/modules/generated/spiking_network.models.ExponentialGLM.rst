@@ -1,7 +1,7 @@
 ﻿ExponentialGLM
 ==============
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: ExponentialGLM
    :show-inheritance:

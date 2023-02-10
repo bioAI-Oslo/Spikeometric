@@ -1,7 +1,7 @@
 ﻿BaseModel
 =========
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: BaseModel
    :show-inheritance:

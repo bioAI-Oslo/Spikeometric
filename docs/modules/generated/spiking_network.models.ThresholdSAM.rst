@@ -1,7 +1,7 @@
 ﻿ThresholdSAM
 ============
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: ThresholdSAM
    :show-inheritance:

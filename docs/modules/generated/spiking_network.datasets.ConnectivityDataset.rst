@@ -1,7 +1,7 @@
 ﻿ConnectivityDataset
 ===================
 
-.. currentmodule:: spiking_network.datasets
+.. currentmodule:: spikeometric.datasets
 
 .. autoclass:: ConnectivityDataset
    :show-inheritance:

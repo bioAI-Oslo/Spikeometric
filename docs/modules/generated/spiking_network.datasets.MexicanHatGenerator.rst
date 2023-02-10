@@ -1,7 +1,7 @@
 ﻿MexicanHatGenerator
 ===================
 
-.. currentmodule:: spiking_network.datasets
+.. currentmodule:: spikeometric.datasets
 
 .. autoclass:: MexicanHatGenerator
    :show-inheritance:

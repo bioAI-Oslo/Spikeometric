@@ -1,4 +1,0 @@
-from spiking_network.datasets.normal_connectivity_generator import NormalGenerator
-from spiking_network.datasets.uniform_connectivity_generator import UniformGenerator
-from spiking_network.datasets.connectivity_dataset import ConnectivityDataset
-from spiking_network.datasets.mexican_hat_connectivity_generator import MexicanHatGenerator

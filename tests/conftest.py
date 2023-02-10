@@ -4,27 +4,27 @@ import torch
 # Dataset fixtures
 @pytest.fixture 
 def generated_glorot_data():
-    from spiking_network.datasets import NormalGenerator
+    from spikeometric.datasets import NormalGenerator
     n_neurons = 20
     n_networks = 10
     rng = torch.Generator().manual_seed(14071789)
     generator = NormalGenerator(n_neurons, mean=0, std=5, glorot=True, rng=rng)
-    data = generator.generate_examples(n_networks)
+    data = generator.generate(n_networks, add_self_loops=True)
     return data
 
 @pytest.fixture
 def generated_normal_data():
-    from spiking_network.datasets import NormalGenerator
+    from spikeometric.datasets import NormalGenerator
     n_neurons = 100
     n_networks = 10
     rng = torch.Generator().manual_seed(14071789)
     generator = NormalGenerator(n_neurons, mean=0, std=1, rng=rng)
-    data = generator.generate_examples(n_networks)
+    data = generator.generate(n_networks, add_self_loops=True)
     return data
 
 @pytest.fixture
 def generated_uniform_data():
-    from spiking_network.datasets import UniformGenerator
+    from spikeometric.datasets import UniformGenerator
     import shutil
     n_neurons = 20
     n_sims = 10
@@ -32,19 +32,19 @@ def generated_uniform_data():
     low = -0.002289225919299652
     high = 0
     generator = UniformGenerator(n_neurons, low, high, sparsity=0.9, rng=rng)
-    data = generator.generate_examples(n_sims)
+    data = generator.generate(n_sims)
     return data
 
 @pytest.fixture
 def saved_glorot_dataset():
-    from spiking_network.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset")
+    from spikeometric.datasets import ConnectivityDataset
+    dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset", add_self_loops=True)
     return dataset
 
 @pytest.fixture
 def sparse_glorot_dataset():
-    from spiking_network.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset(root="tests/test_data/example_sparse_glorot_dataset")
+    from spikeometric.datasets import ConnectivityDataset
+    dataset = ConnectivityDataset(root="tests/test_data/example_sparse_glorot_dataset", add_self_loops=True)
     return dataset
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def example_connectivity_filter():
 # Model and simulation fixtures
 @pytest.fixture
 def bernoulli_glm():
-    from spiking_network.models import BernoulliGLM
+    from spikeometric.models import BernoulliGLM
     rng = torch.Generator().manual_seed(14071789)
     model = BernoulliGLM(
         theta=5.,
@@ -83,7 +83,7 @@ def bernoulli_glm():
 
 @pytest.fixture
 def threshold_sam():
-    from spiking_network.models import ThresholdSAM
+    from spikeometric.models import ThresholdSAM
     rng = torch.Generator().manual_seed(14071789)
     model = ThresholdSAM(
         r=0.025,
@@ -128,46 +128,45 @@ def expected_output_after_ten_steps():
     expected_output = torch.load("tests/test_data/expected_output_after_ten_steps.pt")
     return expected_output
 
-# Stimulation fixtures
+# Stimulus fixtures
 @pytest.fixture
-def regular_stimulation():
-    from spiking_network.stimulation import RegularStimulation
+def regular_stimulus():
+    from spikeometric.stimulus import RegularStimulus
     interval = 100
     strength = 5.
     tau = 10
     n_events = 10
-    stimulation = RegularStimulation(
+    stimulus = RegularStimulus(
         strength=strength,
         interval=interval,
         n_events=n_events,
         tau=tau,
     )
-    return stimulation
+    return stimulus
 
 @pytest.fixture
-def sin_stimulation():
-    from spiking_network.stimulation import SinStimulation
+def sin_stimulus():
+    from spikeometric.stimulus import SinStimulus
     amplitude = 2.
     period = 10
     duration = 100
-    stimulation = SinStimulation(
+    stimulus = SinStimulus(
         amplitude=amplitude,
         period=period,
         duration=duration,
     )
-    return stimulation
+    return stimulus
 
 @pytest.fixture
-def poisson_stimulation():
-    from spiking_network.stimulation import PoissonStimulation
+def poisson_stimulus():
+    from spikeometric.stimulus import PoissonStimulus
     mean_interval = 100
     strength = 5.
-    n_events = 10
     tau = 10
-    stimulation = PoissonStimulation(
+    stimulus = PoissonStimulus(
         strength=strength,
         mean_interval=mean_interval,
-        n_events=n_events,
+        duration=1000,
         tau=tau,
     )
-    return stimulation
+    return stimulus

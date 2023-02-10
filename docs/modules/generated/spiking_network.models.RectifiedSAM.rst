@@ -1,7 +1,7 @@
 ﻿RectifiedSAM
 ============
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: RectifiedSAM
    :show-inheritance:

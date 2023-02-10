@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "snn-glm-simulator"
+name = "spikeometric"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
@@ -20,6 +20,7 @@ pytest-lazy-fixture = "^0.6.3"
 sphinx-rtd-theme = "^1.1.1"
 networkx = "^3.0"
 jupyter = "^1.0.0"
+sphinx-autodoc-typehints = "^1.22"
 
 
 

@@ -1,9 +1,9 @@
-﻿PoissonStimulation
+﻿PoissonStimulus
 ==================
 
-.. currentmodule:: spiking_network.stimulation
+.. currentmodule:: spikeometricimulus
 
-.. autoclass:: PoissonStimulation
+.. autoclass:: PoissonStimulus
    :show-inheritance:
    :members:
    :undoc-members:

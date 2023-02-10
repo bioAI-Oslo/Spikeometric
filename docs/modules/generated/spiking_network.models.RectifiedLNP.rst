@@ -1,7 +1,7 @@
 ﻿RectifiedLNP
 ============
 
-.. currentmodule:: spiking_network.models
+.. currentmodule:: spikeometric.models
 
 .. autoclass:: RectifiedLNP
    :show-inheritance:
