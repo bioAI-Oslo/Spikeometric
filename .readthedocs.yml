@@ -16,4 +16,4 @@ sphinx:
   configuration: docs/conf.py
 
 conda:
-  environment: cpu_environment.yml
+  environment: environment.yml
