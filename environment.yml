@@ -1,17 +1,15 @@
-name: cpu-snn-glm-simulator
+name: spikeometric
 
 channels:
   - pytorch
   - pyg
   - defaults
-  - conda-forge
 
 dependencies:
+  - python=3.9
   - pip
-  - python
   - pytorch=1.13
   - cpuonly
   - pyg
-  - ipykernel
   - pip:
       - -r requirements.txt
