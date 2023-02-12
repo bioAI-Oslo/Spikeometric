@@ -117,8 +117,9 @@ For each network, we will stimulate 4 random excitatory neurons.
 
     stimulus = RegularStimulus(
         strength=5.0,
-        interval=1000,
+        interval=100,
         duration=100_000,
+        tau=10,
         dt=1,
     )
     model.add_stimulus(stimulus)
@@ -150,7 +151,7 @@ The :meth:`simulate` method of the model then simulates the network activity for
 The spike trains are now stored in the ``results`` tensor with shape ``(500, 100_000)``. Each row corresponds to a neuron, 
 and each column to a time step, with a value of 1 indicating a spike and 0 indicating no spike.
 
-Let's now compare the stimulated and unstimulated neurons by plotting their isi distributions
+Let's now compare the stimulated and unstimulated neurons by plotting their ISI distributions
 
 .. image:: ../_static/isi_distribution.png
 
