@@ -42,11 +42,11 @@ class NormalGenerator(ConnectivityGenerator):
     rng (torch.Generator):
         The random number generator to use
     """
-    def __init__(self, n_neurons: int, mean: float, std:float, sparsity=0, glorot=False, rng=None):
+    def __init__(self, n_neurons: int, mean: float, std:float, sparsity=0.5, glorot=False, rng=None):
         if n_neurons % 2 != 0 or n_neurons < 2:
             raise ValueError("n_neurons must be positive and even to have as many excitatory as inhibitory neurons")
-        if sparsity < 0 or sparsity > 0.5:
-            raise ValueError("sparsity must be between 0 and 0.5 (The number of edges is already halfed by Dale's law)")
+        if sparsity < 0.5 or sparsity > 1.0:
+            raise ValueError("sparsity must be between 0.5 and 1.0 (The number of edges is already halfed by Dale's law)")
 
         self.n_neurons = n_neurons
         self.mean = mean

@@ -24,4 +24,6 @@ class MexicanHatGenerator(ConnectivityGenerator):
         """
         i,  j = torch.meshgrid(torch.arange(self.n_neurons), torch.arange(self.n_neurons), indexing='ij')
         d_ij = torch.min(torch.abs(i - j), self.n_neurons - torch.abs(i - j))
-        return torch.exp(-0.5*(d_ij/self.sigma_1)**2) - self.a*torch.exp(-0.5*(d_ij/self.sigma_2)**2)
+        W0 = torch.exp(-0.5*(d_ij/self.sigma_1)**2) - self.a*torch.exp(-0.5*(d_ij/self.sigma_2)**2)
+        W0[torch.eye(self.n_neurons, dtype=torch.bool)] = 0
+        return W0

@@ -27,4 +27,5 @@ class ConnectivityGenerator(object):
             w0 = self.generate_W0()
             torch.save(w0, path / f"{i}.pt")
         if len(stimulus_masks) > 0:
+            stimulus_masks = [mask.unsqueeze(1).T for mask in stimulus_masks]
             torch.save(torch.cat(stimulus_masks, dim=0), path / "stimulus_masks.pt")

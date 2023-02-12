@@ -67,7 +67,7 @@ class RectifiedLNP(BaseModel):
         self.requires_grad_(False)
     
     def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask: torch.Tensor = False) -> torch.Tensor:
-        """
+        r"""
         The input to the network at time t+1.
 
         .. math::

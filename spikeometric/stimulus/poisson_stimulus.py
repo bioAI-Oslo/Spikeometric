@@ -34,17 +34,17 @@ class PoissonStimulus(nn.Module):
 
         
         # Convert to time steps
-        mean_interval = mean_interval/dt
-        duration = duration/dt
-        tau = tau/dt
-        start = start/dt
+        mean_interval = int(mean_interval/dt)
+        duration = int(duration/dt)
+        tau = int(tau/dt)
+        start = int(start/dt)
 
         # Buffers
         self.register_buffer("dt", torch.tensor(1, dtype=torch.float))
         self.register_buffer("tau", torch.tensor(tau, dtype=torch.int))
         self.register_buffer("mean_interval", torch.tensor(mean_interval, dtype=torch.int))
         self.register_buffer("duration", torch.tensor(duration, dtype=torch.int))
-        self.register_buffer("start", torch.tensor(start, dtype=torch.float))
+        self.register_buffer("start", torch.tensor(start, dtype=torch.int))
 
         self.register_parameter("strength", nn.Parameter(torch.tensor(strength, dtype=torch.float)))
 

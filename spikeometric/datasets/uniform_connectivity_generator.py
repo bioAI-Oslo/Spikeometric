@@ -18,9 +18,14 @@ class UniformGenerator(ConnectivityGenerator):
 
     def generate_W0(self):
         """Generates a single connectivity matrix W0 from a uniform distribution over the range [low, high] and then sparsifies it to the specified sparsity"""""
-        half_W0 = torch.rand(size=(self.n_neurons // 2, self.n_neurons), generator=self.rng)*(self.high - self.low) + self.low # Uniform distribution over [low, high]
-        half_W0[torch.rand((self.n_neurons // 2, self.n_neurons)) > (1-self.sparsity)*2] = 0 
-        W0 = torch.concat((half_W0 * (half_W0 > 0), half_W0 * (half_W0 < 0)), 0) # Dale's law
-        W0[torch.eye(self.n_neurons, dtype=torch.bool)] = 0 # Set diagonal to zero
+        if (self.high - self.low) / 2 == self.high: # If the range is symmetric around zero we can use Dale's law
+            half_W0 = torch.rand(size=(self.n_neurons // 2, self.n_neurons), generator=self.rng)*(self.high - self.low) + self.low # Uniform distribution over [low, high]
+            half_W0[torch.rand((self.n_neurons // 2, self.n_neurons), generator=self.rng) > (1-self.sparsity)*2] = 0 
+            W0 = torch.concat((half_W0 * (half_W0 > 0), half_W0 * (half_W0 < 0)), 0) # Dale's law
+            W0[torch.eye(self.n_neurons, dtype=torch.bool)] = 0 # Set diagonal to zero
+        else:
+            W0 = torch.rand(size=(self.n_neurons, self.n_neurons), generator=self.rng)*(self.high - self.low) + self.low # Uniform distribution over [low, high]
+            W0[torch.rand((self.n_neurons, self.n_neurons), generator=self.rng) > (1-self.sparsity)] = 0
+            W0[torch.eye(self.n_neurons, dtype=torch.bool)] = 0 # Set diagonal to zero            
         return W0
     

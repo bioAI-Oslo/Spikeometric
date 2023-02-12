@@ -21,6 +21,5 @@ def test_uniform_simulation(threshold_sam, generated_uniform_data):
     from torch import tensor
     example_uniform_data = generated_uniform_data[0]
     X = threshold_sam.simulate(example_uniform_data, n_steps=1000, verbose=False)
-
     fr = (X.float().mean() / threshold_sam.dt) * 1000
-    assert_close(fr, tensor(27.), atol=0.001, rtol=0.1)
+    assert_close(fr, tensor(33.6364), atol=0.001, rtol=0.1)

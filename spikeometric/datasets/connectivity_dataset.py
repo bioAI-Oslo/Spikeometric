@@ -54,8 +54,14 @@ class ConnectivityDataset:
     def process(self):
         """Processes the connectivity matrices in the root directory and returns a list of torch_geometric Data objects."""
         path = Path(self.root)
+        files = os.listdir(path)
+
+        if "stimulus_masks.pt" in files:
+            self.stimulus_masks = torch.load(path / "stimulus_masks.pt")
+            files.remove("stimulus_masks.pt")
+        
         w0_list = []
-        for i, file in enumerate(sorted(os.listdir(path))):
+        for i, file in enumerate(sorted(files)):
             # Check if file is a .npy or .pt file and load it
             if file.endswith(".npy"):
                 w0_square = torch.from_numpy(np.load(path / file))
@@ -66,13 +72,13 @@ class ConnectivityDataset:
             num_neurons = w0_square.shape[0]
             edge_index = w0_square.nonzero().t()
             if self.add_self_loops:
-                edge_index, _ = add_remaining_self_loops( edge_index, num_nodes=num_neurons)
+                edge_index, _ = add_remaining_self_loops(edge_index, num_nodes=num_neurons)
             w0 = w0_square[edge_index[0], edge_index[1]]
 
             # Create a boolean mask of the target neurons
             stimulus_mask = torch.zeros(num_neurons, dtype=torch.bool)
             if len(self.stimulus_masks) > 0:
-                stimulus_mask[self.stimulus_masks[i]] = True
+                stimulus_mask[self.stimulus_masks[i].squeeze()] = True
             
             # Create a torch_geometric Data object and add it to the list
             data = Data(edge_index=edge_index, num_nodes=num_neurons, W0=w0, stimulus_mask=stimulus_mask)

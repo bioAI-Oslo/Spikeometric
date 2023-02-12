@@ -17,7 +17,7 @@ class SAModel(BaseModel):
         r"""The update rule for the synaptic activation."""
         raise NotImplementedError
     
-    def simulate(self, data, n_steps, verbose=True, equilibration_steps=0):
+    def simulate(self, data, n_steps, verbose=True, equilibration_steps=100):
         """
         Simulates the network for n_steps time steps given the connectivity.
         Returns the state of the network at each time step.
@@ -52,9 +52,8 @@ class SAModel(BaseModel):
         
         # Initialize the state of the network
         x = torch.zeros(n_neurons, n_steps + equilibration_steps, device=device, dtype=torch.uint8)
-        activation = torch.rand((n_neurons,1), device=device)
-        initial_state = torch.randint(0, 2, (n_neurons,), device=device, dtype=torch.uint8, generator=self._rng)
-        x[:, :T] = self.equilibrate(edge_index, W, initial_state, equilibration_steps)
+        initial_activation = torch.rand((n_neurons,1), device=device)
+        activation = self.equilibrate(edge_index, W, initial_activation, equilibration_steps)
 
         # Simulate the network
         for t in pbar:
@@ -81,7 +80,7 @@ class SAModel(BaseModel):
         -----------
         data: torch_geometric.data.Data
             The training data containing the connectivity.
-        isi: torch.Tensor
+        firing_rate: torch.Tensor
             The target firing rate of the network
         tunable_parameters: list or str
             The list of parameters to tune, can be "all", "stimulus", "model" or a list of parameter names
@@ -125,8 +124,9 @@ class SAModel(BaseModel):
         stimulus_mask = data.stimulus_mask if hasattr(data, "stimulus_mask") else False
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         loss_fn = torch.nn.MSELoss()
-        isi = torch.tensor(isi, device=device)
+        firing_rate = torch.tensor(firing_rate, device=device, dtype=torch.float)
         self.train()
+        average_firing_rate = 0
         for epoch in pbar:
             optimizer.zero_grad()
 
@@ -154,11 +154,44 @@ class SAModel(BaseModel):
                 )
 
             # Compute the loss
-            isi_hat =  self.dt / self.non_linearity(input[:, T:]).mean()
-            loss = loss_fn(isi_hat, isi)
+            firing_rate_hat =  self.dt / self.non_linearity(input[:, T:]).mean()
+            loss = loss_fn(firing_rate_hat, firing_rate)
+            average_firing_rate += (firing_rate_hat.item() - average_firing_rate) / (epoch + 1)
+
             if verbose:
-                pbar.set_description(f"Tuning... fr={isi_hat.item():.5f}")
+                pbar.set_description(f"Tuning... fr={average_firing_rate:.5f}")
 
             # Backpropagate
             loss.backward()
             optimizer.step()
+
+    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100) -> torch.Tensor:
+        """
+        Equilibrate the network to a given connectivity matrix.
+
+        Parameters
+        -----------
+        edge_index: torch.Tensor
+            The connectivity of the network
+        W: torch.Tensor
+            The connectivity filter
+        inital_state: torch.Tensor
+            The initial state of the network
+        n_steps: int
+            The number of time steps to equilibrate for
+
+        Returns
+        --------
+        x: torch.Tensor
+            The state of the network at each time step
+        """
+        n_neurons = inital_state.shape[0]
+        device = inital_state.device
+        x_equi = torch.zeros((n_neurons, self.T + n_steps), device=device, dtype=torch.int)
+        x_equi[:, self.T-1] = inital_state.squeeze()
+
+        # Equilibrate the network
+        for t in range(self.T, self.T + n_steps):
+            x_equi[:, t] = self(edge_index=edge_index, W=W, state=x_equi[:, t-self.T:t])
+        
+        return x_equi[:, -self.T:]

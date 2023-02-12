@@ -36,6 +36,16 @@ def generated_uniform_data():
     return data
 
 @pytest.fixture
+def generated_mexican_hat_data():
+    from spikeometric.datasets import MexicanHatGenerator
+    n_neurons = 20
+    n_sims = 10
+    rng = torch.Generator().manual_seed(14071789)
+    generator = MexicanHatGenerator(n_neurons, a=1.0015, sigma_1=6.98, sigma_2=7.)
+    data = generator.generate(n_sims)
+    return data
+
+@pytest.fixture
 def saved_glorot_dataset():
     from spikeometric.datasets import ConnectivityDataset
     dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset", add_self_loops=True)
@@ -58,8 +68,18 @@ def example_data(saved_glorot_dataset):
     return saved_glorot_dataset[0]
 
 @pytest.fixture
-def example_connectivity_filter():
-    connectivity_filter = torch.load("tests/test_data/example_connectivity_filter.pt")
+def bernoulli_glm_connectivity_filter():
+    connectivity_filter = torch.load("tests/test_data/connectivity_filter/bernoulli_glm_connectivity_filter.pt")
+    return connectivity_filter
+
+@pytest.fixture
+def exponential_glm_connectivity_filter():
+    connectivity_filter = torch.load("tests/test_data/connectivity_filter/exponential_glm_connectivity_filter.pt")
+    return connectivity_filter
+
+@pytest.fixture
+def rectified_lnp_connectivity_filter():
+    connectivity_filter = torch.load("tests/test_data/connectivity_filter/rectified_lnp_connectivity_filter.pt")
     return connectivity_filter
 
 # Model and simulation fixtures
@@ -88,7 +108,7 @@ def threshold_sam():
     model = ThresholdSAM(
         r=0.025,
         b=0.001,
-        tau=10.,
+        tau=10,
         dt=0.1,
         sigma=0.3,
         rho=0.07,
@@ -98,28 +118,151 @@ def threshold_sam():
     return model
 
 @pytest.fixture
-def initial_state():
-    import torch
-    initial_state = torch.load("tests/test_data/initial_state.pt")
-    return initial_state
+def exponential_glm():
+    from spikeometric.models import ExponentialGLM
+    rng = torch.Generator().manual_seed(14071789)
+    model = ExponentialGLM(
+        alpha=15.9,
+        beta=10,
+        dt=0.1,
+        T=20,
+        tau=10,
+        r=0.025,
+        b=0.001,
+        rng=rng,
+    )
+    return model
 
 @pytest.fixture
-def expected_activation_after_one_step():
-    import torch
-    expected_activation = torch.load("tests/test_data/expected_activation_after_one_step.pt")
+def rectified_lnp():
+    from spikeometric.models import RectifiedLNP
+    rng = torch.Generator().manual_seed(14071789)
+    model = RectifiedLNP(
+        lambda_0=9.8,
+        theta=-0.002,
+        dt=0.1,
+        T=20,
+        tau=10.,
+        r=0.025,
+        b=0.001,
+        rng=rng,
+    )
+    return model
+
+@pytest.fixture
+def rectified_sam():
+    from spikeometric.models import RectifiedSAM
+    rng = torch.Generator().manual_seed(14071789)
+    model = RectifiedSAM(
+        lambda_0=1.0861,
+        theta=-1.37e-2,
+        tau=10.,
+        dt=0.1,
+        r=0.025,
+        b=0.001,
+        rng=rng,
+    )
+    return model
+
+@pytest.fixture
+def bernoulli_glm_network():
+    from spikeometric.datasets import NormalGenerator
+    network = NormalGenerator(20, mean=0, std=5, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1, add_self_loops=True)[0]
+    return network
+
+@pytest.fixture
+def bernoulli_glm_expected_activation():
+    expected_activation = torch.load("tests/test_data/expected_activation/bernoulli_glm_expected_activation.pt")
     return expected_activation
 
 @pytest.fixture
-def expected_probability_after_one_step():
-    import torch
-    expected_probability = torch.load("tests/test_data/expected_probability_after_one_step.pt")
+def bernoulli_glm_expected_probability():
+    expected_probability = torch.load("tests/test_data/expected_probability/bernoulli_glm_expected_probability.pt")
     return expected_probability
 
 @pytest.fixture
-def expected_output_after_one_step():
-    import torch
-    expected_state = torch.load("tests/test_data/expected_output_after_one_step.pt")
+def bernoulli_glm_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/bernoulli_glm_expected_output.pt")
+    return expected_state
 
+@pytest.fixture
+def exponential_glm_network():
+    from spikeometric.datasets import NormalGenerator
+    network = NormalGenerator(20, mean=0, std=1, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1)[0]
+    return network
+
+@pytest.fixture
+def exponential_glm_expected_activation():
+    return torch.load("tests/test_data/expected_activation/exponential_glm_expected_activation.pt")
+
+@pytest.fixture
+def exponential_glm_expected_probability():
+    expected_probability = torch.load("tests/test_data/expected_probability/exponential_glm_expected_probability.pt")
+    return expected_probability
+
+@pytest.fixture
+def exponential_glm_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/exponential_glm_expected_output.pt")
+    return expected_state
+
+@pytest.fixture
+def rectified_lnp_network():
+    from spikeometric.datasets import NormalGenerator
+    network = NormalGenerator(20, mean=0, std=1, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1)[0]
+    return network
+
+@pytest.fixture
+def rectified_lnp_expected_activation():
+    return torch.load("tests/test_data/expected_activation/rectified_lnp_expected_activation.pt")
+
+@pytest.fixture
+def rectified_lnp_expected_probability():
+    expected_probability = torch.load("tests/test_data/expected_probability/rectified_lnp_expected_probability.pt")
+    return expected_probability
+
+@pytest.fixture
+def rectified_lnp_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/rectified_lnp_expected_output.pt")
+    return expected_state
+
+@pytest.fixture
+def threshold_sam_network():
+    from spikeometric.datasets import UniformGenerator
+    network = UniformGenerator(20, low=-0.002289, high=0, rng=torch.Generator().manual_seed(14071789), sparsity=0.9).generate(1)[0]
+    return network
+
+@pytest.fixture
+def threshold_sam_expected_activation():
+    return torch.load("tests/test_data/expected_activation/threshold_sam_expected_activation.pt")
+
+@pytest.fixture
+def threshold_sam_expected_probability():
+    expected_probability = torch.load("tests/test_data/expected_probability/threshold_sam_expected_probability.pt")
+    return expected_probability
+
+@pytest.fixture
+def threshold_sam_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/threshold_sam_expected_output.pt")
+    return expected_state
+
+@pytest.fixture
+def rectified_sam_network():
+    from spikeometric.datasets import UniformGenerator
+    network = UniformGenerator(20, low=-0.002289, high=0, rng=torch.Generator().manual_seed(14071789), sparsity=0.9).generate(1)[0]
+    return network
+
+@pytest.fixture
+def rectified_sam_expected_activation():
+    return torch.load("tests/test_data/expected_activation/rectified_sam_expected_activation.pt")
+
+@pytest.fixture
+def rectified_sam_expected_probability():
+    expected_probability = torch.load("tests/test_data/expected_probability/rectified_sam_expected_probability.pt")
+    return expected_probability
+
+@pytest.fixture
+def rectified_sam_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/rectified_sam_expected_output.pt")
     return expected_state
 
 @pytest.fixture

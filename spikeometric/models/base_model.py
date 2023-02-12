@@ -113,7 +113,7 @@ class BaseModel(MessagePassing):
         """
         return torch.sum(state_j*W, dim=1, keepdim=True)
 
-    def stimulus_input(self, t: int, stimulus_mask: torch.Tensor) -> torch.Tensor:
+    def stimulus_input(self, t: int, stimulus_mask: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
         Calculates the stimulus input to the network at time t.
 
@@ -129,7 +129,7 @@ class BaseModel(MessagePassing):
         stimulus_input: torch.Tensor
             The stimulus input to the network [n_neurons]
         """
-        return self.stimulus_filter(self.stimulus(t)) * stimulus_mask
+        return self.stimulus_filter(self.stimulus(t), **kwargs) * stimulus_mask
 
     def stimulus_filter(self, stimulus: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
@@ -182,7 +182,7 @@ class BaseModel(MessagePassing):
         rate = self.non_linearity(input)
         return self.emit_spikes(rate)
     
-    def simulate(self, data, n_steps, stimulus_mask=None, verbose=True, equilibration_steps=100, **kwargs):
+    def simulate(self, data, n_steps, verbose=True, equilibration_steps=100, **kwargs):
         r"""
         Simulates the network for n_steps time steps given the connectivity.
         Returns the state of the network at each time step.
@@ -210,10 +210,11 @@ class BaseModel(MessagePassing):
         W = self.connectivity_filter(W0, edge_index)
         T = W.shape[1]
 
-        if stimulus_mask is None and hasattr(data, "stimulus_mask"):
-            stimulus_mask = data.stimulus_mask
-        else:
+        if not hasattr(data, "stimulus_mask"):
             stimulus_mask = torch.zeros(n_neurons, dtype=torch.bool, device=edge_index.device)
+            data.stimulus_mask = stimulus_mask
+        else:
+            stimulus_mask = data.stimulus_mask
         
         device = edge_index.device
 
@@ -322,11 +323,11 @@ class BaseModel(MessagePassing):
 
             # Compute the loss
             firing_rate_hat = self.non_linearity(activation[:, T:]).mean() * 1000 / self.dt
-            average_firing_rate += firing_rate_hat.item() / (epoch + 1)
+            average_firing_rate += (firing_rate_hat.item() - average_firing_rate) / (epoch + 1)
 
             loss = loss_fn(firing_rate, firing_rate_hat)
             if verbose:
-                pbar.set_description(f"Tuning... fr={firing_rate_hat.item():.5f}")
+                pbar.set_description(f"Tuning... fr={average_firing_rate:.5f}")
             
             # Backpropagate
             loss.backward()
@@ -369,10 +370,14 @@ class BaseModel(MessagePassing):
 
         Parameters
         -----------
-        data: torch_geometric.data.Data
-            The data containing the connectivity matrix
+        edge_index: torch.Tensor
+            The connectivity of the network
+        W: torch.Tensor
+            The connectivity filter
+        inital_state: torch.Tensor
+            The initial state of the network
         n_steps: int
-            The number of time steps to simulate for
+            The number of time steps to equilibrate for
 
         Returns
         --------

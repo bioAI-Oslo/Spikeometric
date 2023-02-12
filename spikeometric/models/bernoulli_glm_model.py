@@ -38,7 +38,7 @@ class BernoulliGLM(BaseModel):
     abs_ref_scale : int
         The absolute refractory period of the neurons :math:`A_{ref}` in time steps
     abs_ref_strength : float
-        The large negative activation :math:`` added to the neurons during the absolute refractory period (tunable)
+        The large negative activation :math:`` added to the neurons during the absolute refractory period
     beta : float
         The decay rate :math:`\beta` of the weights. (tunable)
     rel_ref_scale : int
@@ -73,12 +73,12 @@ class BernoulliGLM(BaseModel):
         self.register_buffer("coupling_window", torch.tensor(coupling_window, dtype=torch.int))
         self.register_buffer("abs_ref_scale", torch.tensor(abs_ref_scale, dtype=torch.int))
         self.register_buffer("rel_ref_scale", torch.tensor(rel_ref_scale, dtype=torch.int))
+        self.register_buffer("abs_ref_strength", torch.tensor(abs_ref_strength, dtype=torch.float))
 
         # Parameters are used to store tensors that will be tunable
         self.register_parameter("theta", nn.Parameter(torch.tensor(theta, dtype=torch.float)))
         self.register_parameter("beta", nn.Parameter(torch.tensor(beta, dtype=torch.float)))
         self.register_parameter("alpha", nn.Parameter(torch.tensor(alpha, dtype=torch.float)))
-        self.register_parameter("abs_ref_strength", nn.Parameter(torch.tensor(abs_ref_strength, dtype=torch.float)))
         self.register_parameter("rel_ref_strength", nn.Parameter(torch.tensor(rel_ref_strength, dtype=torch.float)))
 
         self._rng = rng if rng is not None else torch.Generator()
@@ -131,7 +131,7 @@ class BernoulliGLM(BaseModel):
         return torch.sigmoid(input - self.theta)*self.dt
 
     def emit_spikes(self, probabilities: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Emits spikes from the neurons given their probabilities of spiking
 
         .. math::

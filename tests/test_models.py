@@ -2,25 +2,81 @@ import pytest
 from torch.testing import assert_close
 import torch
 
-def test_activation(bernoulli_glm, initial_state, example_data, expected_activation_after_one_step):
-    example_connectivity_filter = bernoulli_glm.connectivity_filter(example_data.W0, example_data.edge_index)
-    output = bernoulli_glm.input(example_data.edge_index, W=example_connectivity_filter, state=initial_state)
-    assert_close(output, expected_activation_after_one_step)
 
-def test_spike_probability(bernoulli_glm, expected_probability_after_one_step, expected_activation_after_one_step):
-    probabilities = bernoulli_glm.non_linearity(expected_activation_after_one_step)
-    assert_close(probabilities, expected_probability_after_one_step)
+# Parametrize these with the other models and their expected outputs
+@pytest.mark.parametrize(
+    "model,example_data,expected_activation", 
+    [
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_expected_activation')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_expected_activation')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_expected_activation')),
+    ],
+)
+def test_activation(model, example_data, expected_activation):
+    initial_state = torch.zeros((example_data.num_nodes, model.T))
+    initial_state[:, -1] = torch.randint(0, 2, (example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
+    connectivity_filter = model.connectivity_filter(example_data.W0, example_data.edge_index)
+    output = model.input(example_data.edge_index, W=connectivity_filter, state=initial_state)
 
-def test_state_after_one_step(bernoulli_glm, initial_state, example_data, expected_output_after_one_step):
-    connectivity_filter = bernoulli_glm.connectivity_filter(example_data.W0, example_data.edge_index)
-    state = bernoulli_glm(example_data.edge_index, connectivity_filter, state=initial_state)
-    assert_close(state, expected_output_after_one_step.squeeze())
+    assert_close(output, expected_activation)
 
-def test_connectivity_filter(bernoulli_glm, example_data, example_connectivity_filter):
+@pytest.mark.parametrize(
+    "model,example_data,expected_input",
+    [
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_network'), pytest.lazy_fixture('threshold_sam_expected_activation')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_network'), pytest.lazy_fixture('rectified_sam_expected_activation'))
+    ],
+)
+def test_input_activation_models(model, example_data, expected_input):
+    initial_state = torch.zeros((example_data.num_nodes, model.T))
+    initial_state[:, -1] = torch.rand((example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
+
+    connectivity_filter = model.connectivity_filter(example_data.W0, example_data.edge_index)
+    output = model.input(example_data.edge_index, W=connectivity_filter, state=initial_state)
+
+    assert_close(output, expected_input)
+
+@pytest.mark.parametrize(
+    "model,expected_activation,expected_probability",
+    [
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_activation'), pytest.lazy_fixture('bernoulli_glm_expected_probability')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_activation'), pytest.lazy_fixture('exponential_glm_expected_probability')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_activation'), pytest.lazy_fixture('rectified_lnp_expected_probability')),
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_activation'), pytest.lazy_fixture('threshold_sam_expected_probability')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_activation'), pytest.lazy_fixture('rectified_sam_expected_probability')),
+    ],
+)
+def test_spike_probability(model, expected_probability, expected_activation):
+    probabilities = model.non_linearity(expected_activation)
+    assert_close(probabilities, expected_probability)
+
+@pytest.mark.parametrize(
+    "model,expected_probability,expected_output",
+    [
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_probability'), pytest.lazy_fixture('bernoulli_glm_expected_output')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_probability'), pytest.lazy_fixture('exponential_glm_expected_output')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_probability'), pytest.lazy_fixture('rectified_lnp_expected_output')),
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_probability'), pytest.lazy_fixture('threshold_sam_expected_output')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_probability'), pytest.lazy_fixture('rectified_sam_expected_output')),
+    ]
+)
+def test_output(model, expected_probability, expected_output):
+    state = model.emit_spikes(expected_probability)
+    assert_close(state, expected_output.squeeze())
+
+@pytest.mark.parametrize(
+    "model,example_data,expected_connectivity_filter",
+    [
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_connectivity_filter')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_connectivity_filter')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_connectivity_filter'))
+    ]
+)
+def test_connectivity_filter(model, example_data, expected_connectivity_filter):
     example_W0 = example_data.W0
     example_edge_index = example_data.edge_index
-    W = bernoulli_glm.connectivity_filter(example_W0, example_edge_index)
-    assert_close(W, example_connectivity_filter)
+    W = model.connectivity_filter(example_W0, example_edge_index)
+    assert_close(W, expected_connectivity_filter)
 
 def test_not_tunable(bernoulli_glm):
     with pytest.raises(ValueError):
@@ -37,6 +93,9 @@ def test_save_load(bernoulli_glm):
         assert_close(param, loaded_param)
 
 def test_stimulus(bernoulli_glm, regular_stimulus):
-    from torch.testing import assert_close
     bernoulli_glm.add_stimulus(regular_stimulus)
     assert "stimulus.strength" in bernoulli_glm.tunable_parameters
+
+def test_fails_stimulus_is_not_callable(bernoulli_glm):
+    with pytest.raises(TypeError):
+        bernoulli_glm.add_stimulus(1)

@@ -55,10 +55,11 @@ class ThresholdSAM(SAModel):
         self.register_buffer("sigma", torch.tensor(sigma, dtype=torch.float))
         self.register_buffer("rho", torch.tensor(rho, dtype=torch.float))
         self.register_buffer("theta", torch.tensor(theta, dtype=torch.float))
+        self.register_buffer("T", torch.tensor(1, dtype=torch.int))
         self._rng = rng
     
     def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask=False) -> torch.Tensor:
-        """
+        r"""
         Calculates the input to each of the neurons at time t according to the formula:
 
         .. math::
@@ -88,8 +89,8 @@ class ThresholdSAM(SAModel):
         """
         return self.r*self.synaptic_input(edge_index, W, state=state) + self.background_input(state.shape[0]) + self.stimulus_input(t, stimulus_mask)
 
-    def background_input(self, n_neurons):
-        """
+    def background_input(self, n_neurons: int):
+        r"""
         Generate the background input. This is a uniform excitatory input given by the parameter :math:`b`
         plus a scaled Gaussian noise with standard deviation :math:`\sigma` and some sparsity.
 
@@ -109,7 +110,7 @@ class ThresholdSAM(SAModel):
         filtered_noise = noise * filtered
         return self.b*(1 + noise*filtered_noise)
 
-    def emit_spikes(self, input):
+    def emit_spikes(self, input: torch.Tensor) -> torch.Tensor:
         """
         Emit spikes from the network. The neuron will spike if the input it receives is above the threshold.
 
@@ -125,7 +126,7 @@ class ThresholdSAM(SAModel):
         """
         return input > self.theta
 
-    def update_activation(self, spikes, activation):
+    def update_activation(self, spikes: torch.Tensor, activation: torch.Tensor) -> torch.Tensor:
         r"""
         Update the activation of the neurons according to the formula:
 
