@@ -58,14 +58,21 @@ def sparse_glorot_dataset():
     return dataset
 
 @pytest.fixture
+def example_data(saved_glorot_dataset):
+    return saved_glorot_dataset[0]
+
+@pytest.fixture
+def data_with_stimulus_mask(saved_glorot_dataset):
+    data = saved_glorot_dataset[0]
+    data.stimulus_mask = torch.isin(torch.arange(20), torch.randperm(20)[:10])
+    return data
+
+@pytest.fixture
 def data_loader(saved_glorot_dataset):
     from torch.utils.data import DataLoader
     data_loader = DataLoader(saved_glorot_dataset, batch_size=10)
     return data_loader
 
-@pytest.fixture
-def example_data(saved_glorot_dataset):
-    return saved_glorot_dataset[0]
 
 @pytest.fixture
 def bernoulli_glm_connectivity_filter():

@@ -25,7 +25,7 @@ class BaseModel(MessagePassing):
     """
     def __init__(self):
         super().__init__()
-        self.stimulus = lambda t: torch.zeros(1, dtype=torch.bool)
+        self.stimulus = lambda t: 0
 
     @property
     def tunable_parameters(self) -> dict:
