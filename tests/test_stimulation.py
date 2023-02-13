@@ -111,7 +111,7 @@ def test_manual_stimulus(example_data, bernoulli_glm):
     initial_state[:, -1] = torch.randint(0, 2, (example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
 
     connectivity_filter = bernoulli_glm.connectivity_filter(example_data.W0, example_data.edge_index)
-    activation_without_stimulus = bernoulli_glm.synaptic_input(example_data.edge_index, connectivity_filter, state=initial_state, t=0)
+    input_without_stimulus = bernoulli_glm.synaptic_input(example_data.edge_index, connectivity_filter, state=initial_state, t=0)
     
     n_neurons = example_data.num_nodes
     targets = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -119,8 +119,8 @@ def test_manual_stimulus(example_data, bernoulli_glm):
 
     func = lambda t: np.cos(t)
     bernoulli_glm.add_stimulus(func)
-    activation_with_stimulus = bernoulli_glm.input(example_data.edge_index, connectivity_filter, state=initial_state, t=0, stimulus_mask=stim_mask)
-    assert any(activation_with_stimulus != activation_without_stimulus)
+    input_with_stimulus = bernoulli_glm.input(example_data.edge_index, connectivity_filter, state=initial_state, t=0, stimulus_mask=stim_mask)
+    assert any(input_with_stimulus != input_without_stimulus)
 
 def test_tuning_with_stimulus(bernoulli_glm, example_data, regular_stimulus):
     tunable_parameters = ["theta", "alpha", "beta"]

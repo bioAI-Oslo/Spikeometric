@@ -5,29 +5,29 @@ import torch
 
 # Parametrize these with the other models and their expected outputs
 @pytest.mark.parametrize(
-    "model,example_data,expected_activation", 
+    "model,example_data,expected_input", 
     [
-        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_expected_activation')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_expected_activation')),
-        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_expected_activation')),
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_expected_input')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_expected_input')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_expected_input')),
     ],
 )
-def test_activation(model, example_data, expected_activation):
+def test_input(model, example_data, expected_input):
     initial_state = torch.zeros((example_data.num_nodes, model.T))
     initial_state[:, -1] = torch.randint(0, 2, (example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
     connectivity_filter = model.connectivity_filter(example_data.W0, example_data.edge_index)
     output = model.input(example_data.edge_index, W=connectivity_filter, state=initial_state)
 
-    assert_close(output, expected_activation)
+    assert_close(output, expected_input)
 
 @pytest.mark.parametrize(
     "model,example_data,expected_input",
     [
-        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_network'), pytest.lazy_fixture('threshold_sam_expected_activation')),
-        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_network'), pytest.lazy_fixture('rectified_sam_expected_activation'))
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_network'), pytest.lazy_fixture('threshold_sam_expected_input')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_network'), pytest.lazy_fixture('rectified_sam_expected_input'))
     ],
 )
-def test_input_activation_models(model, example_data, expected_input):
+def test_input_input_models(model, example_data, expected_input):
     initial_state = torch.zeros((example_data.num_nodes, model.T))
     initial_state[:, -1] = torch.rand((example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
 
@@ -37,31 +37,31 @@ def test_input_activation_models(model, example_data, expected_input):
     assert_close(output, expected_input)
 
 @pytest.mark.parametrize(
-    "model,expected_activation,expected_probability",
+    "model,expected_input,expected_rates",
     [
-        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_activation'), pytest.lazy_fixture('bernoulli_glm_expected_probability')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_activation'), pytest.lazy_fixture('exponential_glm_expected_probability')),
-        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_activation'), pytest.lazy_fixture('rectified_lnp_expected_probability')),
-        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_activation'), pytest.lazy_fixture('threshold_sam_expected_probability')),
-        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_activation'), pytest.lazy_fixture('rectified_sam_expected_probability')),
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_input'), pytest.lazy_fixture('bernoulli_glm_expected_rates')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_input'), pytest.lazy_fixture('exponential_glm_expected_rates')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_input'), pytest.lazy_fixture('rectified_lnp_expected_rates')),
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_input'), pytest.lazy_fixture('threshold_sam_expected_rates')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_input'), pytest.lazy_fixture('rectified_sam_expected_rates')),
     ],
 )
-def test_spike_probability(model, expected_probability, expected_activation):
-    probabilities = model.non_linearity(expected_activation)
-    assert_close(probabilities, expected_probability)
+def test_spike_rates(model, expected_rates, expected_input):
+    probabilities = model.non_linearity(expected_input)
+    assert_close(probabilities, expected_rates)
 
 @pytest.mark.parametrize(
-    "model,expected_probability,expected_output",
+    "model,expected_rates,expected_output",
     [
-        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_probability'), pytest.lazy_fixture('bernoulli_glm_expected_output')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_probability'), pytest.lazy_fixture('exponential_glm_expected_output')),
-        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_probability'), pytest.lazy_fixture('rectified_lnp_expected_output')),
-        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_probability'), pytest.lazy_fixture('threshold_sam_expected_output')),
-        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_probability'), pytest.lazy_fixture('rectified_sam_expected_output')),
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_rates'), pytest.lazy_fixture('bernoulli_glm_expected_output')),
+        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_rates'), pytest.lazy_fixture('exponential_glm_expected_output')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_rates'), pytest.lazy_fixture('rectified_lnp_expected_output')),
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_rates'), pytest.lazy_fixture('threshold_sam_expected_output')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_rates'), pytest.lazy_fixture('rectified_sam_expected_output')),
     ]
 )
-def test_output(model, expected_probability, expected_output):
-    state = model.emit_spikes(expected_probability)
+def test_output(model, expected_rates, expected_output):
+    state = model.emit_spikes(expected_rates)
     assert_close(state, expected_output.squeeze())
 
 @pytest.mark.parametrize(

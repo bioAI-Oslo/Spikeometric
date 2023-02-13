@@ -178,14 +178,14 @@ def bernoulli_glm_network():
     return network
 
 @pytest.fixture
-def bernoulli_glm_expected_activation():
-    expected_activation = torch.load("tests/test_data/expected_activation/bernoulli_glm_expected_activation.pt")
-    return expected_activation
+def bernoulli_glm_expected_input():
+    expected_input = torch.load("tests/test_data/expected_input/bernoulli_glm_expected_input.pt")
+    return expected_input
 
 @pytest.fixture
-def bernoulli_glm_expected_probability():
-    expected_probability = torch.load("tests/test_data/expected_probability/bernoulli_glm_expected_probability.pt")
-    return expected_probability
+def bernoulli_glm_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/bernoulli_glm_expected_rates.pt")
+    return expected_rates
 
 @pytest.fixture
 def bernoulli_glm_expected_output():
@@ -199,13 +199,13 @@ def exponential_glm_network():
     return network
 
 @pytest.fixture
-def exponential_glm_expected_activation():
-    return torch.load("tests/test_data/expected_activation/exponential_glm_expected_activation.pt")
+def exponential_glm_expected_input():
+    return torch.load("tests/test_data/expected_input/exponential_glm_expected_input.pt")
 
 @pytest.fixture
-def exponential_glm_expected_probability():
-    expected_probability = torch.load("tests/test_data/expected_probability/exponential_glm_expected_probability.pt")
-    return expected_probability
+def exponential_glm_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/exponential_glm_expected_rates.pt")
+    return expected_rates
 
 @pytest.fixture
 def exponential_glm_expected_output():
@@ -219,13 +219,13 @@ def rectified_lnp_network():
     return network
 
 @pytest.fixture
-def rectified_lnp_expected_activation():
-    return torch.load("tests/test_data/expected_activation/rectified_lnp_expected_activation.pt")
+def rectified_lnp_expected_input():
+    return torch.load("tests/test_data/expected_input/rectified_lnp_expected_input.pt")
 
 @pytest.fixture
-def rectified_lnp_expected_probability():
-    expected_probability = torch.load("tests/test_data/expected_probability/rectified_lnp_expected_probability.pt")
-    return expected_probability
+def rectified_lnp_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/rectified_lnp_expected_rates.pt")
+    return expected_rates
 
 @pytest.fixture
 def rectified_lnp_expected_output():
@@ -239,13 +239,13 @@ def threshold_sam_network():
     return network
 
 @pytest.fixture
-def threshold_sam_expected_activation():
-    return torch.load("tests/test_data/expected_activation/threshold_sam_expected_activation.pt")
+def threshold_sam_expected_input():
+    return torch.load("tests/test_data/expected_input/threshold_sam_expected_input.pt")
 
 @pytest.fixture
-def threshold_sam_expected_probability():
-    expected_probability = torch.load("tests/test_data/expected_probability/threshold_sam_expected_probability.pt")
-    return expected_probability
+def threshold_sam_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/threshold_sam_expected_rates.pt")
+    return expected_rates
 
 @pytest.fixture
 def threshold_sam_expected_output():
@@ -259,13 +259,13 @@ def rectified_sam_network():
     return network
 
 @pytest.fixture
-def rectified_sam_expected_activation():
-    return torch.load("tests/test_data/expected_activation/rectified_sam_expected_activation.pt")
+def rectified_sam_expected_input():
+    return torch.load("tests/test_data/expected_input/rectified_sam_expected_input.pt")
 
 @pytest.fixture
-def rectified_sam_expected_probability():
-    expected_probability = torch.load("tests/test_data/expected_probability/rectified_sam_expected_probability.pt")
-    return expected_probability
+def rectified_sam_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/rectified_sam_expected_rates.pt")
+    return expected_rates
 
 @pytest.fixture
 def rectified_sam_expected_output():
