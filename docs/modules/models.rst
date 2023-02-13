@@ -5,7 +5,7 @@ Models
 
 The GLM and LNP models are implemented as classes that inherit from the :class:`MessagePassing` class from the `PyTorch Geometric <https://pytorch-geometric.readthedocs.io/en/latest/>`_ library.
 We represent the network as a graph, where each node corresponds to a neuron and each edge corresponds to a synapse.
-The nodes are connected according to a weight matrix :math:`\mathbf{W_0}`, where the element :math:`(W_0){i,j}` is the weight of the synapse between neuron :math:`i` and neuron :math:`j`.
+The nodes are connected according to a weight matrix :math:`\mathbf{W_0}`, where the element :math:`(W_0)_{i,j}` is the weight of the synapse between neuron :math:`i` and neuron :math:`j`.
 The state of the network at time step :math:`t` is represented by a vector :math:`\mathbf{X}_t` where each element corresponds to the spike count of a neuron at time step :math:`t`.
 
 While there are many different types of GLM and LNP models, they all share a common structure. 

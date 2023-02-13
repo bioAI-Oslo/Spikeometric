@@ -17,7 +17,7 @@ of the network. Instead of currents and voltages, they model probabilities or ex
 use these to emit spikes from the network. While they are not biologically realistic on a neuron level, they are very useful
 for when studying the network as a whole, and has the extra benefit that the parameters of the model can be fitted to real neural data 
 using maximal likelihood estimation. The GLM and LNP models are closely related. In fact, the GLM is a special case of the LNP model where the non-linearity
-is invertible (cit).
+is invertible.
 
 Introductory example
 ====================
