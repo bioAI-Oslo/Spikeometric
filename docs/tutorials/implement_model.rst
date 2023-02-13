@@ -40,8 +40,8 @@ We need a few arguments:
     #. :math:`\lambda_0`, the scaling of the expected spike rate (tunable)
     #. :math:`\theta`, the threshold input (tunable)
     #. :math:`\Delta t`, the length of the time step in milliseconds
-    #. :math:`T`, the number of miliseconds we want to consider back in time
-    #. :math:`r`, a function that determines the recfractory time course
+    #. :math:`T`, the number of time steps we want to consider back in time
+    #. :math:`r`, a function that determines the refractory time course
     #. :math:`w`, a function that determines the time course of the synaptic weights
     #. :math:`k`, a function that determines the stimulus filter
 

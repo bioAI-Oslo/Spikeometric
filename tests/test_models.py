@@ -15,8 +15,8 @@ import torch
 def test_input(model, example_data, expected_input):
     initial_state = torch.zeros((example_data.num_nodes, model.T))
     initial_state[:, -1] = torch.randint(0, 2, (example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
-    connectivity_filter = model.connectivity_filter(example_data.W0, example_data.edge_index)
-    output = model.input(example_data.edge_index, W=connectivity_filter, state=initial_state)
+    connectivity_filter, edge_index = model.connectivity_filter(example_data.W0, example_data.edge_index)
+    output = model.input(edge_index, W=connectivity_filter, state=initial_state)
 
     assert_close(output, expected_input)
 
@@ -75,7 +75,7 @@ def test_output(model, expected_rates, expected_output):
 def test_connectivity_filter(model, example_data, expected_connectivity_filter):
     example_W0 = example_data.W0
     example_edge_index = example_data.edge_index
-    W = model.connectivity_filter(example_W0, example_edge_index)
+    W, edge_index = model.connectivity_filter(example_W0, example_edge_index)
     assert_close(W, expected_connectivity_filter)
 
 def test_not_tunable(bernoulli_glm):

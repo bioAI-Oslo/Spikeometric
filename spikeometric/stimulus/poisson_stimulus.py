@@ -13,13 +13,13 @@ class PoissonStimulus(nn.Module):
     strength : float
         Strength of the stimulus :math:`s`
     mean_interval : int
-        Mean interval :math:`\lambda` between stimulus events. (ms)
+        Mean interval :math:`\lambda` between stimulus events
     duration : int
-        Duration of the stimulus. (ms)
+        Total duration :math:`T` of the stimulus.
     tau : int
-        Duration of stimulus events. (ms)
+        Duration of stimulus events
     dt: float
-        Simulation time step. (ms)
+        Time step of the simulation in ms.
     start : float
         Start time of the first stimulus event. (ms)
     rng : torch.Generator
@@ -31,13 +31,6 @@ class PoissonStimulus(nn.Module):
             raise ValueError("Stimulus length must be positive.")
         if mean_interval < 0:
             raise ValueError("Intervals must be positive.")
-
-        
-        # Convert to time steps
-        mean_interval = int(mean_interval/dt)
-        duration = int(duration/dt)
-        tau = int(tau/dt)
-        start = int(start/dt)
 
         # Buffers
         self.register_buffer("dt", torch.tensor(1, dtype=torch.float))

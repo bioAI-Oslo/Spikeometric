@@ -37,6 +37,7 @@ For each neuron :math:`i`, the state at time step :math:`t+1` is computed in thr
 These three steps form the core of the GLM and LNP models, and each class must implement them in the
 :func:`input`, :func:`non_linearity` and :func:`emit_spikes` functions, respectively.
 
+The :class:`BaseModel` class implements the core functionality of the GLM and LNP models, and the :class:`SAModel` class implements the core functionality of the activation-based models.
 
 Base models
 ------------

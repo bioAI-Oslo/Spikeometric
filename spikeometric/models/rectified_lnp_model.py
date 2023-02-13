@@ -5,23 +5,30 @@ class RectifiedLNP(BaseModel):
     r"""
     The Rectified LNP model from section S.6 of the paper `"Systematic errors in connectivity inferred from activity in strongly coupled recurrent circuits" <https://www.biorxiv.org/content/10.1101/512053v1.full>`_.
 
-    It is a Linear-Nonlinear-Poisson model, and passes the input to each neuron through a rectified linear nonlinearity
-    to give an expected firing rate.
+    It is a Linear-Nonlinear-Poisson model which passes the input to each neuron through a rectified linear nonlinearity
+    to give an expected firing rate and then samples from a Poisson distribution with that rate.
 
     Concretely, at time :math:`t+1`, the input of the network is calculated from the state at time :math:`t` as follows:
 
     .. math::
-        g_i(t+1) = r \: \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j} + b_i + f_i(t+1)
+        g_i(t+1) = r \: \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) + b_i + f_i(t+1)
     
     where :math:`r` is the scaling of the recurrent connections, :math:`b_i` is the strength of a uniform background input
-    and :math:`f_i(t+1)` is the stimulus input of neuron :math:`i` at time :math:`t+1`.
+    and :math:`f_i(t+1)` is the stimulus input to neuron :math:`i` at time :math:`t+1`.
 
-    The response to the input is then passed through a rectified linear nonlinearity:
+    The product :math:`\mathbf{W_{j,i}} \cdot \mathbf{x_j}(t)` is calculated by convolving the state of the network during
+    the coupling window :math:`T` with the synaptic weights :math:`(W_0)_{j,i}` using an exponential filter:
+
+    .. math::
+
+        \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) = \sum_{t'=0}^{T-1} (W_0)_{j, i} \: x_j(t-t') \: e^{-\Delta t \frac{t'}{\tau}}
+
+    The input is then passed through a thresholded rectified linear nonlinearity :
 
     .. math::
         \mu_i(t+1) = \lambda_0[g_i(t+1)) - \theta]_+
 
-    where :math:`\lambda_0` scales the response, :math:`\theta` is the threshold and :math:`[x]_+` is the rectified linear function.
+    where :math:`\lambda_0` scales the response, :math:`\theta` is the threshold and :math:`[\cdot]_+` is the rectified linear function.
 
     The spikes are then sampled from a Poisson distribution with rate :math:`\mu_i(t+1)`:
 
@@ -35,7 +42,7 @@ class RectifiedLNP(BaseModel):
     theta : float
         The threshold :math:`\theta` of the rectified linear nonlinearity
     T : int
-        The coupling window :math:`T` in milliseconds
+        The coupling window :math:`T` in time steps
     tau : float
         The time constant :math:`\tau` in the exponential filter in milliseconds
     dt : float
@@ -50,7 +57,6 @@ class RectifiedLNP(BaseModel):
     def __init__(self, lambda_0: float, theta: float, T: int, tau: float, dt: float, r: float, b: float, rng=None):
         super().__init__()
         # Buffers
-        T = int(T/dt)
         self.register_buffer("T", torch.tensor(T, dtype=torch.int))
         self.register_buffer("dt", torch.tensor(dt, dtype=torch.float32))
 
@@ -137,16 +143,16 @@ class RectifiedLNP(BaseModel):
     
     def connectivity_filter(self, W0: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         r"""
-        The connectivity filter of the network. This is used to calculate the recurrent input.
+        The connectivity filter of the network, which is used to compute the synaptic input.
 
         The synaptic weights are filtered with an exponential decay, so that
-        the weight of the connection between two neurons :math:`i` and :math:`j` at time :math:`t-T` 
-        before the current time step is:
+        the weight between two neurons :math:`i` and :math:`j` at time step :math:`t` after
+        a spike event is:
 
         .. math::
-            W_{ij}(t) = (W_0)_{ij} \: e^{(t - T) \Delta t / \tau} 
+            W_{ij}(t) = (W_0)_{ij} \: e^{- \Delta t \frac{t}{\tau}} 
 
-        Spikes that are emmited more than :math:`T` time steps ago have no effect on the input.
+        Spikes that are emited more than :math:`T` time steps ago have no effect on the input.
 
         Parameters
         ----------
@@ -157,8 +163,10 @@ class RectifiedLNP(BaseModel):
         
         Returns
         --------
-        torch.Tensor
+        W : torch.Tensor[float]
             The connectivity filter of the network.
+        edge_index : torch.Tensor[int]
+            The edge index of the network
         """
         t = torch.arange(1, self.T+1, dtype=torch.float32, device=W0.device).repeat(W0.shape[0], 1)
-        return torch.einsum("i, ij -> ij", W0, torch.exp((t -self.T)*self.dt/self.tau))
+        return torch.einsum("i, ij -> ij", W0, torch.exp((t -self.T)*self.dt/self.tau)), edge_index

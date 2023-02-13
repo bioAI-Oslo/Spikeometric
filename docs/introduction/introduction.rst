@@ -88,11 +88,11 @@ in the :class:`BernoulliGLM` class, using the same parameters as in the original
     model = BernoulliGLM(
         alpha= 0.2,               # Decay rate of the coupling strength between neurons (1/ms)
         beta= 0.5,                # Decay rate of the self-inhibition during the relative refractory period (1/ms)
-        abs_ref_scale=3,          # Absolute refractory period (ms)
-        rel_ref_scale=7,          # Relative refractory period (ms)
+        abs_ref_scale=3,          # Absolute refractory period in time steps
+        rel_ref_scale=7,          # Relative refractory period in time steps
         abs_ref_strength=-100,    # Strength of the self-inhibition during the absolute refractory period
         rel_ref_strength=-30,     # Initial strength of the self-inhibition during the relative refractory period
-        coupling_window=5,        # Length of coupling window (ms)
+        coupling_window=5,        # Length of coupling window in time steps
         theta=5,                  # Threshold for firing
         dt=1,                     # Length of time step (ms)
     )

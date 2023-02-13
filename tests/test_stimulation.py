@@ -7,7 +7,7 @@ def test_zero_after_duration(stimulus):
     stim = stimulus(5000)
     assert_close(stim, torch.tensor(0.))
 
-def test_regular_intervals(regular_stimulus, bernoulli_glm):
+def test_regular_periods(regular_stimulus, bernoulli_glm):
     bernoulli_glm.add_stimulus(regular_stimulus)
     mask = torch.isin(torch.arange(20), torch.tensor([0, 4, 9]))
     for i in range(0, 1000):
@@ -20,21 +20,17 @@ def test_regular_intervals(regular_stimulus, bernoulli_glm):
 
 def test_regular_no_negative_intervals():
     from spikeometric.stimulus import RegularStimulus
-    interval = -5
+    period = -5
     strength = 1
     tau = 2
-    n_events = 100
+    stop = 1000
     with pytest.raises(ValueError):
         RegularStimulus(
-            interval=interval,
+            period=period,
             strength=strength,
-            n_events=n_events,
             tau=tau,
+            stop=stop
         )
-
-def test_regular_no_negative_stim_time():
-    pass
-
 
 def test_sin_negative_amplitudes():
     from spikeometric.stimulus import SinStimulus
@@ -72,10 +68,10 @@ def test_negative_durations():
             duration=duration,
         )
 
-def test_poisson_mean_period(poisson_stimulus):
+def test_poisson_mean_interval(poisson_stimulus):
     mean_rates = poisson_stimulus.stimulus_times.sum() / poisson_stimulus.stimulus_times.max()
-    mean_periods = 1 / mean_rates
-    pytest.approx(mean_periods, poisson_stimulus.mean_interval)
+    mean_interval = 1 / mean_rates
+    pytest.approx(mean_interval, poisson_stimulus.mean_interval)
 
 def test_poisson_non_negative_period():
     from spikeometric.stimulus import PoissonStimulus
@@ -110,8 +106,8 @@ def test_manual_stimulus(example_data, bernoulli_glm):
     initial_state = torch.zeros((example_data.num_nodes, bernoulli_glm.T))
     initial_state[:, -1] = torch.randint(0, 2, (example_data.num_nodes,), generator=torch.Generator().manual_seed(14071789))
 
-    connectivity_filter = bernoulli_glm.connectivity_filter(example_data.W0, example_data.edge_index)
-    input_without_stimulus = bernoulli_glm.synaptic_input(example_data.edge_index, connectivity_filter, state=initial_state, t=0)
+    connectivity_filter, edge_index = bernoulli_glm.connectivity_filter(example_data.W0, example_data.edge_index)
+    input_without_stimulus = bernoulli_glm.synaptic_input(edge_index, connectivity_filter, state=initial_state, t=0)
     
     n_neurons = example_data.num_nodes
     targets = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -119,7 +115,7 @@ def test_manual_stimulus(example_data, bernoulli_glm):
 
     func = lambda t: np.cos(t)
     bernoulli_glm.add_stimulus(func)
-    input_with_stimulus = bernoulli_glm.input(example_data.edge_index, connectivity_filter, state=initial_state, t=0, stimulus_mask=stim_mask)
+    input_with_stimulus = bernoulli_glm.input(edge_index, connectivity_filter, state=initial_state, t=0, stimulus_mask=stim_mask)
     assert any(input_with_stimulus != input_without_stimulus)
 
 def test_tuning_with_stimulus(bernoulli_glm, example_data, regular_stimulus):

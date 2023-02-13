@@ -9,7 +9,7 @@ def generated_glorot_data():
     n_networks = 10
     rng = torch.Generator().manual_seed(14071789)
     generator = NormalGenerator(n_neurons, mean=0, std=5, glorot=True, rng=rng)
-    data = generator.generate(n_networks, add_self_loops=True)
+    data = generator.generate(n_networks)
     return data
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def generated_normal_data():
     n_networks = 10
     rng = torch.Generator().manual_seed(14071789)
     generator = NormalGenerator(n_neurons, mean=0, std=1, rng=rng)
-    data = generator.generate(n_networks, add_self_loops=True)
+    data = generator.generate(n_networks)
     return data
 
 @pytest.fixture
@@ -48,13 +48,13 @@ def generated_mexican_hat_data():
 @pytest.fixture
 def saved_glorot_dataset():
     from spikeometric.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset", add_self_loops=True)
+    dataset = ConnectivityDataset(root="tests/test_data/example_glorot_dataset")
     return dataset
 
 @pytest.fixture
 def sparse_glorot_dataset():
     from spikeometric.datasets import ConnectivityDataset
-    dataset = ConnectivityDataset(root="tests/test_data/example_sparse_glorot_dataset", add_self_loops=True)
+    dataset = ConnectivityDataset(root="tests/test_data/example_sparse_glorot_dataset")
     return dataset
 
 @pytest.fixture
@@ -132,7 +132,7 @@ def exponential_glm():
         alpha=15.9,
         beta=10,
         dt=0.1,
-        T=20,
+        T=200,
         tau=10,
         r=0.025,
         b=0.001,
@@ -148,7 +148,7 @@ def rectified_lnp():
         lambda_0=9.8,
         theta=-0.002,
         dt=0.1,
-        T=20,
+        T=200,
         tau=10.,
         r=0.025,
         b=0.001,
@@ -282,15 +282,15 @@ def expected_output_after_ten_steps():
 @pytest.fixture
 def regular_stimulus():
     from spikeometric.stimulus import RegularStimulus
-    interval = 100
+    period = 100
     strength = 5.
     tau = 10
-    n_events = 10
+    stop = 1000
     stimulus = RegularStimulus(
         strength=strength,
-        interval=interval,
-        n_events=n_events,
+        period=period,
         tau=tau,
+        stop=stop,
     )
     return stimulus
 

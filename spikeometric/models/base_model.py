@@ -207,7 +207,7 @@ class BaseModel(MessagePassing):
         n_neurons = data.num_nodes
         edge_index = data.edge_index
         W0 = data.W0
-        W = self.connectivity_filter(W0, edge_index)
+        W, edge_index = self.connectivity_filter(W0, edge_index)
         T = W.shape[1]
 
         if not hasattr(data, "stimulus_mask"):
@@ -298,7 +298,7 @@ class BaseModel(MessagePassing):
             optimizer.zero_grad()
             
             # Compute the connectivity matrix using the current parameters
-            W = self.connectivity_filter(W0, edge_index)
+            W, edge_index = self.connectivity_filter(W0, edge_index)
             T = W.shape[1]
 
             # Initialize the state of the network

@@ -70,9 +70,6 @@ def test_mexican_hat_dataset(generated_mexican_hat_data):
 def test_number_of_neurons_in_dataset(generated_glorot_data):
     assert all([data.num_nodes == 20 for data in generated_glorot_data])
 
-def test_self_loops_in_dataset(generated_glorot_data):
-    assert all([data.has_self_loops() for data in generated_glorot_data])
-
 def test_uniform_dataset(generated_uniform_data):
     assert len(generated_uniform_data) == 10
     assert all([data.num_nodes == 20 for data in generated_uniform_data])

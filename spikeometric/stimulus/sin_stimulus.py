@@ -13,17 +13,19 @@ class SinStimulus(nn.Module):
     amplitude : float
         Amplitude :math:`A` of stimulus.
     period : float
-        Period :math:`T` of stimulus (ms).
+        Period :math:`T` of stimulus
     duration : int
-        Duration :math:`\tau` stimulus in total. (ms)
+        Duration :math:`\tau` stimulus in total
     phase : float
-        Phase of stimulus :math:`\phi`. (ms)
-    d: float
+        Phase of stimulus :math:`\phi`
+    baseline: float
         The constant baseline of the stimulus.
     start : float
-        Start time :math:`t_0` of stimulus. (ms)
+        Start time :math:`t_0` of stimulus.
+    dt : float
+        Time step :math:`\Delta t` of the simulation in ms.
     """
-    def __init__(self, amplitude: float, period: float, duration: int, phase: float = 0., d: float = 0, start: float = 0.):
+    def __init__(self, amplitude: float, period: float, duration: int, phase: float = 0., baseline: float = 0, start: float = 0., dt: float = 1.):
         super().__init__()
         if amplitude < 0:
             raise ValueError("All amplitudes must be positive.")
@@ -35,9 +37,10 @@ class SinStimulus(nn.Module):
         self.register_parameter("amplitude", nn.Parameter(torch.tensor(amplitude, dtype=torch.float)))
         self.register_parameter("period", nn.Parameter(torch.tensor(period, dtype=torch.float)))
         self.register_parameter("phase", nn.Parameter(torch.tensor(phase, dtype=torch.float)))
-        self.register_parameter("d", nn.Parameter(torch.tensor(d, dtype=torch.float)))
+        self.register_parameter("baseline", nn.Parameter(torch.tensor(baseline, dtype=torch.float)))
         self.register_buffer("duration", torch.tensor(duration, dtype=torch.int))
         self.register_buffer("start", torch.tensor(start, dtype=torch.float))
+        self.register_buffer("dt", torch.tensor(dt, dtype=torch.float))
         self.requires_grad_(False)
 
     def __call__(self, t):
@@ -47,8 +50,8 @@ class SinStimulus(nn.Module):
         Between the start time :math:`t_0` and the end time :math:`t_0 + \tau`, the stimulus is given by
 
         .. math::
-            f(t) = A \sin \left( \frac{2 \pi}{T} (t - t_0) + \phi \right)
+            f(t) = A \sin \left( \frac{2 \pi}{T} (t - t_0)\Delta t + \phi \right)
         """
         return (
-            self.amplitude * torch.sin(2*torch.pi / self.period * (t-self.start) + self.phase) + self.d
+            self.amplitude * torch.sin(2*torch.pi / self.period * (t-self.start)*self.dt + self.phase) + self.baseline
         ) * (t < self.duration) * (t >= self.start)

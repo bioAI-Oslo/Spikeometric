@@ -45,9 +45,8 @@ class ConnectivityDataset:
     stimulus_masks (list, optional):
         A list of boolean masks for each connectivity matrix, indicating which neurons should be stimulated. (default: :obj:`[]`)
     """
-    def __init__(self, root, add_self_loops=False, stimulus_masks=[]):
+    def __init__(self, root, stimulus_masks=[]):
         self.root = root
-        self.add_self_loops = add_self_loops
         self.stimulus_masks = stimulus_masks
         self.data = self.process()
 
@@ -71,8 +70,6 @@ class ConnectivityDataset:
             # Convert the connectivity matrix to a sparse adjacency matrix
             num_neurons = w0_square.shape[0]
             edge_index = w0_square.nonzero().t()
-            if self.add_self_loops:
-                edge_index, _ = add_remaining_self_loops(edge_index, num_nodes=num_neurons)
             w0 = w0_square[edge_index[0], edge_index[1]]
 
             # Create a boolean mask of the target neurons

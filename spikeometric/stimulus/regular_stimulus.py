@@ -3,35 +3,37 @@ import torch.nn as nn
 
 class RegularStimulus(nn.Module):
     r"""
-    Regular stimulus of neurons.
-
-    The first stimulus event starts at time :math:`t_0` and the following events are spaced by intervals :math:`\Delta t`.
-    The stimulus events last for a duration :math:`\tau` and have a strength :math:`s`.
+    Regular stimulus of neurons with period of :math:`T` time steps and a duration :math:`\tau` time steps for each stimulus event.
+    The stimulus is constant at :math:`s` during the stimulus events and zero otherwise.
+    The first stimulus event starts at time step :math:`t_0` and the stimulus ends at time step :math:`t_s`.
 
     Parameters
     ----------
     strength : float
         Strength :math:`s` of the stimulus.
-    start : float
-        Start time :math:`t_0` of the first stimulus event. (ms)
-    interval : float
-        Interval :math:`\Delta t` between that beginning of each stimulus events. (ms)
-    n_events : int
-        Number of stimulus events.
-    tau : float
-        Duration :math:`\tau` of each stimulus event. (ms)
+    start : int
+        Start time :math:`t_0` of the first stimulus event
+    period : int
+        period :math:`T` of the stimulus
+    stop : int
+        Stop time :math:`t_s` of the stimulus
+    tau : int
+        Duration :math:`\tau` of each stimulus event
+    dt : float
+        Time step :math:`\Delta t` of the simulation in ms.
     """
-    def __init__(self, strength: float, interval: float, n_events: int, tau: float, start: float=0.):
+    def __init__(self, strength: float, period: int, tau: int, stop: int, start: int=0, dt: float=1.):
         super(RegularStimulus, self).__init__()
         if tau < 0:
             raise ValueError("Temporal scale must be positive.")
-        if interval < 0:
-            raise ValueError("Interval of stimulus must be positive.")
+        if period < 0:
+            raise ValueError("Period of stimulus must be positive.")
 
-        self.register_buffer("start", torch.tensor(start, dtype=torch.float))
-        self.register_buffer("interval", torch.tensor(interval, dtype=torch.float))
-        self.register_buffer("n_events", torch.tensor(n_events, dtype=torch.int))
+        self.register_buffer("start", torch.tensor(start, dtype=torch.int))
+        self.register_buffer("period", torch.tensor(period, dtype=torch.int))
+        self.register_buffer("stop", torch.tensor(stop, dtype=torch.int))
         self.register_buffer("tau", torch.tensor(tau, dtype=torch.float))
+        self.register_buffer("dt", torch.tensor(dt, dtype=torch.float))
 
         self.register_parameter("strength", nn.Parameter(torch.tensor(strength, dtype=torch.float)))
 
@@ -39,8 +41,8 @@ class RegularStimulus(nn.Module):
 
     def __call__(self, t):
         r"""
-        Computes the stimulus at time :math:`t`. The stimulus is constant at :math:`s` during
-        the intervals :math:`[t_i, t_i + n\tau]` and zero otherwise.
+        Computes the stimulus at time step :math:`t`. The stimulus is constant at :math:`s` during
+        the stimulus events and zero otherwise.
 
         Parameters
         ----------
@@ -52,4 +54,4 @@ class RegularStimulus(nn.Module):
         torch.Tensor
             Stimulus at time :math:`t`.
         """
-        return self.strength*(t % self.interval < self.tau)*(t >= self.start)*(t < self.start + self.n_events*self.interval)
+        return self.strength*(t % self.period < self.tau)*(t >= self.start)*(t < self.stop)
