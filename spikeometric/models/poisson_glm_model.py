@@ -1,44 +1,32 @@
 from spikeometric.models.base_model import BaseModel
 import torch
-from tqdm import tqdm
 
-class ExponentialGLM(BaseModel):
+class PoissonGLM(BaseModel):
     r"""
-    The Exponential GLM model from section S.7 of the paper 
+    The Poisson GLM model from section S.7 of the paper 
     `"Systematic errors in connectivity inferred from activity in strongly coupled recurrent circuits"
     <https://www.biorxiv.org/content/10.1101/512053v1.full>`_.
 
-    It is a Poisson GLM model that passes the input to each neuron through an exponential nonlinearity
+    It is a Poisson Generalized Linear Model model that passes the input to each neuron through an exponential non-linearity
     and samples a spike count from a Poisson distribution.
 
-    More specifically, at time :math:`t+1`, the input of the network is calculated from the state at time :math:`t` as follows:
+    More specifically, we have the following equations:
 
-    .. math::
-        g_i(t+1) = r \: \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) + b_i + f_i(t+1)
+        #. .. math:: g_i(t+1) = r \: \sum_{\tau = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau)c(\tau) + b_i + \mathcal{E}_i(t+1)
+        #. .. math:: \mu_i(t+1) = \frac{\Delta t}{\alpha}\: e^{\beta g_i(t+1)}
+        #. .. math:: X_i(t+1) \sim \text{Pois}(\mu_i(t+1))
 
-    where :math:`r` is the scaling of the recurrent connections, :math:`b_i` is the strength of a uniform background input
-    and :math:`f_i(t+1)` is the stimulus input of neuron :math:`i` at time :math:`t+1`.
+    The first equation is implemented in the :meth:`input` method and gives the input to neuron :math:`i` at time :math:`t+1`
+    as a convolution of the spike history of the neighboring neurons with a coupling filter :math:`c`, weighted by the
+    connectivity matrix :math:`W_0`, and scaled by the recurrent scaling factor :math:`r`. There is also a uniform background
+    input :math:`b_i` and an external stimulus :math:`\mathcal{E}_i(t+1)`.
 
-    The product :math:`\mathbf{W_{j,i}} \cdot \mathbf{x_j}(t)` is calculated by convolving the state of the network during
-    the coupling window :math:`T` with the synaptic weights :math:`(W_0)_{j,i}` using an exponential filter:
+    The second equation is implemented in the :meth:`non_linearity` method and gives the mean spike count of neuron :math:`i`
+    at time :math:`t+1` as a function of the input :math:`g_i(t+1)`. 
 
-    .. math::
+    Finally, the third equation is implemented in the :meth:`emit_spikes` method and samples the spike count of neuron :math:`i`
+    at time :math:`t+1` from a Poisson distribution with mean :math:`\mu_i(t+1)`.
 
-        \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) = \sum_{t'=0}^{T-1} (W_0)_{j, i} \: x_j(t-t') \: e^{-\Delta t \frac{t'}{\tau}}
-    
-
-
-    The response to the input is then passed through an exponential nonlinearity:
-
-    .. math::
-        \mu_i(t+1) = \frac{1}{\alpha}\: e^{\beta g_i(t+1)}
-
-    where :math:`\alpha` and :math:`\beta` are parameters of the model that control the nonlinearity.
-
-    The spikes are then sampled from a Poisson distribution with rate :math:`\mu_i(t+1)`:
-
-    .. math::
-        x_i(t+1) = \text{Pois}(\mu_i(t+1))
     
     Parameters
     ----------
@@ -81,8 +69,7 @@ class ExponentialGLM(BaseModel):
         r"""
         The input to the network at time t+1.
 
-        .. math::
-            g_i(t+1) = r \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) + b_i + f_i(t+1)
+        .. math:: g_i(t+1) = r \: \sum_{\tau = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau)c(\tau) + b_i + \mathcal{E}_i(t+1)
 
         Parameters
         ----------
@@ -112,8 +99,7 @@ class ExponentialGLM(BaseModel):
         r"""
         The exponential non-linearity of the model. Calculates an expected spike count from the input.
 
-        .. math::
-            \mu_i(t+1) = \frac{1}{\alpha} e^{\beta g_i(t+1)}
+        .. math:: \mu_i(t+1) = \frac{\Delta t}{\alpha}\: e^{\beta g_i(t+1)}
 
         Parameters
         ----------
@@ -131,8 +117,7 @@ class ExponentialGLM(BaseModel):
         r"""
         Samples the spikes from a Poisson distribution with rate :math:`\mu_i(t+1)`.
 
-        .. math::
-            x_i(t+1) = \text{Pois}(\mu_i(t+1))
+        .. math:: X_i(t+1) \sim \text{Pois}(\mu_i(t+1))
 
         Parameters
         ----------
@@ -148,14 +133,13 @@ class ExponentialGLM(BaseModel):
     
     def connectivity_filter(self, W0: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         r"""
-        The connectivity filter of the network, which is used to calculate the synaptic input.
-
-        The synaptic weights are filtered with an exponential decay, so that
-        the weight between two neurons :math:`i` and :math:`j` at time step :math:`t` after
-        a spike event is:
+        The connectivity filter of the network is a tensor that contains the synaptic weights
+        between two neurons :math:`i` and :math:`j` at time step :math:`t` after a spike event.
+        This is computed by filtering the initial synaptic weights :math:`W_0` with the
+        exponetial coupling kernel :math:`c`:
 
         .. math::
-            W_{ij}(t) = (W_0)_{ij} \: e^{- \Delta t \frac{t}{\tau}} 
+            W_{i,j}(t) = (W_0)_{i,j} \: c(t) = (W_0)_{i,j} e^{- \Delta t \frac{t}{\tau}}
 
         Spikes that are emited more than :math:`T` time steps ago have no effect on the input.
 

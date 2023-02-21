@@ -25,7 +25,6 @@ def generated_normal_data():
 @pytest.fixture
 def generated_uniform_data():
     from spikeometric.datasets import UniformGenerator
-    import shutil
     n_neurons = 20
     n_sims = 10
     rng = torch.Generator().manual_seed(14071789)
@@ -80,8 +79,8 @@ def bernoulli_glm_connectivity_filter():
     return connectivity_filter
 
 @pytest.fixture
-def exponential_glm_connectivity_filter():
-    connectivity_filter = torch.load("tests/test_data/connectivity_filter/exponential_glm_connectivity_filter.pt")
+def poisson_glm_connectivity_filter():
+    connectivity_filter = torch.load("tests/test_data/connectivity_filter/poisson_glm_connectivity_filter.pt")
     return connectivity_filter
 
 @pytest.fixture
@@ -125,10 +124,10 @@ def threshold_sam():
     return model
 
 @pytest.fixture
-def exponential_glm():
-    from spikeometric.models import ExponentialGLM
+def poisson_glm():
+    from spikeometric.models import PoissonGLM
     rng = torch.Generator().manual_seed(14071789)
-    model = ExponentialGLM(
+    model = PoissonGLM(
         alpha=15.9,
         beta=10,
         dt=0.1,
@@ -193,23 +192,23 @@ def bernoulli_glm_expected_output():
     return expected_state
 
 @pytest.fixture
-def exponential_glm_network():
+def poisson_glm_network():
     from spikeometric.datasets import NormalGenerator
     network = NormalGenerator(20, mean=0, std=1, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1)[0]
     return network
 
 @pytest.fixture
-def exponential_glm_expected_input():
-    return torch.load("tests/test_data/expected_input/exponential_glm_expected_input.pt")
+def poisson_glm_expected_input():
+    return torch.load("tests/test_data/expected_input/poisson_glm_expected_input.pt")
 
 @pytest.fixture
-def exponential_glm_expected_rates():
-    expected_rates = torch.load("tests/test_data/expected_rates/exponential_glm_expected_rates.pt")
+def poisson_glm_expected_rates():
+    expected_rates = torch.load("tests/test_data/expected_rates/poisson_glm_expected_rates.pt")
     return expected_rates
 
 @pytest.fixture
-def exponential_glm_expected_output():
-    expected_state = torch.load("tests/test_data/expected_output/exponential_glm_expected_output.pt")
+def poisson_glm_expected_output():
+    expected_state = torch.load("tests/test_data/expected_output/poisson_glm_expected_output.pt")
     return expected_state
 
 @pytest.fixture

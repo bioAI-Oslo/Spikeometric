@@ -11,43 +11,22 @@ class BernoulliGLM(BaseModel):
     Intuitively, it passes the input to each neuron through a sigmoid nonlinearity to get a probability of firing and
     samples spikes from the resulting Bernoulli distribution.
 
-    More precisely, at time :math:`t+1`, the state :math:`x_i(t+1)` of neuron :math:`i` is calculated in three steps:
-    
-    We start by computing the input to :math:`i`:
+    More formally, the model can be broken into three steps, each of which is implemented as a separate method in this class:
 
-    .. math::
-        g_i(t+1) = \sum_{j \in \mathcal{N}(i) \cup \{ i \}} \mathbf{W_{j, i}} \cdot \mathbf{x_j}(t) + f_i(t+1)
+        #. .. math:: g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)r(\tau) + \sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
+        #. .. math:: p_i(t+1) = \sigma(g_i(t+1) - \theta) \Delta t
+        #. .. math:: X_i(t+1) \sim \text{Bernoulli}(p_i(t+1))
 
-    Where the first sum represents the input from the other neurons in the network and the second term represents the input from an external stimulus.
+    The first equation is implemented in the :meth:`input` method and gives us the input to the neuron :math:`i` at time :math:`t+1` as a sum of the refractory, synaptic and external inputs.
+    The refractory input is calculated by convolving the spike history of the neuron itself with a refractory filter :math:`r`, the synaptic input is obtained by convolving the spike history 
+    of the neuron's neighbors with the coupling filter :math:`c`, weighted by the synaptic weights :math:`W_0`, and the exteral input is given by evaluating an external input function :math:`\mathcal{E}` at time :math:`t+1`.
 
-    The product :math:`\mathbf{W_{j,i}} \cdot \mathbf{x_j}(t)` is calculated in one of two ways according to
-    whether the edge is between a neuron and itself or between two different neurons.
-    
-    For the case :math:`j \neq i` we convolve the state of the network during the coupling window :math:`c_w` with the synaptic weights 
-    :math:`(W_0)_{j,i}` using an exponential filter:
+    The second equation is implemented in :meth:`non_linearity` which computes the probability that the neuron :math:`i` spikes at time :math:`t+1` by passing 
+    its input :math:`g_i(t+1)` through a sigmoid nonlinearity with threshold :math:`\theta`. The probability is then scaled by the time step size :math:`\Delta t` to get the probability of spiking
+    in an interval of length :math:`\Delta t`.
 
-    .. math::
-        \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) = \sum_{t'=0}^{c_w-1} (W_0)_{j, i} \: x_j(t-t') \: e^{- \alpha \Delta t \: t'}
-    
-    And for :math:`j=i` we want to add a negative input to the neuron during the absolute refractory period :math:`A_{ref}` 
-    and a decaying negative input during the relative refractory period :math:`R_{ref}`:
+    Finally, the third equation is implemented in :meth:`emit_spikes` which samples the spike of the neuron :math:`i` at time :math:`t+1` from the Bernoulli distribution with probability :math:`p_i(t+1)`.
 
-    .. math::
-
-        \mathbf{W_{i,i}} \cdot \mathbf{x_i}(t) = \sum_{t'=0}^{A_{ref}-1} a \: x_i(t-t') + \sum_{t'=A_{ref}}^{R_{ref}-1} r \: x_i(t-t') \: e^{- \beta \Delta t \: t'}
-    
-    where :math:`a` is the absolute refractory strength and :math:`r` is the relative refractory strength.
-
-    We then convert the input to a firing rate by subtracting a threshold value :math:`\theta` and applying a sigmoid non-linearity:
-
-    .. math::
-        p_i(t+1) = \frac{1}{1 + e^{-(g_i(t+1) - \theta)}}
-
-    Finally, we draw spikes from a Bernoulli distribution with the firing rate :math:`p_i(t)` as the probability of spiking for each neuron.
-
-    .. math::
-        x_i(t+1) \sim Bernoulli(p_i(t+1))
-    
     Parameters
     -----------
     theta : float
@@ -86,7 +65,7 @@ class BernoulliGLM(BaseModel):
         ):
         super().__init__()
         # Buffers are used to store tensors that will not be tunable
-        T = max(coupling_window, abs_ref_scale + rel_ref_scale) # The total number of time steps we need to store for the convolution
+        T = max(coupling_window, abs_ref_scale + rel_ref_scale) # The total number of time steps we need consider for the refractory and coupling filters
 
         self.register_buffer("T", torch.tensor(T, dtype=torch.int))
         self.register_buffer("dt", torch.tensor(dt, dtype=torch.float))
@@ -109,7 +88,7 @@ class BernoulliGLM(BaseModel):
         Computes the input at time step :obj:`t+1` by adding together the synaptic input from neighboring neurons and the stimulus input.
 
         .. math::
-            g_i(t+1) = \sum_{j \in \mathcal{N}(i) \cup \{ i \}} \mathbf{W_{j, i}} \cdot \mathbf{x_j}(t) + f_i(t+1)
+            g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)r(\tau) + \sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
 
         Parameters
         ----------
@@ -136,7 +115,7 @@ class BernoulliGLM(BaseModel):
         Computes the probability that a neuron spikes given its input
 
         .. math::
-            p_i(t) = \frac{1}{1 + e^{-(g_i(t) - \theta)}}
+            p_i(t+1) = \sigma(g_i(t+1) - \theta)
 
         Parameters
         ----------
@@ -155,7 +134,7 @@ class BernoulliGLM(BaseModel):
         Emits spikes from the neurons given their probabilities of spiking
 
         .. math::
-            x_i(t) \sim Bernoulli(p_i(t))
+            P(X_i(t+1) = 1) = p_i(t+1)
 
         Parameters
         ----------
@@ -172,44 +151,44 @@ class BernoulliGLM(BaseModel):
     def connectivity_filter(self, W0: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         r"""
         The connectivity filter constructs a tensor holding the weights of the edges in the network.
-        These weights represent the strength of the connection between two neurons over the coupling window 
-        and are used to compute the synaptic input.
+        This is done by filtering the initial coupling weights :math:`W_0` with the coupling filter :math:`c` 
+        and using a refractory filter :math:`r` as self-edge weights to emulate the refractory period.
 
-        There are two types of edges: edges between different neurons and edges between a neuron and itself.
-
-        For the first kind, we are given an initial weight :math:`(W_0)_{i,j}` for each edge. This
+        For the coupling edges, we are given an initial weight :math:`(W_0)_{i,j}` for each edge. This
         tells us how strong the connection between neurons :math:`i` and :math:`j` is immediately after a spike event.
-        We then use the exponential decay function to model the decay of the connection strength over the 
+        We then use an exponential decay as our coupling filter :math:`c` to model the decay of the connection strength over the 
         next :math:`c_w` time steps. This period is called the coupling window.
         Formally, at time step :math:`t` after a spike event, the weight of an edge between neurons :math:`i` and :math:`j` is given by
 
         .. math::
-                W_{ij}(t) = \begin{cases}
+                W_{i, j}(t) = \begin{cases}
                     (W_0)_{i,j} \: e^{-\beta t \Delta t} & \text{if } t < c_w \\
                     0 & \text{if } c_w \leq t
                 \end{cases}
 
         The self-edges are used to implement the absolute and relative refractory periods. 
-        A neuron enters the absolute refractory period after it spikes, during which it cannot spike again.
-        The absolute refractory period is modelled by setting the weight of the self-edge to :math:`a`
+        A neuron enters an absolute refractory period after it spikes, during which it cannot spike again.
+        The absolute refractory period is modeled by setting the weight of the self-edge to :math:`a`
         for :math:`A_{ref}` time steps. After this, the neuron enters the relative refractory period.
         During this period, the neuron can spike again but the probability of doing so is reduced.
-        This is modelled by setting the weight of the self-edge to :math:`r e^{-\alpha t \Delta t}` for
+        This is modeled by weighting spike events by to :math:`r e^{-\alpha t \Delta t}` for
         the next :math:`R_{ref}` time steps.
     
-        That is, the weight of a self-edge at time t after a spike event is given by
+        That is, the refractory filter :math:`r` is given by
 
         .. math::
-                W_{ii}(t) = \begin{cases}
+                r(t) = \begin{cases}
                     a & \text{if } t < A_{ref} \\
                     r e^{-\alpha t \Delta t} & \text{if } A_{ref} \leq t < A_{ref} + R_{ref} \\
                     0 & \text{if }  A_{ref} + R_{ref} \leq t
                 \end{cases}
 
+        And we set `W_{i, i}(t) = r(t)` for all neurons :math:`i`.
+
         All of this information can be represented by a tensor :math:`W` of shape :math:`N\times N\times T`, where
         :code:`W[i, j, t]` is the weight of the edge from neuron :math:`i` to neuron :math:`j` at time step :math:`t` after a spike event.
 
-        Now, remove all the zero weights from :math:`W` and flatten the tensor to get a tensor of shape :math:`E\times T`, where
+        Now, we remove all the zero weights from :math:`W` and flatten the tensor to get a tensor of shape :math:`E\times T`, where
         :math:`E` is the number of edges in the network. Then, :code:`W[i, t]` is the weight of the :math:`i`-th edge at time step :math:`t` 
         after a spike event, and we can use the :code:`edge_index` tensor to tell us which edge corresponds to which neuron pair.
 

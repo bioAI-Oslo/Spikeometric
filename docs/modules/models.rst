@@ -57,7 +57,7 @@ Spike-based models
    :template: autosummary/class.rst
 
    RectifiedLNP
-   ExponentialGLM
+   PoissonGLM
    BernoulliGLM
 
 Activation-based models

@@ -8,7 +8,7 @@ import torch
     "model,example_data,expected_input", 
     [
         (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_expected_input')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_expected_input')),
+        (pytest.lazy_fixture('poisson_glm'), pytest.lazy_fixture('poisson_glm_network'), pytest.lazy_fixture('poisson_glm_expected_input')),
         (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_expected_input')),
     ],
 )
@@ -40,7 +40,7 @@ def test_input_input_models(model, example_data, expected_input):
     "model,expected_input,expected_rates",
     [
         (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_input'), pytest.lazy_fixture('bernoulli_glm_expected_rates')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_input'), pytest.lazy_fixture('exponential_glm_expected_rates')),
+        (pytest.lazy_fixture('poisson_glm'), pytest.lazy_fixture('poisson_glm_expected_input'), pytest.lazy_fixture('poisson_glm_expected_rates')),
         (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_input'), pytest.lazy_fixture('rectified_lnp_expected_rates')),
         (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_input'), pytest.lazy_fixture('threshold_sam_expected_rates')),
         (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_input'), pytest.lazy_fixture('rectified_sam_expected_rates')),
@@ -54,7 +54,7 @@ def test_spike_rates(model, expected_rates, expected_input):
     "model,expected_rates,expected_output",
     [
         (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_expected_rates'), pytest.lazy_fixture('bernoulli_glm_expected_output')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_expected_rates'), pytest.lazy_fixture('exponential_glm_expected_output')),
+        (pytest.lazy_fixture('poisson_glm'), pytest.lazy_fixture('poisson_glm_expected_rates'), pytest.lazy_fixture('poisson_glm_expected_output')),
         (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_expected_rates'), pytest.lazy_fixture('rectified_lnp_expected_output')),
         (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_expected_rates'), pytest.lazy_fixture('threshold_sam_expected_output')),
         (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_expected_rates'), pytest.lazy_fixture('rectified_sam_expected_output')),
@@ -68,7 +68,7 @@ def test_output(model, expected_rates, expected_output):
     "model,example_data,expected_connectivity_filter",
     [
         (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network'), pytest.lazy_fixture('bernoulli_glm_connectivity_filter')),
-        (pytest.lazy_fixture('exponential_glm'), pytest.lazy_fixture('exponential_glm_network'), pytest.lazy_fixture('exponential_glm_connectivity_filter')),
+        (pytest.lazy_fixture('poisson_glm'), pytest.lazy_fixture('poisson_glm_network'), pytest.lazy_fixture('poisson_glm_connectivity_filter')),
         (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network'), pytest.lazy_fixture('rectified_lnp_connectivity_filter'))
     ]
 )

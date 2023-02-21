@@ -8,32 +8,22 @@ class RectifiedLNP(BaseModel):
     It is a Linear-Nonlinear-Poisson model which passes the input to each neuron through a rectified linear nonlinearity
     to give an expected firing rate and then samples from a Poisson distribution with that rate.
 
-    Concretely, at time :math:`t+1`, the input of the network is calculated from the state at time :math:`t` as follows:
+    More formally, the model is defined by the three equations:
 
-    .. math::
-        g_i(t+1) = r \: \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) + b_i + f_i(t+1)
-    
-    where :math:`r` is the scaling of the recurrent connections, :math:`b_i` is the strength of a uniform background input
-    and :math:`f_i(t+1)` is the stimulus input to neuron :math:`i` at time :math:`t+1`.
+        #. .. math:: g_i(t+1) = r \: \sum_{\tau = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau)c(\tau) + b_i + \mathcal{E}_i(t+1)
+        #. .. math:: \mu_i(t+1) = \lambda_0 \Delta t [g_i(t+1)) - \theta]_+ 
+        #. .. math:: X_i(t+1) \sim \text{Pois}(\mu_i(t+1))
 
-    The product :math:`\mathbf{W_{j,i}} \cdot \mathbf{x_j}(t)` is calculated by convolving the state of the network during
-    the coupling window :math:`T` with the synaptic weights :math:`(W_0)_{j,i}` using an exponential filter:
+    The first equation is implemented by the :meth:`input` method and gives the input to neuron :math:`i` at time :math:`t+1`
+    as a sum of a recurrent synaptic input, a uniform background input :math:`b_i` and an external input :math:`\mathcal{E}_i(t+1)`.
+    The synaptic input is obtained by convolving the spike history of neighbouring neurons with a coupling filter :math:`c`, weighted by the
+    synaptic weights :math:`W_0`. The strength of the recurrence is controlled by the parameter :math:`r`.
 
-    .. math::
+    The second equation is implemented by the :meth:`non_linearity` method and gives the expected firing rate of neuron :math:`i` at time :math:`t+1`
+    by rectifying the thresholded input and scaling it by the parameter :math:`\lambda_0` and the time step :math:`\Delta t`.
 
-        \mathbf{W_{j,i}} \cdot \mathbf{x_j}(t) = \sum_{t'=0}^{T-1} (W_0)_{j, i} \: x_j(t-t') \: e^{-\Delta t \frac{t'}{\tau}}
-
-    The input is then passed through a thresholded rectified linear nonlinearity :
-
-    .. math::
-        \mu_i(t+1) = \lambda_0[g_i(t+1)) - \theta]_+
-
-    where :math:`\lambda_0` scales the response, :math:`\theta` is the threshold and :math:`[\cdot]_+` is the rectified linear function.
-
-    The spikes are then sampled from a Poisson distribution with rate :math:`\mu_i(t+1)`:
-
-    .. math::
-        x_i(t+1) \sim \text{Pois}(\mu_i(t+1))
+    The third equation is implemented by the :meth:`emit_spikes` method and samples the spikes from a Poisson distribution with rate
+    :math:`\mu_i(t+1)`.
 
     Parameters
     ----------
@@ -76,8 +66,7 @@ class RectifiedLNP(BaseModel):
         r"""
         The input to the network at time t+1.
 
-        .. math::
-            g_i(t+1) = r \sum_j \mathbf{W_{j,i}} \cdot \mathbf{x_j} + b_i + f_i(t+1)
+        .. math:: g_i(t+1) = r \: \sum_{\tau = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau)c(\tau) + b_i + \mathcal{E}_i(t+1)
 
         Parameters
         ----------
@@ -107,8 +96,7 @@ class RectifiedLNP(BaseModel):
         r"""
         Computes the response to the input through a rectified linear nonlinearity:
 
-        .. math::
-            \mu_i(t+1) = \lambda_0[g_i(t+1)) - \theta]_+
+        .. math:: \mu_i(t+1) = \lambda_0\Delta t [g_i(t+1)) - \theta]_+ 
 
         Parameters
         ----------
@@ -126,8 +114,7 @@ class RectifiedLNP(BaseModel):
         r"""
         Samples the spikes from a Poisson distribution with rate :math:`\mu_i(t+1)`.
 
-        .. math::
-            x_i(t+1) = \text{Pois}(\mu_i(t+1))
+        .. math:: X_i(t+1) \sim \text{Pois}(\mu_i(t+1))
 
         Parameters
         ----------
@@ -143,14 +130,13 @@ class RectifiedLNP(BaseModel):
     
     def connectivity_filter(self, W0: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         r"""
-        The connectivity filter of the network, which is used to compute the synaptic input.
-
-        The synaptic weights are filtered with an exponential decay, so that
-        the weight between two neurons :math:`i` and :math:`j` at time step :math:`t` after
-        a spike event is:
+        The connectivity filter of the network is a tensor that contains the synaptic weights
+        between two neurons :math:`i` and :math:`j` at time step :math:`t` after a spike event.
+        This is computed by filtering the initial synaptic weights :math:`W_0` with the
+        exponetial coupling kernel :math:`c`:
 
         .. math::
-            W_{ij}(t) = (W_0)_{ij} \: e^{- \Delta t \frac{t}{\tau}} 
+            W_{i,j}(t) = (W_0)_{i,j} \: c(t) = (W_0)_{i,j} e^{- \Delta t \frac{t}{\tau}}
 
         Spikes that are emited more than :math:`T` time steps ago have no effect on the input.
 

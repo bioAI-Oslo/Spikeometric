@@ -1,6 +1,5 @@
 from spikeometric.models.sa_model import SAModel
 import torch
-from tqdm import tqdm
 
 class ThresholdSAM(SAModel):
     r"""
@@ -9,21 +8,21 @@ class ThresholdSAM(SAModel):
     Is is a threshold-based model, where the neurons spike if the synaptic activation is above a threshold.
     Since the model is threshold-based, it is not tunable.
 
-    The input to each neuron at time :math:`t+1` is calculated as follows:
+    It is defined by the following equations:
 
-    .. math::
-        g_i(t+1) = r \: \sum_j W_{j,i}\: s_j(t) + b_i(t+1) + f_i(t+1)
+        #. .. math:: g_i(t+1) = r \: \sum_j (W_0)_{j,i}\: s_j(t) + b_i + \mathcal{E}_i(t+1)
+        #. .. math:: X_i(t+1) = \begin{cases}
+                                    1 & \text{if } g_i(t+1) > \theta \\
+                                    0 & \text{otherwise}
+                                \end{cases}
 
     where :math:`r` is the scaling of the recurrent connections, :math:`b_i` is the strength of a background input
-    and :math:`f_i(t+1)` is the stimulus input of neuron :math:`i` at time :math:`t+1`.
+    and :math:`\mathcal{E}_i(t+1)` is an external stimulus. The response to the input is then compared to a threshold :math:`\theta` 
+    and the neurons spike if the activation is above the threshold.
 
-    The response to the input is then compared to a threshold :math:`\theta`:
+    Between each time step, the synaptic activation is decayed by a factor of :math:`(1-\Delta t/\tau)` 
+    if the neuron did not spike and increased by :math:`\Delta t` if it did.
 
-    .. math::
-        x_i(t+1) = \begin{cases}
-            1 & \text{if } g_i(t+1) > \theta \\
-            0 & \text{otherwise}
-        \end{cases}
     
     Parameters
     ----------
@@ -60,14 +59,9 @@ class ThresholdSAM(SAModel):
     
     def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask=False) -> torch.Tensor:
         r"""
-        Calculates the input to each of the neurons at time t according to the formula:
+        Calculates the input to each neuron as:
 
-        .. math::
-            \mathbf{g}(t+1) = r \mathbf{W} \mathbf{s}(t) + \mathbf{b}(t) + \mathbf{f}(t)
-        
-        where :math:`r` is the scaling of the recurrent connections, :math:`\mathbf{b}` is the strength of a uniform background, with some noise,
-        :math:`\mathbf{W}` is the connectivity matrix, :math:`\mathbf{s}(t)' is the state of neurons at time :math:`t`, 
-        and :math:`f(t)` is the stimulus input at time :math:`t`.
+        .. math:: g_i(t+1) = r \: \sum_j (W_0)_{j,i}\: s_j(t) + b_i + \mathcal{E}_i(t+1)
 
         Parameters
         -----------
@@ -111,8 +105,13 @@ class ThresholdSAM(SAModel):
         return self.b*(1 + noise*filtered_noise)
 
     def emit_spikes(self, input: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Emit spikes from the network. The neuron will spike if the input it receives is above the threshold.
+
+        .. math:: X_i(t+1) = \begin{cases}
+                                    1 & \text{if } g_i(t+1) > \theta \\
+                                    0 & \text{otherwise}
+                                \end{cases}
 
         Parameters
         -----------
@@ -131,10 +130,10 @@ class ThresholdSAM(SAModel):
         Update the activation of the neurons according to the formula:
 
         .. math::
-            s_i(t+1) = s_i(t)(1 - \frac{dt}{\tau}) + \sigma_i(t)dt
+            s_i(t+1) = s_i(t)(1 - \frac{\Delta t}{\tau}) + X_i(t)\Delta t
 
-        where :math:`s_i(t)` is the activation of neuron :math:`i` at time :math:`t`, :math:`\sigma_i(t)` 
-        indicates whether the neuron spiked at time t or not, and :math:`\tau` is the time constant of the neurons.
+        where :math:`s_i(t)` is the activation of neuron :math:`i` at time :math:`t`, :math:`X_i(t)`
+        indicates whether the neuron spiked at time :math:`t` or not, and :math:`\tau` is the time constant of the neurons.
 
         Parameters
         -----------

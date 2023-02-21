@@ -10,9 +10,11 @@ class BaseModel(MessagePassing):
     
     Extends the MessagePassing class from torch_geometric by adding stimulus support and
     a forward method that calculates the spikes of the network at time t using the following steps:
-    - inpit: calculates the input to each neuron
-    - non_linearity: applies a non-linearity to the input to get the neuron's response
-    - emit_spikes: Determines the spikes of the network at time t from the response
+
+    #. :meth:`input`: calculates the input to each neuron
+    #. :meth:`non_linearity`: applies a non-linearity to the input to get the neuron's response
+    #. :meth:`emit_spikes`: Determines the spikes of the network at time t from the response
+
     These methods are overriden by the child classes to implement different models.
 
     To simulate the network, a default simulate method is provided, but can be overriden by the child classes

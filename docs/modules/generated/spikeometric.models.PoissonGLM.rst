@@ -1,9 +1,9 @@
-﻿ExponentialGLM
-==============
+﻿PoissonGLM
+==========
 
 .. currentmodule:: spikeometric.models
 
-.. autoclass:: ExponentialGLM
+.. autoclass:: PoissonGLM
    :show-inheritance:
    :members:
    :undoc-members:
