@@ -1,7 +1,7 @@
 ---
 title: 'Spikeometric: Spiking Neural Networks using GLMs and LNPs in Pytorch Geometric'
 tags:
-  - Python
+  - python
   - computational neuroscience
   - machine learning
   - spiking neural networks
@@ -22,8 +22,6 @@ date: 21 February 2023
 bibliography: paper.bib
 ---
 
-Spikeometric
-
 # Summary
 To understand the dynamics of the brain, computational neuroscientists often study smaller scale networks using simple cascade point-process models such as the Linear-Nonlinear-Poisson (LNP) model and the Generalized Linear Model (GLM) [@paninski2004maximum; @gerstner_kistler_naud_paninski_2014; @10.3389/fnsys.2016.00109].
 
@@ -32,7 +30,7 @@ Stochastic models can give key insights into the behavior of a network on a syst
 This software expands on a simulator developed for testing novel reconstruction techniques using methods from the causal inference literature [@Lepperod463758]. It provides tunable generative models in a flexible framework based on PyTorch. The primary use case, so far, has been as a data-generator for inverse problems, but the framework can easily accommodate more complicated models for encoding applications.
 
 # Statement of need
-Linear non-linear cascade models are much used in computational neuroscience and come in many flavors. Typical examples are SRM, LNP, GLM @Gerstner2008; @gerstner_kistler_naud_paninski_2014; @10.3389/fnsys.2016.00109]. What unites these models is that they all model the spike response of a network through the same cascade-like sequence of steps. At each time step, a neuron receives input from its environment and converts it to a firing rate by a nonlinear function. This firing rate parametrizes a probability distribution from which spikes are drawn. This contrasts hard-threshold-based models, in which spikes are emitted whenever a variable representing the membrane potential exceeds a certain value. 
+Linear non-linear cascade models are much used in computational neuroscience and come in many flavors. Typical examples are SRM, LNP, GLM [@Gerstner2008; @gerstner_kistler_naud_paninski_2014; @10.3389/fnsys.2016.00109]. What unites these models is that they all model the spike response of a network through the same cascade-like sequence of steps. At each time step, a neuron receives input from its environment and converts it to a firing rate by a nonlinear function. This firing rate parametrizes a probability distribution from which spikes are drawn. This contrasts hard-threshold-based models, in which spikes are emitted whenever a variable representing the membrane potential exceeds a certain value. 
 Although these models share many of the same underlying principles, no unifying framework currently permits easy implementation and direct comparison. Moreover a fast and convenient data-generation tool is currently lacking.
 
 # Implementation
@@ -43,3 +41,5 @@ The `torch` backend makes simulating large networks on a GPU easy, with the extr
 In addition to the models, the package includes dataset classes that can generate random connectivity matrices from a distribution or load pre-constructed connectivity matrices into `torch_geometric`’s `Data` objects to be passed straight to the model. These objects hold a sparse representation of our connectivity matrices and can be batched together to form isolated subgraphs of a big graph, letting us simulate many networks simultaneously.
 
 Finally, to facilitate the common use pattern of adding an external stimulus to the simulation and recording the resulting activity, we have included various stimulation classes that can be easily added to the model and even tuned to provoke a certain response.
+
+# References
