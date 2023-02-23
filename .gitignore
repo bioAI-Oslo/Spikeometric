@@ -1,8 +1,7 @@
 data/
 .vscode/
 config*
-paper.md
-paper.bib
+paper.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

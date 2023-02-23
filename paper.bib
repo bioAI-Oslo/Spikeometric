@@ -1,0 +1,91 @@
+@inproceedings{Fey/Lenssen/2019,
+  title={Fast Graph Representation Learning with {PyTorch Geometric}},
+  author={Fey, Matthias and Lenssen, Jan E.},
+  booktitle={ICLR Workshop on Representation Learning on Graphs and Manifolds},
+  year={2019},
+}
+
+@article{Das2020,
+    author={Das, Abhranil
+    and Fiete, Ila R.},
+    title={Systematic errors in connectivity inferred from activity in strongly recurrent networks},
+    journal={Nature Neuroscience},
+    year={2020},
+    month={Oct},
+    day={01},
+    volume={23},
+    number={10},
+    pages={1286-1296},
+    abstract={Understanding the mechanisms of neural computation and learning will require knowledge of the underlying circuitry. Because it is difficult to directly measure the wiring diagrams of neural circuits, there has long been an interest in estimating them algorithmically from multicell activity recordings. We show that even sophisticated methods, applied to unlimited data from every cell in the circuit, are biased toward inferring connections between unconnected but highly correlated neurons. This failure to `explain away' connections occurs when there is a mismatch between the true network dynamics and the model used for inference, which is inevitable when modeling the real world. Thus, causal inference suffers when variables are highly correlated, and activity-based estimates of connectivity should be treated with special caution in strongly connected networks. Finally, performing inference on the activity of circuits pushed far out of equilibrium by a simple low-dimensional suppressive drive might ameliorate inference bias.},
+    issn={1546-1726},
+    doi={10.1038/s41593-020-0699-2},
+    url={https://doi.org/10.1038/s41593-020-0699-2}
+}
+
+@article {Lepperod463758,
+	author = {Lepper{\o}d, Mikkel Elle and St{\"o}ber, Tristan and Hafting, Torkel and Fyhn, Marianne and Kording, Konrad Paul},
+	title = {Inferring causal connectivity from pairwise recordings and optogenetics},
+	elocation-id = {463758},
+	year = {2020},
+	doi = {8.1101/463760},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {To study how the brain works mechanistically, neuroscientists want to quantify causal interactions between neurons, typically requiring perturbations. When using optogenetic interventions, multiple neurons are usually perturbed which produces a confound {\textendash} any of the stimulated neurons can have affected the postsynaptic neuron making it challenging to discern which of the neurons produced the causal effect. Here we show how such confounds produce large biases, and we explain how they can be reduced by combining instrumental variable (IV) and difference in differences (DiD) techniques from econometrics. The interaction between stimulation and the absolute refractory period of the neuron produces a weak, approximately random signal which can be exploited to estimate causal transmission probability. On simulated neural networks, we find that estimates using ideas from IV and DiD outperform na{\"\i}ve techniques suggesting that methods from causal inference can be useful when studying neural interactions.Competing Interest StatementThe authors have declared no competing interest.},
+	URL = {https://www.biorxiv.org/content/early/2020/03/07/463760},
+	eprint = {https://www.biorxiv.org/content/early/2020/03/07/463760.full.pdf},
+	journal = {bioRxiv}
+}
+
+@article{DBLP:journals/corr/abs-2104-13478,
+  author    = {Michael M. Bronstein and
+               Joan Bruna and
+               Taco Cohen and
+               Petar Velickovic},
+  title     = {Geometric Deep Learning: Grids, Groups, Graphs, Geodesics, and Gauges},
+  journal   = {CoRR},
+  volume    = {abs/2104.13478},
+  year      = {2021},
+  url       = {https://arxiv.org/abs/2104.13478},
+  eprinttype = {arXiv},
+  eprint    = {2104.13478},
+  timestamp = {Tue, 04 May 2021 15:12:43 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-2104-13478.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{10.3389/fnsys.2016.00109, 
+  author={Meyer, Arne F. and Williamson, Ross S. and Linden, Jennifer F. and Sahani, Maneesh},   
+  title={Models of Neuronal Stimulus-Response Functions: Elaboration, Estimation, and Evaluation},      
+  journal={Frontiers in Systems Neuroscience},
+  volume={10},          
+  year={2017},
+  url={https://www.frontiersin.org/articles/10.3389/fnsys.2016.00109},       
+  DOI={10.3389/fnsys.2016.00109},      
+  ISSN={1662-5137},   
+  abstract={Rich, dynamic, and dense sensory stimuli are encoded within the nervous system by the time-varying activity of many individual neurons. A fundamental approach to understanding the nature of the encoded representation is to characterize the function that relates the moment-by-moment firing of a neuron to the recent history of a complex sensory input. This review provides a unifying and critical survey of the techniques that have been brought to bear on this effort thus far—ranging from the classical linear receptive field model to modern approaches incorporating normalization and other nonlinearities. We address separately the structure of the models; the criteria and algorithms used to identify the model parameters; and the role of regularizing terms or “priors.” In each case we consider benefits or drawbacks of various proposals, providing examples for when these methods work and when they may fail. Emphasis is placed on key concepts rather than mathematical details, so as to make the discussion accessible to readers from outside the field. Finally, we review ways in which the agreement between an assumed model and the neuron's response may be quantified. Re-implemented and unified code for many of the methods are made freely available.}
+}
+
+@book{gerstner_kistler_naud_paninski_2014,
+ place={Cambridge},
+ title={Neuronal Dynamics: From Single Neurons to Networks and Models of Cognition},
+ DOI={10.1017/CBO9781107447615},
+ publisher={Cambridge University Press},
+ author={Gerstner, Wulfram and Kistler, Werner M. and Naud, Richard and Paninski, Liam},
+ year={2014}
+}
+
+@article{Pillow2008,
+author={Pillow, Jonathan W.  and Shlens, Jonathon and Paninski, Liam and Sher, Alexander and Litke, Alan M.  and Chichilnisky, E. J.  and Simoncelli, Eero P.},
+title={Spatio-temporal correlations and visual signalling in a complete neuronal population},
+journal={Nature},
+year={2008},
+month={Aug},
+day={01},
+volume={454},
+number={7207},
+pages={995-999},
+abstract={Correlated activity between sensory neurons governs both the stimulus information conveyed by a neural population and how downstream neurons can extract it. Although previous studies looking at pairs of cells have examined correlations, their functional origin and impact on the neural code are still not understood. Pillow et al. address the question in a complete population of primate retinal ganglion cells. Fitting the physiological data to a model of multi-neuron spike responses, the authors find that a significant fraction of what is usually considered single-cell noise in trial-to-trial response variability can be explained by correlations, and that a significant amount of sensory information can be decoded from the correlation structure.},
+issn={1476-4687},
+doi={10.1038/nature07140},
+url={https://doi.org/10.1038/nature07140}
+}
+
