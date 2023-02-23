@@ -10,3 +10,8 @@ Before installing `spikeometric` you will need to download versions of PyTorch a
 # Documentation
 
 For more information about the package and a full API reference check out our [documentation](https://spikeometric.readthedocs.io/en/latest/).
+
+# How to contribute
+We welcome contributions from users and developers. If you find bugs, please report an issue on github.
+If you would like to contribute to new features you can either find an issue you would like to work on, or fork this project and develop something great. 
+Send pull request for review. We will respond as soon as possible.
