@@ -73,3 +73,11 @@ def test_no_parameters_to_tune(bernoulli_glm, example_data):
     firing_rate = 10
     with pytest.raises(ValueError):
         bernoulli_glm.tune(example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
+
+def test_tune_over_several_epochs(bernoulli_glm, example_data):
+    tunable_parameters = ["theta", "alpha", "beta"]
+    firing_rate = 10
+    initial_parameters = {parameter: bernoulli_glm.tunable_parameters[parameter].clone() for parameter in tunable_parameters}
+    bernoulli_glm.tune(example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=2, lr=0.1, verbose=False)
+    for parameter in tunable_parameters:
+        assert not bernoulli_glm.tunable_parameters[parameter] == initial_parameters[parameter]

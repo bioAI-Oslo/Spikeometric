@@ -210,7 +210,7 @@ class BernoulliGLM(BaseModel):
             The edge index (with self edges added)
         """
         # Add self edges to the connectivity matrix
-        n_edges = edge_index.shape[1]
+        n_edges = W0.shape[0]
         n_neurons = edge_index.max().item() + 1
         edge_index, _ = add_remaining_self_loops(edge_index, num_nodes=n_neurons)
         W0 = torch.cat([W0, torch.zeros(edge_index.shape[1] - n_edges, device=W0.device)], dim=0)
