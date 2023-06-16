@@ -20,16 +20,6 @@ def test_consistent_datasets(saved_glorot_dataset, generated_glorot_data):
         assert_close(s.edge_index, g.edge_index)
         assert s.num_nodes == g.num_nodes
 
-def test_added_stimulus_masks(saved_glorot_dataset):
-    n_neurons = saved_glorot_dataset[0].num_nodes
-    stim_masks = [torch.isin(torch.arange(n_neurons), torch.randperm(n_neurons)[:n_neurons//2]) for data in saved_glorot_dataset]
-    saved_glorot_dataset.add_stimulus_masks(stim_masks)
-    for i in range(len(saved_glorot_dataset)):
-        assert_close(saved_glorot_dataset[i].stimulus_mask, stim_masks[i])
-        assert saved_glorot_dataset[i].stimulus_mask.dtype == torch.bool
-        assert saved_glorot_dataset[i].stimulus_mask.shape == (saved_glorot_dataset[i].num_nodes,)
-        assert saved_glorot_dataset[i].stimulus_mask.sum() == saved_glorot_dataset[i].num_nodes // 2
-
 def test_combine_all(saved_glorot_dataset):
     mega_batch = saved_glorot_dataset.combine_all()
     assert mega_batch.num_nodes == sum(data.num_nodes for data in saved_glorot_dataset)
@@ -44,18 +34,6 @@ def test_save_from_generator():
         dataset = ConnectivityDataset(tmpdir)
         assert len(dataset) == 10
         assert all([data.num_nodes == 20 for data in dataset])
-
-def test_save_and_load_with_stimulus_masks():
-    from spikeometric.datasets import NormalGenerator, ConnectivityDataset
-    from tempfile import TemporaryDirectory
-
-    stim_masks = [torch.isin(torch.arange(20), torch.randperm(20)[:10]) for _ in range(10)]
-    with TemporaryDirectory() as tmpdir:
-        NormalGenerator(20, mean=0, std=5, glorot=True).save(10, tmpdir, stimulus_masks=stim_masks)
-        dataset = ConnectivityDataset(tmpdir)
-        assert len(dataset) == 10
-        assert all([data.num_nodes == 20 for data in dataset])
-        assert all([torch.equal(data.stimulus_mask, stim_masks[i]) for i, data in enumerate(dataset)])
 
 def test_sparsity_too_low():
     from spikeometric.datasets import NormalGenerator

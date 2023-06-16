@@ -61,17 +61,10 @@ def example_data(saved_glorot_dataset):
     return saved_glorot_dataset[0]
 
 @pytest.fixture
-def data_with_stimulus_mask(saved_glorot_dataset):
-    data = saved_glorot_dataset[0]
-    data.stimulus_mask = torch.isin(torch.arange(20), torch.randperm(20)[:10])
-    return data
-
-@pytest.fixture
 def data_loader(saved_glorot_dataset):
     from torch.utils.data import DataLoader
     data_loader = DataLoader(saved_glorot_dataset, batch_size=10)
     return data_loader
-
 
 @pytest.fixture
 def bernoulli_glm_connectivity_filter():
@@ -173,7 +166,7 @@ def rectified_sam():
 @pytest.fixture
 def bernoulli_glm_network():
     from spikeometric.datasets import NormalGenerator
-    network = NormalGenerator(20, mean=0, std=5, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1, add_self_loops=True)[0]
+    network = NormalGenerator(20, mean=0, std=5, glorot=True, rng=torch.Generator().manual_seed(14071789)).generate(1)[0]
     return network
 
 @pytest.fixture
@@ -285,11 +278,13 @@ def regular_stimulus():
     strength = 5.
     tau = 10
     stop = 1000
+    stimulus_mask = torch.isin(torch.arange(20), torch.tensor([0, 2, 4, 6, 8]))
     stimulus = RegularStimulus(
         strength=strength,
         period=period,
         tau=tau,
         stop=stop,
+        stimulus_masks=stimulus_mask,
     )
     return stimulus
 
@@ -299,10 +294,12 @@ def sin_stimulus():
     amplitude = 2.
     period = 10
     duration = 100
+    stimulus_mask = torch.isin(torch.arange(20), torch.tensor([0, 2, 4, 6, 8]))
     stimulus = SinStimulus(
         amplitude=amplitude,
         period=period,
         duration=duration,
+        stimulus_masks=stimulus_mask,
     )
     return stimulus
 
@@ -312,10 +309,21 @@ def poisson_stimulus():
     mean_interval = 100
     strength = 5.
     tau = 10
+    stimulus_mask = torch.isin(torch.arange(20), torch.tensor([0, 2, 4, 6, 8]))
     stimulus = PoissonStimulus(
         strength=strength,
         mean_interval=mean_interval,
         duration=1000,
         tau=tau,
+        stimulus_masks=stimulus_mask,
     )
+    return stimulus
+
+@pytest.fixture
+def loaded_stimulus():
+    from spikeometric.stimulus import LoadedStimulus
+    stim_plan = torch.zeros(20, 1000)
+    stim_plan[[0, 2, 4, 6, 8]] = torch.sin(torch.linspace(0, 2 * torch.pi, 1000))
+    torch.save(stim_plan, "tests/test_data/stim_plan.pt")
+    stimulus = LoadedStimulus("tests/test_data/stim_plan.pt")
     return stimulus
