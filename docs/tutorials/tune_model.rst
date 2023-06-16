@@ -7,17 +7,15 @@ but the same procedure can be applied to any other differentiable model.
 
 The RectifiedLNP model is taken from the paper 
 `"Systematic errors in connectivity inferred from activity in strongly coupled recurrent circuits" <https://www.biorxiv.org/content/10.1101/512053v1.full>`_. 
-In the paper it is hand-tuned to get an interspike interval of 16 ms (62.5 Hz firing rate). We will show how to do this automatically using :mod:`spykeometric`.
+In the paper it is hand-tuned to get an interspike interval of 16 ms (62.5 Hz firing rate). We will show how to do this automatically using :mod:`spikeometric`.
 
 The tuning procedure is as follows:
     #. Generate a dataset of networks with some connectivity you are interested in
-    #. Select a model and initialize its parameters to some initial values
+    #. Select a model and initialize its parameters (you might have to try some different initializations to get stable behavior)
     #. Use the `tune` function to find the parameters that minimize the squared difference between the model's firing rate and the target firing rate
 
 If you want to fit the parameters to some other target, you can use the model as any other PyTorch module and 
-write your own training loop. The :meth:`tune` method is just a convenience function that does this for you.
-Note only that you will want to call the :meth:`set_tunable` method at some point before training
-to make sure gradients are computed for the parameters you want to tune, since this is not the default behavior.
+write your own training loop. The :meth:`tune` method is just a convenience function that does this for the firing rate.
 
 Preparing the training data
 ---------------------------
@@ -29,8 +27,8 @@ with the neurons organized in a ring network with inhibitory weights drawn from 
     # Create a dataset of random connectivity matrices to train on
     n_neurons = 100
     n_networks = 24
-    dataset = MexicanHatGenerator(100, a=1.0015, sigma_1=6.98, sigma_2=7.).generate_examples(n_networks)
-    data_loader = DataLoader(dataset, batch_size=5, shuffle=True)
+    dataset = MexicanHatGenerator(100, a=1.0015, sigma_1=6.98, sigma_2=7.).generate(n_networks)
+    data_loader = DataLoader(dataset, batch_size=5, shuffle=False)
 
 
 The networks look like this:
@@ -90,7 +88,7 @@ Tuning the model
 ----------------
 We will use the built in :meth:`tune` method to find the a threshold parameter :math:`\theta` that works.
 The `tune` method takes a dataset, a target firing rate, and a set of parameter names to tune. 
-The :code:`tunable_parameters` defaults to all parameters, but you can specify a subset of parameters to tune by passing a list of strings,
+The :code:`tunable_parameters` defaults to all tunable_parameters of the model (you can can check what these are by calling :code:`model.tunable_parameters`), but you can specify a subset of parameters to tune by passing a list of strings,
 each of which is the name of a parameter to tune. If you have a stimulus attached to the model, you can also pass
 :code:`"stimulus"` to tune the stimulus parameters or :code:`"model"` to tune the only the model parameters.
 It also takes optional arguments :code:`n_steps`, :code:`lr` and :code:`n_epochs` to specify the number 

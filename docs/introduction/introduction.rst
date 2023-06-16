@@ -58,7 +58,7 @@ The networks are saved to the ``data/w0/50_neurons_10_0_mean_5_std_glorot`` dire
 .. code-block:: python
 
     generator = NormalGenerator(
-        n_nodes=50,
+        n_neurons=50,
         mean=0,
         std=5,
         glorot=True
@@ -111,21 +111,21 @@ We'll use the :class:`RegularStimulus` class to stimulate the network once every
 The strength of the stimulus is set to 5.0, which given the threshold parameter :code:`theta = 5` of the GLM model, 
 will result in a ~50% chance of firing for a neuron at rest. 
 
-For each network, we will stimulate 4 random excitatory neurons. 
+For each of our ten networks, we will stimulate 4 random excitatory neurons. 
 
 .. code-block:: python
 
+    stimulus_masks = [torch.isin(torch.arange(n_neurons), torch.randperm(n_neurons//2)[:4]) for _ in range(10)]
     stimulus = RegularStimulus(
         strength=5.0,
         interval=100,
         duration=100_000,
         tau=10,
         dt=1,
+        stimulus_masks=stimulus_masks,
     )
     model.add_stimulus(stimulus)
 
-    stimulus_masks = [torch.isin(torch.arange(n_neurons), torch.randperm(n_neurons//2)[:4]) for _ in range(10)]
-    dataset.add_stimulus_masks(stimulus_masks)
 
 Running the model
 -----------------
@@ -135,6 +135,7 @@ We are now ready to run the model on the connectivity dataset.
 We will use a :class:`torch_geometric.loader.DataLoader` to load the connectivity matrices in batches of 5.
 The data loader combines the connectivity data from each bach into a larger graph with each individual network as an isolated subgraph.
 The :meth:`simulate` method of the model then simulates the network activity for the specified number of time steps.
+Note that after each batch, the model increments the stimulus batch index, so that the stimulus is applied to the next batch of networks automatically.
 
 .. code-block:: python
     
@@ -164,7 +165,6 @@ To round off the example, we will plot the collective ISI histogram, a Peri-Stim
 
 .. image:: ../_static/introduction_summary_plot.png
 
-That is it for the introductory example! The package is designed to be as easy to use as possible, and we hope that it will be
-useful for researchers in the field of computational neuroscience. For more examples of how to use the package, see
+That is it for the introductory example! The package is designed to be as easy to use as possible, and we hope that it will be useful. For more examples of how to use the package, see
 the `Tutorials` section, or take a look at the `notebooks in the examples directory of the repository <https://github.com/bioAI-Oslo/spikeometric>`_ 
 (this example is taken from the ``examples/simulate_with_stimulus.ipynb`` notebook).
