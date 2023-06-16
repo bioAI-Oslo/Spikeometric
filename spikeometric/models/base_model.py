@@ -3,6 +3,8 @@ from torch_geometric.data import Data
 import torch
 from tqdm import tqdm
 from typing import Union
+from spikeometric.stimulus import BaseStimulus
+from typing import List
 
 class BaseModel(MessagePassing):
     """
@@ -27,7 +29,7 @@ class BaseModel(MessagePassing):
     """
     def __init__(self):
         super().__init__()
-        self.stimulus = lambda t: 0
+        self.stimulus = lambda t: torch.tensor(0.0)
 
     @property
     def tunable_parameters(self) -> dict:
@@ -115,7 +117,7 @@ class BaseModel(MessagePassing):
         """
         return torch.sum(state_j*W, dim=1, keepdim=True)
 
-    def stimulus_input(self, t: int, stimulus_mask: torch.Tensor, **kwargs) -> torch.Tensor:
+    def stimulus_input(self, t: int, **kwargs) -> torch.Tensor:
         r"""
         Calculates the stimulus input to the network at time t.
 
@@ -123,15 +125,13 @@ class BaseModel(MessagePassing):
         ----------
         t: int
             The current time step
-        stimulus_mask: torch.Tensor[bool]
-            A boolean tensor indicating which neurons are targeted by the stimulus [n_neurons]
         
         Returns
         -------
         stimulus_input: torch.Tensor
             The stimulus input to the network [n_neurons]
         """
-        return self.stimulus_filter(self.stimulus(t), **kwargs) * stimulus_mask
+        return self.stimulus_filter(self.stimulus(t), **kwargs)
 
     def stimulus_filter(self, stimulus: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""
@@ -154,7 +154,7 @@ class BaseModel(MessagePassing):
     def add_stimulus(self, stimulus: callable):
         """Adds a stimulus to the network"""
         if not callable(stimulus):
-            raise TypeError("The stimulus must be a callable function")
+            raise TypeError("The stimulus must be a callable object")
         self.stimulus = stimulus
 
     def forward(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, **kwargs) -> torch.Tensor:
@@ -212,12 +212,6 @@ class BaseModel(MessagePassing):
         W, edge_index = self.connectivity_filter(W0, edge_index)
         T = W.shape[1]
 
-        if not hasattr(data, "stimulus_mask"):
-            stimulus_mask = torch.zeros(n_neurons, dtype=torch.bool, device=edge_index.device)
-            data.stimulus_mask = stimulus_mask
-        else:
-            stimulus_mask = data.stimulus_mask
-        
         device = edge_index.device
 
         # If verbose is True, a progress bar is shown
@@ -228,7 +222,11 @@ class BaseModel(MessagePassing):
         inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng)
         x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps)
         for t in pbar:
-            x[:, t] = self(edge_index=edge_index, W=W, state=x[:, t-T:t], t=t-T, stimulus_mask=stimulus_mask)
+            x[:, t] = self(edge_index=edge_index, W=W, state=x[:, t-T:t], t=t-T)
+
+        # If the stimulus is batched, we increment the batch in preparation for the next batch
+        if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
+            self.stimulus.next_batch()
         
         # Return the state of the network at each time step
         return x[:, T:]
@@ -237,7 +235,7 @@ class BaseModel(MessagePassing):
         self,
         data: Data,
         firing_rate: float,
-        tunable_parameters: Union[str, list[str]] = "all",
+        tunable_parameters: Union[str, List[str]] = "all",
         lr: float = 0.1,
         n_steps: int = 100,
         n_epochs: int = 100,
@@ -289,7 +287,6 @@ class BaseModel(MessagePassing):
         edge_index = data.edge_index
         W0 = data.W0
         n_neurons = data.num_nodes
-        stimulus_mask = data.stimulus_mask if hasattr(data, "stimulus_mask") else False
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         loss_fn = torch.nn.MSELoss()
         firing_rate = torch.tensor(firing_rate, device=device, dtype=torch.float)
@@ -317,7 +314,6 @@ class BaseModel(MessagePassing):
                     W=W,
                     state=x[:, t-T:t],
                     t=t,
-                    stimulus_mask=stimulus_mask,
                 )
                 x[:, t] = self.emit_spikes(
                     self.non_linearity(activation[:, t]),
@@ -334,8 +330,12 @@ class BaseModel(MessagePassing):
             # Backpropagate
             loss.backward()
             optimizer.step()
-        
-        self.requires_grad_(False)
+
+        # If the stimulus is batched, we increment the batch in preparation for the next batch
+        if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
+            self.stimulus.next_batch()
+
+        self.requires_grad_(False) # Freeze the parameters
         
     def set_tunable(self, parameters: list):
         """Sets requires_grad to True for the parameters to be tuned"""
@@ -353,17 +353,12 @@ class BaseModel(MessagePassing):
         """Loads the model from the path"""
         self.load_state_dict(torch.load(path))
 
-    def to(self, device: str):
+    def to(self, device: Union[str, torch.device]):
         """Moves the model to the device, including the random number generator"""
         self = super().to(device)
         if hasattr(self, "_rng"):
-            if device == "cpu":
-                state = self._rng.get_state()
-                self._rng = torch.Generator().set_state(state)
-            else:
-                seed = self._rng.seed()
-                self._rng = torch.Generator(device=device).manual_seed(seed)
-
+            seed = self._rng.initial_seed()
+            self._rng = torch.Generator(device=device).manual_seed(seed)
         return self
 
     def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100) -> torch.Tensor:

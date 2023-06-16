@@ -1,6 +1,7 @@
 from spikeometric.models.base_model import BaseModel
 import torch
 from tqdm import tqdm
+from spikeometric.stimulus import BaseStimulus
 
 class SAModel(BaseModel):
     r"""
@@ -44,7 +45,6 @@ class SAModel(BaseModel):
         W0 = data.W0
         W = self.connectivity_filter(W0, edge_index)
         T = W.shape[1]
-        stimulus_mask = data.stimulus_mask if hasattr(data, "stimulus_mask") else False
         device = edge_index.device
 
         # If verbose is True, a progress bar is shown
@@ -57,8 +57,12 @@ class SAModel(BaseModel):
 
         # Simulate the network
         for t in pbar:
-            x[:, t] = self(edge_index=edge_index, W=W, state=activation, t=t, stimulus_mask=stimulus_mask)
+            x[:, t] = self(edge_index=edge_index, W=W, state=activation, t=t)
             activation = self.update_activation(spikes=x[:, t:t+T], activation=activation)
+
+        # If the stimulus is batched, we increment the batch in preparation for the next batch
+        if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
+            self.stimulus.next_batch()
 
         # Return the state of the network at each time step
         return x
@@ -121,7 +125,6 @@ class SAModel(BaseModel):
         W = self.connectivity_filter(W0, edge_index)
         T = W.shape[1]
         n_neurons = data.num_nodes
-        stimulus_mask = data.stimulus_mask if hasattr(data, "stimulus_mask") else False
         optimizer = torch.optim.Adam(self.parameters(), lr=lr)
         loss_fn = torch.nn.MSELoss()
         firing_rate = torch.tensor(firing_rate, device=device, dtype=torch.float)
@@ -143,7 +146,6 @@ class SAModel(BaseModel):
                     W=W,
                     state=activation,
                     t=t,
-                    stimulus_mask=stimulus_mask
                 )
                 x[:, t] = self.emit_spikes(
                     self.non_linearity(input[:, t]),
@@ -164,6 +166,12 @@ class SAModel(BaseModel):
             # Backpropagate
             loss.backward()
             optimizer.step()
+
+        # If the stimulus is batched, we increment the batch in preparation for the next batch
+        if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
+            self.stimulus.next_batch()
+
+        self.requires_grad_(False) # Freeze the parameters 
 
     def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100) -> torch.Tensor:
         """
