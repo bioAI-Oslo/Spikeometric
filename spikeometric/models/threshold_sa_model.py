@@ -57,7 +57,7 @@ class ThresholdSAM(SAModel):
         self.register_buffer("T", torch.tensor(1, dtype=torch.int))
         self._rng = rng
     
-    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask=False) -> torch.Tensor:
+    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
         r"""
         Calculates the input to each neuron as:
 
@@ -73,15 +73,13 @@ class ThresholdSAM(SAModel):
             The activation of the neurons at time t.
         t : int
             The current time step.
-        stimulus_mask : torch.Tensor [n_neurons]
-            A boolean mask of the neurons that are stimulated at time t.
         
         Returns
         --------
         input : torch.Tensor [n_neurons]
             The input to each neuron at time t.
         """
-        return self.r*self.synaptic_input(edge_index, W, state=state) + self.background_input(state.shape[0]) + self.stimulus_input(t, stimulus_mask)
+        return self.r*self.synaptic_input(edge_index, W, state=state) + self.background_input(state.shape[0]) + self.stimulus_input(t)
 
     def background_input(self, n_neurons: int):
         r"""

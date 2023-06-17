@@ -79,7 +79,7 @@ Connectivity filter
 -------------------
 The :py:meth:`connectivity_filter` method lets us expand the synaptic weights to include a time dimension.
 It should take two arguments, the weights `W0` and the `edge_index` and should return a connectivity filter tensor `W` of dimension `[n_edges, T]` 
-where the element `W[i, t]` tells us how much a spike at time step `t-T` before the present should be weighted. 
+where the element `W[i, t]` tells us how much a spike at time step `t-T` time steps before the current step should be weighted. 
 
 In our model there will be two types of edges: the coupling edges and the refractory edges. 
 The coupling edges hold the strength and time evolution of synaptic connections and the refractory edges determines 
@@ -126,8 +126,8 @@ methods are already implemented in the :py:class:`BaseModel`. All we need is to 
 
 .. code-block:: python
 
-    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask: torch.Tensor = False) -> torch.Tensor:
-        return self.synaptic_input(spikes, edge_index, W) + self.stimulus_input(t, stimulus_mask)
+    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
+        return self.synaptic_input(spikes, edge_index, W) + self.stimulus_input(t)
 
 Non-linearity
 --------------
@@ -198,8 +198,8 @@ Summary
         def stimulus_filter(self, stimulus: torch.Tensor) -> torch.Tensor:
             return torch.sum(stimulus*self.k(torch.arange(stimulus.shape[0])))
         
-        def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask: torch.Tensor = False) -> torch.Tensor:
-            return self.synaptic_input(edge_index, W, state) + self.stimulus_input(t, stimulus_mask)
+        def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
+            return self.synaptic_input(edge_index, W, state) + self.stimulus_input(t)
 
         def non_linearity(self, input: torch.Tensor) -> torch.Tensor:
             return self.lambda_0*torch.relu(input - self.theta) * self.dt
@@ -209,7 +209,7 @@ Summary
 
 Testing the model
 ------------------
-To test the model, we will simulate some networks with 50 neurons. We will use a random connectivity matrix  with normal weights and a periodic random stimulus.
+To test the model, we will simulate some networks with 50 neurons. We will use a random connectivity matrix  with normal weights and a random periodic stimulus.
 
 .. code-block::
 
@@ -227,14 +227,15 @@ To test the model, we will simulate some networks with 50 neurons. We will use a
         return torch.exp(-f/5) # weight lower frequencies more
 
     def stimulus(t):
-        return 0.1*torch.rand(5) * (t % 100 < 20)
+        targets = torch.isin(torch.arange(50), torch.arange(50)[::10]).unsqueeze
+        return 0.1*torch.rand(5) * (t % 100 < 20)*targets
 
     model = FilRectLNP(lambda_0=1, theta=-0.01, dt=1, T=20, r=r, w=w, k=k)
 
 Since we don't know what parameters to use, we'll make a guess and then tune them to give a firing rate of 10 Hz.
 We'll use a learning rate of 1e-4 and train for 100 epochs with 500 time steps per epoch. Note that 
 the model is not trained to fit a set of spike trains, but rather to give a firing rate of 10 Hz. 
-Note also that we might need to try a few different inital parameters to get something that doesn't blow up.
+Note also that we might need to try a few different inital parameters for the model not to immediately blow up.
 
 .. code-block::
 
@@ -242,17 +243,18 @@ Note also that we might need to try a few different inital parameters to get som
         model.tune(data, firing_rate=10, lr=1e-4, n_epochs=100, n_steps=500)
 
 When the tuning is done, we can check what parameters the model has converged to.
-In this case, we find that `lambda_0=0.9882` and `theta=-0.0018`.
+In this case, we find that :code:`lambda_0=0.9882` and :code:`theta=-0.0018`.
 
-We can now simulate the model on the data.
+We can now add the stimulus and simulate the model on the data.
 
 .. code-block::
 
+    model.add_stimulus(stimulus)
     results = torch.zeros((len(test_data), n_neurons))
     for i, data in enumerate(loader):
         results[i*data.num_nodes:(i+1)*data.num_nodes] = model.simulate(data, n_steps=500)
 
-And plot the results we get the following PSTH, ISI and raster plot
+And plot the results to get the following PSTH, ISI and raster plot
 
 .. image:: ../_static/new_model.png
 

@@ -17,15 +17,13 @@ class NormalGenerator(ConnectivityGenerator):
         >>> dataset = ConnectivityDataset("data/w0/6_neurons_10_networks_0_mean_1_std_0.5_sparsity_glorot_0_seed")
         >>> data = dataset[0]
         >>> data
-        Data(edge_index=[2, 13], num_nodes=6, W0=[13], stimulus_mask=[6])
+        Data(edge_index=[2, 13], num_nodes=6, W0=[13])
         >>> data.W0
         tensor([ 0.6270,  0.5048,  0.4300, -0.7440, -0.2918, -1.1955, -0.4468,  0.0000,
                  0.0000,  0.0000,  0.0000,  0.0000,  0.0000])
         >>> data.edge_index
         tensor([[0, 0, 1, 3, 3, 4, 5, 0, 1, 2, 3, 4, 5],
                 [2, 4, 3, 1, 5, 5, 4, 0, 1, 2, 3, 4, 5]])
-        >>> data.stimulus_mask
-        tensor([False, False, False, False, False, False])
 
     Parameters:
     ------------

@@ -83,7 +83,7 @@ class BernoulliGLM(BaseModel):
         self._rng = rng if rng is not None else torch.Generator()
         self.requires_grad_(False)
     
-    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask: torch.Tensor = 0) -> torch.Tensor:
+    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
         r"""
         Computes the input at time step :obj:`t+1` by adding together the synaptic input from neighboring neurons and the stimulus input.
 
@@ -100,15 +100,13 @@ class BernoulliGLM(BaseModel):
             The state of the neurons
         t : int
             The current time step
-        stimulus_mask : torch.Tensor [n_stimulated_neurons, 1]
-            The indices of the neurons that are stimulated
 
         Returns
         -------
         synaptic_input : torch.Tensor [n_neurons, 1]
         
         """
-        return self.synaptic_input(edge_index, W, state=state) + self.stimulus_input(t, stimulus_mask)
+        return self.synaptic_input(edge_index, W, state=state) + self.stimulus_input(t)
 
     def non_linearity(self, input: torch.Tensor) -> torch.Tensor:
         r"""

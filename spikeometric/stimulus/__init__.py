@@ -1,3 +1,5 @@
 from spikeometric.stimulus.regular_stimulus import RegularStimulus
 from spikeometric.stimulus.poisson_stimulus import PoissonStimulus
 from spikeometric.stimulus.sin_stimulus import SinStimulus
+from spikeometric.stimulus.loaded_stimulus import LoadedStimulus
+from spikeometric.stimulus.base_stimulus import BaseStimulus
