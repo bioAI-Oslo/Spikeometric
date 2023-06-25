@@ -2,7 +2,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 import torch
 from tqdm import tqdm
-from typing import Union
+from typing import Union, Callable
 from spikeometric.stimulus import BaseStimulus
 from typing import List
 
@@ -151,7 +151,7 @@ class BaseModel(MessagePassing):
         """
         return stimulus
 
-    def add_stimulus(self, stimulus: callable):
+    def add_stimulus(self, stimulus: Callable):
         """Adds a stimulus to the network"""
         if not callable(stimulus):
             raise TypeError("The stimulus must be a callable object")
@@ -184,7 +184,7 @@ class BaseModel(MessagePassing):
         rate = self.non_linearity(input)
         return self.emit_spikes(rate)
     
-    def simulate(self, data, n_steps, verbose=True, equilibration_steps=100, **kwargs):
+    def simulate(self, data, n_steps: int, verbose: bool = True, equilibration_steps: int = 100, store_as_dtype: torch.dtype = torch.int, **kwargs):
         r"""
         Simulates the network for n_steps time steps given the connectivity.
         Returns the state of the network at each time step.
@@ -218,7 +218,7 @@ class BaseModel(MessagePassing):
         pbar = tqdm(range(T, n_steps + T), colour="#3E5641") if verbose else range(T, n_steps + T)
         
         # Simulate the network
-        x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=torch.int)
+        x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=store_as_dtype)
         inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng)
         x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps)
         for t in pbar:
@@ -337,7 +337,7 @@ class BaseModel(MessagePassing):
 
         self.requires_grad_(False) # Freeze the parameters
         
-    def set_tunable(self, parameters: list):
+    def set_tunable(self, parameters: Union[str, List[str]]):
         """Sets requires_grad to True for the parameters to be tuned"""
         for param in parameters:
             parameter_dict = dict(self.named_parameters())
