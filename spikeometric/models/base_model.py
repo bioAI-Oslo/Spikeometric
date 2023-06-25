@@ -199,6 +199,8 @@ class BaseModel(MessagePassing):
             If True, a progress bar is shown
         equilibration: int
             The number of time steps to simulate before the we start recording the state of the network.
+        store_as_dtype: torch.dtype
+            The dtype to store the state of the network as.
 
         Returns
         --------
