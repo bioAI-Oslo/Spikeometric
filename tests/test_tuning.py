@@ -3,31 +3,29 @@ from torch_geometric.loader import DataLoader
 
 def test_only_stimulus_tunable(bernoulli_glm, sin_stimulus, saved_glorot_dataset):
     bernoulli_glm.add_stimulus(sin_stimulus)
-    data_loader = DataLoader(saved_glorot_dataset, batch_size=10)
-    initial_parameters = {
-        parameter: bernoulli_glm.tunable_parameters[parameter].clone()
-        for parameter in bernoulli_glm.tunable_parameters
-        if parameter.startswith("stimulus")
-    }
-    for data in data_loader:
-        bernoulli_glm.tune(data, 10, tunable_parameters="stimulus", n_steps=100, n_epochs=1, lr=0.01, verbose=False)
-        for parameter in initial_parameters:
-            assert not bernoulli_glm.tunable_parameters[parameter].requires_grad
-            assert initial_parameters[parameter] == bernoulli_glm.tunable_parameters[parameter]
-        
-def test_only_model_tunable(bernoulli_glm, sin_stimulus, saved_glorot_dataset):
-    bernoulli_glm.add_stimulus(sin_stimulus)
-    data_loader = DataLoader(saved_glorot_dataset, batch_size=10)
+    data = saved_glorot_dataset[0]
     initial_parameters = {
         parameter: bernoulli_glm.tunable_parameters[parameter].clone()
         for parameter in bernoulli_glm.tunable_parameters
         if not parameter.startswith("stimulus")
     }
-    for data in data_loader:
-        bernoulli_glm.tune(data, 10, tunable_parameters="model", n_steps=100, n_epochs=1, lr=0.01, verbose=False)
-        for parameter in initial_parameters:
-            assert not bernoulli_glm.tunable_parameters[parameter].requires_grad
-            assert not initial_parameters[parameter] == bernoulli_glm.tunable_parameters[parameter]
+    bernoulli_glm.tune(data, 10, tunable_parameters="stimulus", n_steps=100, n_epochs=1, lr=0.01, verbose=False)
+    for parameter in initial_parameters:
+        assert not bernoulli_glm.tunable_parameters[parameter].requires_grad
+        assert initial_parameters[parameter] == bernoulli_glm.tunable_parameters[parameter]
+        
+def test_only_model_tunable(bernoulli_glm, sin_stimulus, saved_glorot_dataset):
+    bernoulli_glm.add_stimulus(sin_stimulus)
+    data = saved_glorot_dataset[0]
+    initial_parameters = {
+        parameter: bernoulli_glm.tunable_parameters[parameter].clone()
+        for parameter in bernoulli_glm.tunable_parameters
+        if parameter.startswith("stimulus")
+    }
+    bernoulli_glm.tune(data, 10, tunable_parameters="model", n_steps=100, n_epochs=1, lr=0.01, verbose=False)
+    for parameter in initial_parameters:
+        assert not bernoulli_glm.tunable_parameters[parameter].requires_grad
+        assert initial_parameters[parameter] == bernoulli_glm.tunable_parameters[parameter]
 
 def test_tune_rectified_sa_model(rectified_sam, rectified_sam_network):
     initial_spikes = rectified_sam.simulate(rectified_sam_network, 100)
@@ -73,3 +71,11 @@ def test_no_parameters_to_tune(bernoulli_glm, example_data):
     firing_rate = 10
     with pytest.raises(ValueError):
         bernoulli_glm.tune(example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
+
+def test_tune_over_several_epochs(bernoulli_glm, example_data):
+    tunable_parameters = ["theta", "alpha", "beta"]
+    firing_rate = 10
+    initial_parameters = {parameter: bernoulli_glm.tunable_parameters[parameter].clone() for parameter in tunable_parameters}
+    bernoulli_glm.tune(example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=2, lr=0.1, verbose=False)
+    for parameter in tunable_parameters:
+        assert not bernoulli_glm.tunable_parameters[parameter] == initial_parameters[parameter]

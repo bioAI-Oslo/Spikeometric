@@ -62,7 +62,7 @@ class RectifiedLNP(BaseModel):
 
         self.requires_grad_(False)
     
-    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1, stimulus_mask: torch.Tensor = False) -> torch.Tensor:
+    def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
         r"""
         The input to the network at time t+1.
 
@@ -78,8 +78,6 @@ class RectifiedLNP(BaseModel):
             The state of the network at time t.
         t : int
             The time step of the simulation.
-        stimulus_mask : torch.Tensor[bool]
-            A boolean mask of the neurons that are stimulated at time t+1.
 
         Returns
         -------
@@ -88,7 +86,7 @@ class RectifiedLNP(BaseModel):
         """
         return (
             self.r*self.synaptic_input(edge_index, W, state)
-             + self.stimulus_input(t, stimulus_mask)
+             + self.stimulus_input(t)
              + self.b
         )
 
