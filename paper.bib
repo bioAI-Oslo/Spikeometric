@@ -27,7 +27,7 @@
 	title = {Inferring causal connectivity from pairwise recordings and optogenetics},
 	elocation-id = {463758},
 	year = {2020},
-	doi = {8.1101/463760},
+	doi = {10.1101/463760},
 	publisher = {Cold Spring Harbor Laboratory},
 	abstract = {To study how the brain works mechanistically, neuroscientists want to quantify causal interactions between neurons, typically requiring perturbations. When using optogenetic interventions, multiple neurons are usually perturbed which produces a confound {\textendash} any of the stimulated neurons can have affected the postsynaptic neuron making it challenging to discern which of the neurons produced the causal effect. Here we show how such confounds produce large biases, and we explain how they can be reduced by combining instrumental variable (IV) and difference in differences (DiD) techniques from econometrics. The interaction between stimulation and the absolute refractory period of the neuron produces a weak, approximately random signal which can be exploited to estimate causal transmission probability. On simulated neural networks, we find that estimates using ideas from IV and DiD outperform na{\"\i}ve techniques suggesting that methods from causal inference can be useful when studying neural interactions.Competing Interest StatementThe authors have declared no competing interest.},
 	URL = {https://www.biorxiv.org/content/early/2020/03/07/463760},
@@ -108,7 +108,106 @@ url={https://doi.org/10.1038/nature07140}
   journal={Network: Computation in Neural Systems},
   volume={15},
   number={4},
+  doi={10.1088/0954-898x_15_4_002},
   pages={243--262},
   year={2004},
   publisher={Taylor \& Francis}
+}
+
+@ARTICLE{Gewaltig:NEST,
+  author  = {Marc-Oliver Gewaltig and Markus Diesmann},
+  title   = {NEST (NEural Simulation Tool)},
+  journal = {Scholarpedia},
+  year    = {2007},
+  volume  = {2},
+  pages   = {1430},
+  number  = {4}
+}
+
+@book{carnevale_hines_2006,
+  place={Cambridge},
+  title={The NEURON Book},
+  DOI={10.1017/CBO9780511541612},
+  publisher={Cambridge University Press},
+  author={Carnevale, Nicholas T. and Hines, Michael L.},
+  year={2006}
+}
+
+@article {10.7554/eLife.47314,
+  article_type = {journal},
+  title = {Brian 2, an intuitive and efficient neural simulator},
+  author = {Stimberg, Marcel and Brette, Romain and Goodman, Dan FM},
+  editor = {Skinner, Frances K and Calabrese, Ronald L and Skinner, Frances K and Zeldenrust, Fleur and Gerkin, Richard C},
+  volume = 8,
+  year = 2019,
+  month = {aug},
+  pub_date = {2019-08-20},
+  pages = {e47314},
+  citation = {eLife 2019;8:e47314},
+  doi = {10.7554/eLife.47314},
+  url = {https://doi.org/10.7554/eLife.47314},
+  abstract = {Brian 2 allows scientists to simply and efficiently simulate spiking neural network models. These models can feature novel dynamical equations, their interactions with the environment, and experimental protocols. To preserve high performance when defining new models, most simulators offer two options: low-level programming or description languages. The first option requires expertise, is prone to errors, and is problematic for reproducibility. The second option cannot describe all aspects of a computational experiment, such as the potentially complex logic of a stimulation protocol. Brian addresses these issues using runtime code generation. Scientists write code with simple and concise high-level descriptions, and Brian transforms them into efficient low-level code that can run interleaved with their code. We illustrate this with several challenging examples: a plastic model of the pyloric network, a closed-loop sensorimotor model, a programmatic exploration of a neuron model, and an auditory model with real-time input.},
+  keywords = {computational neuroscience, simulation, software},
+  journal = {eLife},
+  issn = {2050-084X},
+  publisher = {eLife Sciences Publications, Ltd},
+}
+
+@Inbook{Bower2013,
+  author="Bower, James M. and Cornelis, Hugo and Beeman, David",
+  editor="Jaeger, Dieter and Jung, Ranu",
+  title="GENESIS, The GEneral NEural SImulation System",
+  bookTitle="Encyclopedia of Computational Neuroscience",
+  year="2013",
+  publisher="Springer New York",
+  address="New York, NY",
+  pages="1--8",
+  isbn="978-1-4614-7320-6",
+  doi="10.1007/978-1-4614-7320-6_255-1",
+  url="https://doi.org/10.1007/978-1-4614-7320-6_255-1"
+}
+
+@ARTICLE{10.3389/fninf.2022.883333,
+  author={Tiddia, Gianmarco and Golosio, Bruno and Albers, Jasper and Senk, Johanna and Simula, Francesco and Pronold, Jari and Fanti, Viviana and Pastorelli, Elena and Paolucci, Pier Stanislao and van Albada, Sacha J.},   
+  title={Fast Simulation of a Multi-Area Spiking Network Model of Macaque Cortex on an MPI-GPU Cluster},      
+  journal={Frontiers in Neuroinformatics},      
+  volume={16},           
+  year={2022},      
+  url={https://www.frontiersin.org/articles/10.3389/fninf.2022.883333},       
+  doi={10.3389/fninf.2022.883333},      
+  issn={1662-5196},   
+  abstract={Spiking neural network models are increasingly establishing themselves as an effective tool for simulating the dynamics of neuronal populations and for understanding the relationship between these dynamics and brain function. Furthermore, the continuous development of parallel computing technologies and the growing availability of computational resources are leading to an era of large-scale simulations capable of describing regions of the brain of ever larger dimensions at increasing detail. Recently, the possibility to use MPI-based parallel codes on GPU-equipped clusters to run such complex simulations has emerged, opening up novel paths to further speed-ups. NEST GPU is a GPU library written in CUDA-C/C++ for large-scale simulations of spiking neural networks, which was recently extended with a novel algorithm for remote spike communication through MPI on a GPU cluster. In this work we evaluate its performance on the simulation of a multi-area model of macaque vision-related cortex, made up of about 4 million neurons and 24 billion synapses and representing 32 mm<sup>2</sup> surface area of the macaque cortex. The outcome of the simulations is compared against that obtained using the well-known CPU-based spiking neural network simulator NEST on a high-performance computing cluster. The results show not only an optimal match with the NEST statistical measures of the neural activity in terms of three informative distributions, but also remarkable achievements in terms of simulation time per second of biological activity. Indeed, NEST GPU was able to simulate a second of biological time of the full-scale macaque cortex model in its metastable state 3.1× faster than NEST using 32 compute nodes equipped with an NVIDIA V100 GPU each. Using the same configuration, the ground state of the full-scale macaque cortex model was simulated 2.4× faster than NEST.}
+}
+
+@ARTICLE{10.3389/fncom.2021.627620,
+author={Golosio, Bruno and Tiddia, Gianmarco and De Luca, Chiara and Pastorelli, Elena and Simula, Francesco and Paolucci, Pier Stanislao},   
+title={Fast Simulations of Highly-Connected Spiking Cortical Models Using GPUs},      
+journal={Frontiers in Computational Neuroscience},
+volume={15},
+year={2021},      
+url={https://www.frontiersin.org/articles/10.3389/fncom.2021.627620},       
+doi={10.3389/fncom.2021.627620},      
+issn={1662-5188},
+abstract={Over the past decade there has been a growing interest in the development of parallel hardware systems for simulating large-scale networks of spiking neurons. Compared to other highly-parallel systems, GPU-accelerated solutions have the advantage of a relatively low cost and a great versatility, thanks also to the possibility of using the CUDA-C/C++ programming languages. NeuronGPU is a GPU library for large-scale simulations of spiking neural network models, written in the C++ and CUDA-C++ programming languages, based on a novel spike-delivery algorithm. This library includes simple LIF (leaky-integrate-and-fire) neuron models as well as several multisynapse AdEx (adaptive-exponential-integrate-and-fire) neuron models with current or conductance based synapses, different types of spike generators, tools for recording spikes, state variables and parameters, and it supports user-definable models. The numerical solution of the differential equations of the dynamics of the AdEx models is performed through a parallel implementation, written in CUDA-C++, of the fifth-order Runge-Kutta method with adaptive step-size control. In this work we evaluate the performance of this library on the simulation of a cortical microcircuit model, based on LIF neurons and current-based synapses, and on balanced networks of excitatory and inhibitory neurons, using AdEx or Izhikevich neuron models and conductance-based or current-based synapses. On these models, we will show that the proposed library achieves state-of-the-art performance in terms of simulation time per second of biological activity. In particular, using a single NVIDIA GeForce RTX 2080 Ti GPU board, the full-scale cortical-microcircuit model, which includes about 77,000 neurons and 3 · 10<sup>8</sup> connections, can be simulated at a speed very close to real time, while the simulation time of a balanced network of 1,000,000 AdEx neurons with 1,000 connections per neuron was about 70 s per second of biological activity.}
+}
+
+@ARTICLE{10.3389/fninf.2018.00089,
+	author={Hazan, Hananel and Saunders, Daniel J. and Khan, Hassaan and Patel, Devdhar and Sanghavi, Darpan T. and Siegelmann, Hava T. and Kozma, Robert},   
+	TITLE={BindsNET: A Machine Learning-Oriented Spiking Neural Networks Library in Python},      
+	journal={Frontiers in Neuroinformatics},      
+	volume={12},      
+	pages={89},     
+	year={2018}, 
+	url={https://www.frontiersin.org/article/10.3389/fninf.2018.00089},       
+	doi={10.3389/fninf.2018.00089},      
+	issn={1662-5196},
+}
+
+@misc{eshraghian2023training,
+      title={Training Spiking Neural Networks Using Lessons From Deep Learning}, 
+      author={Jason K. Eshraghian and Max Ward and Emre Neftci and Xinxin Wang and Gregor Lenz and Girish Dwivedi and Mohammed Bennamoun and Doo Seok Jeong and Wei D. Lu},
+      year={2023},
+      eprint={2109.12894},
+      archivePrefix={arXiv},
+      primaryClass={cs.NE}
 }
