@@ -221,8 +221,8 @@ class BaseModel(MessagePassing):
         
         # Simulate the network
         x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=store_as_dtype)
-        inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng)
-        x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps)
+        inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng, dtype=store_as_dtype)
+        x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps, store_as_dtype=store_as_dtype)
         for t in pbar:
             x[:, t] = self(edge_index=edge_index, W=W, state=x[:, t-T:t], t=t-T)
 
@@ -363,7 +363,7 @@ class BaseModel(MessagePassing):
             self._rng = torch.Generator(device=device).manual_seed(seed)
         return self
 
-    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100) -> torch.Tensor:
+    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100, store_as_dtype: torch.dtype = torch.int) -> torch.Tensor:
         """
         Equilibrate the network to a given connectivity matrix.
 
@@ -377,6 +377,8 @@ class BaseModel(MessagePassing):
             The initial state of the network
         n_steps: int
             The number of time steps to equilibrate for
+        store_as_dtype: torch.dtype
+            The dtype to store the state of the network as
 
         Returns
         --------
@@ -386,7 +388,7 @@ class BaseModel(MessagePassing):
         n_neurons = inital_state.shape[0]
         device = inital_state.device
         T = W.shape[1]
-        x_equi = torch.zeros((n_neurons, T + n_steps), device=device, dtype=torch.int)
+        x_equi = torch.zeros((n_neurons, T + n_steps), device=device, dtype=store_as_dtype)
         x_equi[:, T-1] = inital_state
 
         # Equilibrate the network
