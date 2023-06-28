@@ -23,3 +23,9 @@ def test_uniform_simulation(threshold_sam, generated_uniform_data):
     X = threshold_sam.simulate(example_uniform_data, n_steps=1000, verbose=False)
     fr = (X.float().mean() / threshold_sam.dt) * 1000
     assert_close(fr, tensor(33.6364), atol=0.001, rtol=0.1)
+
+def test_storing_different_dtypes(bernoulli_glm, example_data):
+    import torch
+    for dtype in [torch.uint8, torch.int, torch.float, torch.double, torch.bool]:
+        X = bernoulli_glm.simulate(example_data, n_steps=1, verbose=False, store_as_dtype=dtype)
+        assert X.dtype == dtype
