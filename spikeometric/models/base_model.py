@@ -2,7 +2,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 import torch
 from tqdm import tqdm
-from typing import Union
+from typing import Union, Callable
 from spikeometric.stimulus import BaseStimulus
 from typing import List
 
@@ -151,7 +151,7 @@ class BaseModel(MessagePassing):
         """
         return stimulus
 
-    def add_stimulus(self, stimulus: callable):
+    def add_stimulus(self, stimulus: Callable):
         """Adds a stimulus to the network"""
         if not callable(stimulus):
             raise TypeError("The stimulus must be a callable object")
@@ -184,7 +184,7 @@ class BaseModel(MessagePassing):
         rate = self.non_linearity(input)
         return self.emit_spikes(rate)
     
-    def simulate(self, data, n_steps, verbose=True, equilibration_steps=100, **kwargs):
+    def simulate(self, data, n_steps: int, verbose: bool = True, equilibration_steps: int = 100, store_as_dtype: torch.dtype = torch.int, **kwargs):
         r"""
         Simulates the network for n_steps time steps given the connectivity.
         Returns the state of the network at each time step.
@@ -199,6 +199,8 @@ class BaseModel(MessagePassing):
             If True, a progress bar is shown
         equilibration: int
             The number of time steps to simulate before the we start recording the state of the network.
+        store_as_dtype: torch.dtype
+            The dtype to store the state of the network as.
 
         Returns
         --------
@@ -218,9 +220,9 @@ class BaseModel(MessagePassing):
         pbar = tqdm(range(T, n_steps + T), colour="#3E5641") if verbose else range(T, n_steps + T)
         
         # Simulate the network
-        x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=torch.int)
-        inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng)
-        x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps)
+        x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=store_as_dtype)
+        inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng, dtype=store_as_dtype)
+        x[:, :T] = self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps, store_as_dtype=store_as_dtype)
         for t in pbar:
             x[:, t] = self(edge_index=edge_index, W=W, state=x[:, t-T:t], t=t-T)
 
@@ -337,7 +339,7 @@ class BaseModel(MessagePassing):
 
         self.requires_grad_(False) # Freeze the parameters
         
-    def set_tunable(self, parameters: list):
+    def set_tunable(self, parameters: Union[str, List[str]]):
         """Sets requires_grad to True for the parameters to be tuned"""
         for param in parameters:
             parameter_dict = dict(self.named_parameters())
@@ -361,7 +363,7 @@ class BaseModel(MessagePassing):
             self._rng = torch.Generator(device=device).manual_seed(seed)
         return self
 
-    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100) -> torch.Tensor:
+    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100, store_as_dtype: torch.dtype = torch.int) -> torch.Tensor:
         """
         Equilibrate the network to a given connectivity matrix.
 
@@ -375,6 +377,8 @@ class BaseModel(MessagePassing):
             The initial state of the network
         n_steps: int
             The number of time steps to equilibrate for
+        store_as_dtype: torch.dtype
+            The dtype to store the state of the network as
 
         Returns
         --------
@@ -384,7 +388,7 @@ class BaseModel(MessagePassing):
         n_neurons = inital_state.shape[0]
         device = inital_state.device
         T = W.shape[1]
-        x_equi = torch.zeros((n_neurons, T + n_steps), device=device, dtype=torch.int)
+        x_equi = torch.zeros((n_neurons, T + n_steps), device=device, dtype=store_as_dtype)
         x_equi[:, T-1] = inital_state
 
         # Equilibrate the network
