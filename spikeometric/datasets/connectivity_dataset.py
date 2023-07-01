@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
-from torch_geometric.utils import add_remaining_self_loops
+import glob
 
 class ConnectivityDataset:
     r"""
@@ -48,15 +48,15 @@ class ConnectivityDataset:
     def process(self):
         """Processes the connectivity matrices in the root directory and returns a list of torch_geometric Data objects."""
         path = Path(self.root)
-        files = os.listdir(path)
+        files = list(path.glob("*.npy")) + list(path.glob("*.pt"))
 
         w0_list = []
         for i, file in enumerate(sorted(files)):
             # Check if file is a .npy or .pt file and load it
-            if file.endswith(".npy"):
-                w0_square = torch.from_numpy(np.load(path / file))
-            elif file.endswith(".pt"):
-                w0_square = torch.load(path / file)
+            if file.name.endswith(".npy"):
+                w0_square = torch.from_numpy(np.load(file))
+            elif file.name.endswith(".pt"):
+                w0_square = torch.load(file)
             
             # Convert the connectivity matrix to a sparse adjacency matrix
             num_neurons = w0_square.shape[0]
