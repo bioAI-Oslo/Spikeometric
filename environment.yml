@@ -8,8 +8,8 @@ channels:
 dependencies:
   - python
   - pip
-  - pytorch=1.13
+  - pytorch
   - cpuonly
   - pyg
   - pip:
-      - -r requirements.txt
+      - -r requirements_dev.txt

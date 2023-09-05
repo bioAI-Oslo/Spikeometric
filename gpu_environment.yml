@@ -12,7 +12,7 @@ dependencies:
         - pip
         - python
         - pytorch-cuda=11.7
-        - pytorch=1.13
+        - pytorch
         - pyg
         pip:
-          - -r requirements.txt
+          - -r requirements_dev.txt
