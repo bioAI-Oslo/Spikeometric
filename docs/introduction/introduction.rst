@@ -118,8 +118,8 @@ For each of our ten networks, we will stimulate 4 random excitatory neurons.
     stimulus_masks = [torch.isin(torch.arange(n_neurons), torch.randperm(n_neurons//2)[:4]) for _ in range(10)]
     stimulus = RegularStimulus(
         strength=5.0,
-        interval=100,
-        duration=100_000,
+        period=100,
+        stop=100_000,
         tau=10,
         dt=1,
         stimulus_masks=stimulus_masks,
