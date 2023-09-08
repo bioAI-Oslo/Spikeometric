@@ -132,7 +132,7 @@ Synchronizing the network activity with a stimulus
 --------------------------------------------------
 
 In this final example we'll try to synchronize the activity of a network with the frequency of a sinusoidal stimulus.
-We'll use the :py:class:`SinusoidalStimulus` to model the stimulus, and tune it to achieve an average firing rate of the network
+We'll use the :py:class:`SinStimulus` to model the stimulus, and tune it to achieve an average firing rate of the network
 that is close to the frequency of the stimulus.
 
 .. code-block:: python
@@ -162,7 +162,8 @@ that is close to the frequency of the stimulus.
         amplitude=1,
         period=100,                 # frequency = 1/period = 10 Hz
         duration=n_steps,
-        stimulus_masks=stim_masks
+        stimulus_masks=stim_masks,
+        batch_size=10,
     )
     model.add_stimulus(stimulus)
 
