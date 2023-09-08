@@ -35,8 +35,12 @@ class LoadedStimulus(BaseStimulus):
         self.register_buffer("n_neurons", torch.tensor(stimuli.shape[0], dtype=torch.int))
         self.register_buffer("n_steps", torch.tensor(stimuli.shape[1], dtype=torch.int))
 
-        n_networks = stimuli.shape[2] if len(stimuli.shape) > 2 else 1
-        self.register_buffer("n_networks", torch.tensor(n_networks, dtype=torch.int))
+        if len(stimuli.shape) < 4:
+            n_networks = stimuli.shape[2] if len(stimuli.shape) > 2 else 1
+            self.register_buffer("n_networks", torch.tensor(n_networks, dtype=torch.int))
+        else:
+            n_networks = stimuli.shape[3]
+            self.register_buffer("n_networks", torch.tensor(n_networks, dtype=torch.int))
 
         self.register_buffer("batch_size", torch.tensor(batch_size, dtype=torch.int))
         if self.n_networks < batch_size:
@@ -44,8 +48,10 @@ class LoadedStimulus(BaseStimulus):
         
         self.register_buffer("n_batches", torch.tensor(math.ceil(n_networks / batch_size), dtype=torch.int))
 
-        if len(stimuli.shape) > 2:
+        if len(stimuli.shape) == 3:
             stimuli = torch.concat(torch.split(stimuli, 1, dim=2), dim=0).squeeze(2)
+        elif len(stimuli.shape) == 4:
+            stimuli = torch.concat(torch.split(stimuli, 1, dim=3), dim=0).squeeze(3)
 
         neurons_per_batch = [self.n_neurons*self.batch_size] * (self.n_batches - 1)
         if n_networks % batch_size != 0:
@@ -70,7 +76,7 @@ class LoadedStimulus(BaseStimulus):
         Parameters
         ----------
         t : torch.Tensor or float
-            Time :math:`t` at which to compute the stimulus (ms).
+            Time :math:`t` at which to compute the stimulus.
 
         Returns
         -------
@@ -78,8 +84,6 @@ class LoadedStimulus(BaseStimulus):
             Stimulus at time :math:`t`.
         """
         if torch.is_tensor(t) and not t.dim() == 0:
-            result = torch.zeros((self.neurons_per_batch[self._idx], t.shape[0]))
-            result[:, :self.n_steps] = self.stimulus[:, :self.n_steps]
-            return result
+            return self.stimulus[..., :t.shape[0], ...]
         else:
-            return self.stimulus[:, t] if 0 <= t < self.n_steps else torch.zeros_like(self.stimulus[:, 0])
+            return self.stimulus[..., t, ...] if 0 <= t < self.n_steps else torch.zeros(self.neurons_per_batch[self._idx], dtype=torch.float, device=self.stimulus.device)
