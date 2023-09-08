@@ -111,13 +111,13 @@ Stimulus filter
 ----------------
 We want the model to handle a multidimensional stimulus given to some of the neurons, 
 and must implement a :py:meth:`stimulus_filter` method to determine how this stimulus will be integrated into an input. 
-The function :py:func:`k` that we pass to the model will help us with this. 
-Note that we are assuming that all targeted neurons receive the same stimulus and that they have the same stimulus filter.
+The function :py:func:`k` that we pass to the model will decide how the different channels in the multidimensional stimulus are weighted.
+Note that we are assuming that all targeted neurons they have the same stimulus filter.
 
 .. code-block:: python
 
     def stimulus_filter(self, stimulus: torch.Tensor) -> torch.Tensor:
-        return torch.sum(stimulus*self.k(torch.arange(stimulus.shape[0])))
+        return torch.sum(stimulus*self.k(torch.arange(stimulus.shape[1])), dim=1)
 
 Input
 ------
@@ -133,7 +133,7 @@ Non-linearity
 --------------
 After we have collected the input to the neurons, we need to apply a non-linearity to it. In this case, 
 we use a rectified linear non-linearity. The rate is scaled by the time step to ensure that increasing the resolution
-of the simulation doesn't artificially increase the firing rate.
+of the simulation doesn't artificially change the firing rate.
 
 .. code-block:: python
 
@@ -196,7 +196,7 @@ Summary
             return W.flip(1)
 
         def stimulus_filter(self, stimulus: torch.Tensor) -> torch.Tensor:
-            return torch.sum(stimulus*self.k(torch.arange(stimulus.shape[0])))
+            return torch.sum(stimulus*self.k(torch.arange(stimulus.shape[1])), dim=1)
         
         def input(self, edge_index: torch.Tensor, W: torch.Tensor, state: torch.Tensor, t=-1) -> torch.Tensor:
             return self.synaptic_input(edge_index, W, state) + self.stimulus_input(t)
@@ -209,30 +209,39 @@ Summary
 
 Testing the model
 ------------------
-To test the model, we will simulate some networks with 50 neurons. We will use a random connectivity matrix  with normal weights and a random periodic stimulus.
+To test the model, we will simulate some networks with 50 neurons. We will use a random connectivity matrix with normal weights and a periodic stimulus
+with random amplitudes in five frequency bins. Since we are batching the simulations in groups of 2 networks,
+we will first generate a stimulus plan and make use of the :py:class:`LoadedStimulus` class to take care of the batching for us.
 
 .. code-block::
 
     n_neurons = 50
-    test_data = NormalGenerator(n_neurons, mean=0, std=0.1, glorot=True).generate(10)
-    loader = DataLoader(test_data, batch_size=5, shuffle=False)
+    test_data = NormalGenerator(n_neurons, mean=0, std=0.5, glorot=True).generate(10)
+    loader = DataLoader(test_data, batch_size=2, shuffle=False)
 
     def r(t):
-        return -100.*(t < 2) + -100*torch.exp(-2*(t-2))*(t >= 2)*(t<5)
+        return -1000.*(t < 2) + -1000*torch.exp(-2*(t-2))*(t >= 2)*(t<5)
 
     def w(t):
         return torch.exp(-t/2)
 
     def k(f):
-        return torch.exp(-f/5) # weight lower frequencies more
+        return torch.exp(-f)
 
-    def stimulus(t):
-        targets = torch.isin(torch.arange(50), torch.arange(50)[::10]).unsqueeze
-        return 0.1*torch.rand(5) * (t % 100 < 20)*targets
+
+    stimulus_plan = torch.zeros(50, 500, 5, 10) # 50 neurons, 500 time steps, 5 frequency bins, 10 networks
+    t = torch.arange(500)
+    for i in range(10):
+        # For each network, we stimulate the first 10 neurons (out of 50), for 20 time steps every 100 time steps, with random amplitudes in five frequency bins.
+        # The dimensions returned are [n_neurons, n_time_steps (length of t), n_frequency_bins]
+        stimulus_plan[:, :, :, i] = ((torch.arange(50) < 10).unsqueeze(1) * (t % 100 < 20)).unsqueeze(2)*torch.rand(50, t.shape[0], 5)
+
+    torch.save(stimulus_plan, "stimulus_plan.pt")
+    stimulus = LoadedStimulus("stimulus_plan.pt", batch_size=2)
 
     model = FilRectLNP(lambda_0=1, theta=-0.01, dt=1, T=20, r=r, w=w, k=k)
 
-Since we don't know what parameters to use, we'll make a guess and then tune them to give a firing rate of 10 Hz.
+We don't know what parameters to use, so we'll make a guess and then tune them to give a firing rate of 10 Hz.
 We'll use a learning rate of 1e-4 and train for 100 epochs with 500 time steps per epoch. Note that 
 the model is not trained to fit a set of spike trains, but rather to give a firing rate of 10 Hz. 
 Note also that we might need to try a few different inital parameters for the model not to immediately blow up.
@@ -250,9 +259,10 @@ We can now add the stimulus and simulate the model on the data.
 .. code-block::
 
     model.add_stimulus(stimulus)
-    results = torch.zeros((len(test_data), n_neurons))
+    n_steps = 10_000
+    results = torch.zeros((50*10, n_steps))
     for i, data in enumerate(loader):
-        results[i*data.num_nodes:(i+1)*data.num_nodes] = model.simulate(data, n_steps=500)
+        results[i*data.num_nodes:(i+1)*data.num_nodes] = model.simulate(data, n_steps=n_steps)
 
 And plot the results to get the following PSTH, ISI and raster plot
 

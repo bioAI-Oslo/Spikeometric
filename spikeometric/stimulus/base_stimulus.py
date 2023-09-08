@@ -8,9 +8,15 @@ class BaseStimulus(nn.Module):
     """
     @property
     def stimulus_masks(self):
+         r"""
+         Returns the batched stimulus masks.
+         """
          return torch.split(self.conc_stimulus_masks, self.split_points.tolist(), dim=0)
 
     def batch_stimulus_masks(self, stimulus_masks: list, batch_size: int) -> list:
+        r"""
+        Batches the stimulus masks into batches of size :obj:`batch_size`, concatenates them, and returns the concatenated stimulus masks and the split points.
+        """
         if batch_size > len(stimulus_masks):
             raise ValueError("Batch size must be smaller or equal to the number of networks.")
         n_neurons = torch.tensor([sm.shape[0] for sm in stimulus_masks])

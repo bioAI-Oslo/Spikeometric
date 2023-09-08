@@ -22,6 +22,8 @@ is invertible.
 Introductory example
 ====================
 
+.. currentmodule:: spikeometric.datasets
+.. currentmodule:: spikeometric.stimulus
 .. currentmodule:: spikeometric.models
 
 .. note::
@@ -123,6 +125,7 @@ For each of our ten networks, we will stimulate 4 random excitatory neurons.
         tau=10,
         dt=1,
         stimulus_masks=stimulus_masks,
+        batch_size=5
     )
     model.add_stimulus(stimulus)
 
