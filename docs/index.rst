@@ -46,6 +46,12 @@ Then you can install `spikeometric` using pip:
 
 .. toctree::
    :maxdepth: 1
+   :caption: Benchmarks
+
+   benchmarks/benchmarks
+
+.. toctree::
+   :maxdepth: 1
    :caption: API Reference
 
    modules/datasets
