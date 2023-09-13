@@ -12,12 +12,12 @@ class PoissonGLM(BaseModel):
 
     More specifically, we have the following equations:
 
-        #. .. math:: g_i(t+1) = r \: \sum_{\tau = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau)c(\tau) + b_i + \mathcal{E}_i(t+1)
+        #. .. math:: g_i(t+1) = r \: \sum_{t' = 0}^{T-1} \sum_{j\in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-t')c(t') + b_i + \mathcal{E}_i(t+1)
         #. .. math:: \mu_i(t+1) = \frac{\Delta t}{\alpha}\: e^{\beta g_i(t+1)}
         #. .. math:: X_i(t+1) \sim \text{Pois}(\mu_i(t+1))
 
     The first equation is implemented in the :meth:`input` method and gives the input to neuron :math:`i` at time :math:`t+1`
-    as a convolution of the spike history of the neighboring neurons with a coupling filter :math:`c`, weighted by the
+    as a convolution of the spike history of the neighboring neurons with a coupling filter :math:`c(t) = e^{- \Delta t \frac{t}{\tau}}`, weighted by the
     connectivity matrix :math:`W_0`, and scaled by the recurrent scaling factor :math:`r`. There is also a uniform background
     input :math:`b_i` and an external stimulus :math:`\mathcal{E}_i(t+1)`.
 
@@ -37,7 +37,7 @@ class PoissonGLM(BaseModel):
     T : int
         The number of time steps to consider back in time.
     tau : float
-        The time constant of the exponential filter.
+        The time constant of the exponential coupling filter.
     dt : float
         The time step of the simulation in milliseconds.
     r : float
