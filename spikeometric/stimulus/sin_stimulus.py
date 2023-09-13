@@ -19,7 +19,7 @@ class SinStimulus(BaseStimulus):
         Period :math:`T` of stimulus
     duration : int
         Duration :math:`\tau` stimulus in total
-    stimulus_mask:
+    stimulus_masks:
         A mask of shape (n_neurons,) indicating which neurons to stimulate.
     batch_size : int
         The number of networks to stimulate in parallel.

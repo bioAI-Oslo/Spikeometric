@@ -204,22 +204,24 @@ def test_sin_stimulus_vectorizes(sin_stimulus):
     t = torch.arange(0, 1000)
     assert sin_stimulus(t).shape == (20, 1000)
 
-def test_loaded_stimulus_is_batched():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_is_batched(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
-    stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=2)
+    stimulus = LoadedStimulus(stim_plan, batch_size=2)
     n_steps = stimulus.n_steps.item()
-    assert stimulus(0).shape == (40,)
-    assert stimulus(n_steps).shape == (40,)
+    assert stimulus(0).shape[0] == 40
+    assert stimulus(n_steps).shape[0] == 40
 
-def test_loaded_stimulus_can_batch_non_uneven_number_of_batches():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_can_batch_non_uneven_number_of_batches(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
-    stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=3)
+    stimulus = LoadedStimulus(stim_plan, batch_size=3)
     n_steps = stimulus.n_steps.item()
-    assert stimulus(0).shape == (60,)
-    assert stimulus(n_steps+1).shape == (60,)
+    assert stimulus(0).shape[0] == 60
+    assert stimulus(n_steps+1).shape[0] == 60
     stimulus.next_batch()
-    assert stimulus(0).shape == (20,)
-    assert stimulus(n_steps+1).shape == (20,)
+    assert stimulus(0).shape[0] == 20
+    assert stimulus(n_steps+1).shape[0] == 20
 
 def test_loaded_stimulus_affects_model_output(bernoulli_glm, example_data, loaded_stimulus):
     initial_spikes = bernoulli_glm.simulate(example_data, n_steps=100, verbose=False)
@@ -239,9 +241,10 @@ def test_loaded_stimulus_matches_original_stimulus(loaded_stimulus):
 def test_loaded_stimulus_is_zero_before_start_of_stimulus(loaded_stimulus):
     assert torch.allclose(loaded_stimulus(-1), torch.zeros(20))
 
-def test_loaded_stimulus_cycles_through_batches():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_cycles_through_batches(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
-    stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=2)
+    stimulus = LoadedStimulus(stim_plan, batch_size=2)
     n_steps = stimulus.n_steps
     first_batch = stimulus(torch.arange(0, n_steps))
     stimulus.next_batch()
@@ -251,23 +254,25 @@ def test_loaded_stimulus_cycles_through_batches():
     stimulus.next_batch()
     assert torch.allclose(second_batch, stimulus(torch.arange(0, n_steps)))
 
-def test_loaded_stimulus_fails_if_batch_size_greater_than_n_networks():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_fails_if_batch_size_greater_than_n_networks(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
     with pytest.raises(ValueError):
-        stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=5)
+        stimulus = LoadedStimulus(stim_plan, batch_size=5)
 
-def test_loaded_stimulus_fails_if_idx_out_of_range():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_fails_if_idx_out_of_range(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
-    stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=2)
+    stimulus = LoadedStimulus(stim_plan, batch_size=2)
     with pytest.raises(ValueError):
         stimulus.set_batch(2)
 
-def test_loaded_stimulus_resets():
+@pytest.mark.parametrize("stim_plan", ["tests/test_data/stim_plan_multidim.pt", "tests/test_data/stim_plan_4_networks.pt"])
+def test_loaded_stimulus_resets(stim_plan):
     from spikeometric.stimulus import LoadedStimulus
-    stimulus = LoadedStimulus("tests/test_data/stim_plan_4_networks.pt", batch_size=1)
+    stimulus = LoadedStimulus(stim_plan, batch_size=1)
     n_steps = stimulus.n_steps
     first_batch = stimulus(torch.arange(0, n_steps))
     stimulus.set_batch(3)
     stimulus.reset()
     assert torch.allclose(first_batch, stimulus(torch.arange(0, n_steps)))
-
