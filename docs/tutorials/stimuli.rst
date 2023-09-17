@@ -38,6 +38,7 @@ After we've defined the model and the stimulus, we can simulate the network and 
         rel_ref_strength=-30,    
         alpha=0.2,
         beta=0.5,
+        r=1
     )
 
     # Define stimulus and add it to the model
@@ -92,6 +93,7 @@ Before we add the stimulus to the model, we'll run a simulation without it to se
         rel_ref_strength=-30,    
         alpha=0.2,
         beta=0.5,
+        r=1
     )
 
     spikes = model.simulate(network, n_steps=n_steps)
@@ -156,6 +158,7 @@ that is close to the frequency of the stimulus.
         rel_ref_strength=-30,    
         alpha=0.2,
         beta=0.5,
+        r=1
     )
 
     stimulus = SinStimulus(
