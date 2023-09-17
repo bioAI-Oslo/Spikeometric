@@ -87,7 +87,7 @@ def test_save_load(bernoulli_glm):
     from spikeometric.models import BernoulliGLM
     with NamedTemporaryFile() as f:
         bernoulli_glm.save(f.name)
-        loaded_model = BernoulliGLM(1, 1, 1, 1, 1, 1, 1, 1, 1)
+        loaded_model = BernoulliGLM(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
         loaded_model.load(f.name)
     for param, loaded_param in zip(bernoulli_glm.parameters(), loaded_model.parameters()):
         assert_close(param, loaded_param)

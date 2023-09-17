@@ -13,12 +13,12 @@ class BernoulliGLM(BaseModel):
 
     More formally, the model can be broken into three steps, each of which is implemented as a separate method in this class:
 
-        #. .. math:: g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)r(\tau) + \sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
+        #. .. math:: g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)ref(\tau) + r\sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
         #. .. math:: p_i(t+1) = \sigma(g_i(t+1) - \theta) \Delta t
         #. .. math:: X_i(t+1) \sim \text{Bernoulli}(p_i(t+1))
 
     The first equation is implemented in the :meth:`input` method and gives us the input to the neuron :math:`i` at time :math:`t+1` as a sum of the refractory, synaptic and external inputs.
-    The refractory input is calculated by convolving the spike history of the neuron itself with a refractory filter :math:`r`, the synaptic input is obtained by convolving the spike history 
+    The refractory input is calculated by convolving the spike history of the neuron itself with a refractory filter :math:`ref`, the synaptic input is obtained by convolving the spike history 
     of the neuron's neighbors with the coupling filter :math:`c`, weighted by the synaptic weights :math:`W_0`, and the exteral input is given by evaluating an external input function :math:`\mathcal{E}` at time :math:`t+1`.
 
     The second equation is implemented in :meth:`non_linearity` which computes the probability that the neuron :math:`i` spikes at time :math:`t+1` by passing 
@@ -40,13 +40,15 @@ class BernoulliGLM(BaseModel):
     abs_ref_scale : int
         The absolute refractory period of the neurons :math:`A_{ref}` in time steps
     abs_ref_strength : float
-        The large negative activation :math:`a` added to the neurons during the absolute refractory period
+        The large negative activation :math:`abs` added to the neurons during the absolute refractory period
     rel_ref_scale : int
         The relative refractory period of the neurons :math:`R_{ref}` in time steps
     rel_ref_strength : float
-        The negative activation :math:`r` added to the neurons during the relative refractory period (tunable)
+        The negative activation :math:`rel` added to the neurons during the relative refractory period (tunable)
     beta : float
         The decay rate :math:`\beta` of the weights. (tunable)
+    r : float
+        The scaling of the recurrent connections. (tunable)
     rng : torch.Generator
         The random number generator for sampling from the Bernoulli distribution.
     """
@@ -61,6 +63,7 @@ class BernoulliGLM(BaseModel):
             rel_ref_scale: int,
             rel_ref_strength: int,
             beta: float,
+            r: float,
             rng=None
         ):
         super().__init__()
@@ -76,6 +79,7 @@ class BernoulliGLM(BaseModel):
 
         # Parameters are used to store tensors that will be tunable
         self.register_parameter("theta", nn.Parameter(torch.tensor(theta, dtype=torch.float)))
+        self.register_parameter("r", torch.nn.Parameter(torch.tensor(r, dtype=torch.float)))
         self.register_parameter("beta", nn.Parameter(torch.tensor(beta, dtype=torch.float)))
         self.register_parameter("alpha", nn.Parameter(torch.tensor(alpha, dtype=torch.float)))
         self.register_parameter("rel_ref_strength", nn.Parameter(torch.tensor(rel_ref_strength, dtype=torch.float)))
@@ -88,7 +92,7 @@ class BernoulliGLM(BaseModel):
         Computes the input at time step :obj:`t+1` by adding together the synaptic input from neighboring neurons and the stimulus input.
 
         .. math::
-            g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)r(\tau) + \sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
+            g_i(t+1) = \sum_{\tau=0}^{T-1} \left(X_i(t-\tau)ref(\tau) + \sum_{j \in \mathcal{N}(i)} (W_0)_{j, i} X_j(t-\tau) c(\tau)\right) + \mathcal{E}_i(t+1)
 
         Parameters
         ----------
@@ -106,7 +110,7 @@ class BernoulliGLM(BaseModel):
         synaptic_input : torch.Tensor [n_neurons, 1]
         
         """
-        return self.synaptic_input(edge_index, W, state=state) + self.stimulus_input(t)
+        return self.r * self.synaptic_input(edge_index, W, state=state) + self.stimulus_input(t)
 
     def non_linearity(self, input: torch.Tensor) -> torch.Tensor:
         r"""
@@ -150,7 +154,7 @@ class BernoulliGLM(BaseModel):
         r"""
         The connectivity filter constructs a tensor holding the weights of the edges in the network.
         This is done by filtering the initial coupling weights :math:`W_0` with the coupling filter :math:`c` 
-        and using a refractory filter :math:`r` as self-edge weights to emulate the refractory period.
+        and using a refractory filter :math:`ref` as self-edge weights to emulate the refractory period.
 
         For the coupling edges, we are given an initial weight :math:`(W_0)_{i,j}` for each edge. This
         tells us how strong the connection between neurons :math:`i` and :math:`j` is immediately after a spike event.
@@ -172,16 +176,16 @@ class BernoulliGLM(BaseModel):
         This is modeled by weighting spike events by to :math:`r e^{-\alpha t \Delta t}` for
         the next :math:`R_{ref}` time steps.
     
-        That is, the refractory filter :math:`r` is given by
+        That is, the refractory filter :math:`ref` is given by
 
         .. math::
-                r(t) = \begin{cases}
-                    a & \text{if } t < A_{ref} \\
-                    r e^{-\alpha t \Delta t} & \text{if } A_{ref} \leq t < A_{ref} + R_{ref} \\
+                ref(t) = \begin{cases}
+                    abs & \text{if } t < A_{ref} \\
+                    rel e^{-\alpha t \Delta t} & \text{if } A_{ref} \leq t < A_{ref} + R_{ref} \\
                     0 & \text{if }  A_{ref} + R_{ref} \leq t
                 \end{cases}
 
-        And we set `W_{i, i}(t) = r(t)` for all neurons :math:`i`.
+        And we set `W_{i, i}(t) = ref(t)` for all neurons :math:`i`.
 
         All of this information can be represented by a tensor :math:`W` of shape :math:`N\times N\times T`, where
         :code:`W[i, j, t]` is the weight of the edge from neuron :math:`i` to neuron :math:`j` at time step :math:`t` after a spike event.
