@@ -51,11 +51,11 @@ class SAModel(BaseModel):
         device = edge_index.device
 
         # If verbose is True, a progress bar is shown
-        pbar = tqdm(range(n_steps + equilibration_steps), colour="#3E5641") if verbose else range(n_steps + equilibration_steps)
+        pbar = tqdm(range(n_steps), colour="#3E5641") if verbose else range(n_steps)
         
         # Initialize the state of the network
-        x = torch.zeros(n_neurons, n_steps + equilibration_steps, device=device, dtype=store_as_dtype)
-        initial_activation = torch.rand((n_neurons,1), device=device)
+        x = torch.zeros(n_neurons, n_steps, device=device, dtype=store_as_dtype)
+        initial_activation = torch.rand((n_neurons, T), device=device)
         activation = self.equilibrate(edge_index, W, initial_activation, equilibration_steps, store_as_dtype=store_as_dtype)
 
         # Simulate the network
@@ -176,7 +176,7 @@ class SAModel(BaseModel):
 
         self.requires_grad_(False) # Freeze the parameters 
 
-    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, inital_state: torch.Tensor, n_steps=100, store_as_dtype: torch.dtype = torch.int) -> torch.Tensor:
+    def equilibrate(self, edge_index: torch.Tensor, W: torch.Tensor, initial_state: torch.Tensor, n_steps=100, store_as_dtype: torch.dtype = torch.int) -> torch.Tensor:
         """
         Equilibrate the network to a given connectivity matrix.
 
@@ -186,7 +186,7 @@ class SAModel(BaseModel):
             The connectivity of the network
         W: torch.Tensor
             The connectivity filter
-        inital_state: torch.Tensor
+        initial_state: torch.Tensor
             The initial state of the network
         n_steps: int
             The number of time steps to equilibrate for
@@ -198,13 +198,14 @@ class SAModel(BaseModel):
         x: torch.Tensor
             The state of the network at each time step
         """
-        n_neurons = inital_state.shape[0]
-        device = inital_state.device
+        n_neurons = initial_state.shape[0]
+        device = initial_state.device
         x_equi = torch.zeros((n_neurons, self.T + n_steps), device=device, dtype=store_as_dtype)
-        x_equi[:, self.T-1] = inital_state.squeeze()
+        activation_equi = initial_state
 
         # Equilibrate the network
         for t in range(self.T, self.T + n_steps):
-            x_equi[:, t] = self(edge_index=edge_index, W=W, state=x_equi[:, t-self.T:t])
+            x_equi[:, t] = self(edge_index=edge_index, W=W, state=activation_equi)
+            activation_equi = self.update_activation(spikes=x_equi[:, t:t+self.T], activation=activation_equi)
         
-        return x_equi[:, -self.T:]
+        return activation_equi
