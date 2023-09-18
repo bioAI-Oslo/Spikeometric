@@ -29,3 +29,17 @@ def test_storing_different_dtypes(bernoulli_glm, example_data):
     for dtype in [torch.uint8, torch.int, torch.float, torch.double, torch.bool]:
         X = bernoulli_glm.simulate(example_data, n_steps=1, verbose=False, store_as_dtype=dtype)
         assert X.dtype == dtype
+
+@pytest.mark.parametrize(
+    "model,example_data",
+    [
+        (pytest.lazy_fixture('bernoulli_glm'), pytest.lazy_fixture('bernoulli_glm_network')),
+        (pytest.lazy_fixture('poisson_glm'), pytest.lazy_fixture('poisson_glm_network')),
+        (pytest.lazy_fixture('rectified_lnp'), pytest.lazy_fixture('rectified_lnp_network')),
+        (pytest.lazy_fixture('threshold_sam'), pytest.lazy_fixture('threshold_sam_network')),
+        (pytest.lazy_fixture('rectified_sam'), pytest.lazy_fixture('rectified_sam_network')),
+    ],
+)
+def test_does_not_store_equilibration_steps(model, example_data):
+    X = model.simulate(example_data, n_steps=100, verbose=False, equilibration_steps=10)
+    assert X.shape[1] == 100
