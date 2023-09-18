@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "spikeometric"
-version = "1.0.2"
+version = "1.0.3"
 description = "Spikeometric is a Pytorch Geometric based framework for simulating Spiking Neural Networks using Linear Non-linear Cascade models"
 authors = ["Jakob Sønstebø <jakobls16@gmail.com>"]
 readme = "README.md"
