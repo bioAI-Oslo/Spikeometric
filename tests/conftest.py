@@ -96,6 +96,7 @@ def bernoulli_glm():
         rel_ref_scale=7,
         rel_ref_strength=-30.,
         alpha=0.2,
+        r=1,
         rng=rng,
     )
     return model

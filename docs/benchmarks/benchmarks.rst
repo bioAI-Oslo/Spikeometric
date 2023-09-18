@@ -19,7 +19,7 @@ One exception is the :class:`BernoulliGLM`, which also includes a refractory per
 an additional :math:`N_{neurons}` synapses.
 
 We also need to store the number of spikes of each neuron per time step, which by default consumes 32 bytes.
-In most cases, however, we don't expect the number of spikes per time step for any neuron to exceed 127, which means we can safely reduce the memory conumption to
+In most cases, however, we don't expect the number of spikes per time step for any neuron to exceed 127, which means we can safely reduce the memory consumption to
 8 bytes by passing :code:`torch.int8` as the :code:`store_as_dtype` argument of the :meth:`simulate` method if we need additional memory.
 
 Concretely, the total memory usage (in bytes) of GLM models can be estimated as
