@@ -9,10 +9,11 @@ tags:
     - linear non-linear poisson models
 authors:
     - name: Jakob L. Sønstebø
+    orcid: 0009-0009-0584-9293
       affiliation: 1
     - name: Herman Brunborg
       affiliation: 2
-    - name: Mikkel Elle Leppereød
+    - name: Mikkel Elle Lepperød
       orcid: 0000-0002-4262-5549
       affiliation: "1, 2"
 affiliations:
