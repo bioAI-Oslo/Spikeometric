@@ -10,18 +10,16 @@ tags:
 authors:
     - name: Jakob L. Sønstebø
       affiliation: 1
+    - name: Herman Brunborg
+      affiliation: 2
     - name: Mikkel Elle Leppereød
       orcid: 0000-0002-4262-5549
-      affiliation: "1, 2, 3"
-    - name: Herman Brunborg
-      affiliation: 3
+      affiliation: "1, 2"
 affiliations:
     - name: Department of Numerical Analysis and Scientific Computing, Simula Research Laboratory, Oslo, Norway
       index: 1
-    - name: Institute of Basic Medical Sciences, University of Oslo, Oslo, Norway
-      index: 2
     - name: Department of Physics, University of Oslo, Oslo, Norway
-      index: 3
+      index: 2
 date: 23 February 2023
 bibliography: paper.bib
 ---
