@@ -229,7 +229,7 @@ class BaseModel(MessagePassing):
         for t in pbar:
             curr_state = self(edge_index=edge_index, W=W, state=state.states, t=t-T)
             state.add(curr_state)
-            sparse = torch.where(state)[0]
+            sparse = torch.where(curr_state)[0]
             indices[1] += [t]*len(sparse)
             indices[0] += sparse.tolist()
 
