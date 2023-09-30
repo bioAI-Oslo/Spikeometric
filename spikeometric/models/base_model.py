@@ -6,6 +6,8 @@ from typing import Union, Callable
 from spikeometric.stimulus import BaseStimulus
 from typing import List
 from spikeometric.datasets import RollingStateArray
+import scipy.sparse as sp
+import numpy as np
 
 class BaseModel(MessagePassing):
     """
@@ -231,11 +233,14 @@ class BaseModel(MessagePassing):
             state.add(curr_state)
             sparse = torch.where(curr_state)[0]
             indices[1] += [t]*len(sparse)
-            indices[0] += sparse.tolist()
+            indices[0].append(sparse)
+
+        indices[0] = torch.concat(indices[0], dim=0).tolist()
 
         result = torch.sparse_coo_tensor(
             indices, torch.ones(len(indices[0]), device=device), (n_neurons, n_steps), dtype=store_as_dtype
             )
+
 
         # If the stimulus is batched, we increment the batch in preparation for the next batch
         if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
