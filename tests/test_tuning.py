@@ -28,9 +28,9 @@ def test_only_model_tunable(bernoulli_glm, sin_stimulus, saved_glorot_dataset):
         assert initial_parameters[parameter] == bernoulli_glm.tunable_parameters[parameter]
 
 def test_tune_rectified_sa_model(rectified_sam, rectified_sam_network):
-    initial_spikes = rectified_sam.simulate(rectified_sam_network, 100)
+    initial_spikes = rectified_sam.simulate(rectified_sam_network, 100).to_dense()
     rectified_sam.tune(rectified_sam_network, 10, n_steps=100, n_epochs=1, lr=0.01, verbose=False)
-    final_spikes = rectified_sam.simulate(rectified_sam_network, 100)
+    final_spikes = rectified_sam.simulate(rectified_sam_network, 100).to_dense()
     assert not initial_spikes.float().mean() == final_spikes.float().mean()
 
 def test_all_parameters_tunable(bernoulli_glm, saved_glorot_dataset):
@@ -62,7 +62,7 @@ def test_tuning_improves_firing_rate(bernoulli_glm, example_data):
     firing_rate = 62.5
     initial_firing_rate = 7.2
     bernoulli_glm.tune(example_data, firing_rate, tunable_parameters, n_steps=10, n_epochs=1, lr=0.1, verbose=False)
-    X = bernoulli_glm.simulate(example_data, n_steps=1000, verbose=False)
+    X = bernoulli_glm.simulate(example_data, n_steps=1000, verbose=False).to_dense()
     final_firing_rate = X.float().mean() / bernoulli_glm.dt * 1000
     assert final_firing_rate > initial_firing_rate
 

@@ -218,10 +218,9 @@ class BaseModel(MessagePassing):
         device = edge_index.device
 
         # If verbose is True, a progress bar is shown
-        pbar = tqdm(range(T, n_steps + T), colour="#3E5641") if verbose else range(T, n_steps + T)
+        pbar = tqdm(range(n_steps), colour="#3E5641") if verbose else range(n_steps)
         
         # Simulate the network
-        x = torch.zeros((n_neurons, n_steps + T), device=device, dtype=store_as_dtype)
         inital_state = torch.randint(0, 2, device=device, size=(n_neurons,), generator=self._rng, dtype=store_as_dtype)
         state = RollingStateArray(
             self.equilibrate(edge_index, W, inital_state, n_steps=equilibration_steps, store_as_dtype=store_as_dtype)
@@ -229,19 +228,21 @@ class BaseModel(MessagePassing):
         indices = [[], []]
         for t in pbar:
             curr_state = self(edge_index=edge_index, W=W, state=state.states, t=t-T)
-            state.add(
-                curr_state
-            )
+            state.add(curr_state)
             sparse = torch.where(state)[0]
             indices[1] += [t]*len(sparse)
             indices[0] += sparse.tolist()
+
+        result = torch.sparse_coo_tensor(
+            indices, torch.ones(len(indices[0]), device=device), (n_neurons, n_steps), dtype=store_as_dtype
+            )
 
         # If the stimulus is batched, we increment the batch in preparation for the next batch
         if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
             self.stimulus.next_batch()
         
         # Return the state of the network at each time step
-        return x[:, T:]
+        return result
     
     def tune(
         self,

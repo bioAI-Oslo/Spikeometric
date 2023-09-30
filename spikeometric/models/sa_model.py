@@ -54,21 +54,28 @@ class SAModel(BaseModel):
         pbar = tqdm(range(n_steps), colour="#3E5641") if verbose else range(n_steps)
         
         # Initialize the state of the network
-        x = torch.zeros(n_neurons, n_steps, device=device, dtype=store_as_dtype)
         initial_activation = torch.rand((n_neurons, T), device=device)
         activation = self.equilibrate(edge_index, W, initial_activation, equilibration_steps, store_as_dtype=store_as_dtype)
-
+        spikes = torch.zeros((n_neurons, T), device=device)
         # Simulate the network
+        indices = [[],[]]
         for t in pbar:
-            x[:, t] = self(edge_index=edge_index, W=W, state=activation, t=t)
-            activation = self.update_activation(spikes=x[:, t:t+T], activation=activation)
+            spikes[:, 0] = self(edge_index=edge_index, W=W, state=activation, t=t)
+            activation = self.update_activation(spikes=spikes, activation=activation)
+            sparse = torch.where(spikes[:,0])[0]
+            indices[1] += [t]*len(sparse)
+            indices[0] += sparse.tolist()
+            
+        result = torch.sparse_coo_tensor(
+            indices, torch.ones(len(indices[0]), device=device), (n_neurons, n_steps), dtype=store_as_dtype
+            )
 
         # If the stimulus is batched, we increment the batch in preparation for the next batch
         if isinstance(self.stimulus, BaseStimulus) and self.stimulus.n_batches > 1:
             self.stimulus.next_batch()
 
         # Return the state of the network at each time step
-        return x
+        return result
 
     def tune(
         self,
